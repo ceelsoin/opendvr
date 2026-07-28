@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://github.com/ceelsoin/opendvr/tree/main/docs
+    about: Check the docs (especially Troubleshooting and Chinese OEM cameras) before opening an issue.

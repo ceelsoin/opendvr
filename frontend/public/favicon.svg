@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFB35A"/>
+      <stop offset="100%" stop-color="#FF6A22"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Fundo -->
+  <circle cx="256" cy="256" r="256" fill="url(#bg)"/>
+
+  <!-- Corpo da webcam -->
+  <rect x="107" y="117" width="299" height="213" rx="105" fill="#fff"/>
+
+  <!-- Indicador -->
+  <circle cx="160" cy="181" r="18" fill="#FF9A45"/>
+
+  <!-- Lente -->
+  <circle cx="256" cy="223" r="70" fill="#FF9A45"/>
+  <circle cx="256" cy="223" r="46" fill="#fff"/>
+
+  <!-- Suporte -->
+  <path d="M228 338h56l16 31h-88z" fill="#fff"/>
+
+  <!-- Base -->
+  <rect x="147" y="369" width="217" height="25" rx="12.5" fill="#fff"/>
+</svg>

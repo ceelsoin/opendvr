@@ -1,0 +1,73 @@
+services:
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    container_name: ipcam-mediamtx
+    restart: unless-stopped
+    ports:
+      - "8554:8554" # RTSP (útil para testar com VLC/ffplay diretamente)
+      - "8889:8889" # WebRTC
+      # A porta 8888 (HLS) NÃO é publicada: o frontend acessa o HLS através
+      # do proxy /hls do backend (ver backend/src/app.ts), não diretamente.
+      # As portas 9997 (Control API) e 9996 (Playback API) também NÃO são
+      # publicadas para o host/LAN de propósito: são de administração e
+      # ficam acessíveis apenas dentro da rede interna do Docker (usadas
+      # pelo backend).
+    volumes:
+      - ./backend/mediamtx.yml:/mediamtx.yml:ro
+      - ./recordings:/recordings
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: ipcam-backend
+    restart: unless-stopped
+    depends_on:
+      - mediamtx
+    ports:
+      - "4000:4000"
+      # VLC RTSP compatibility relay ports (media/vlcRelay.ts) - only needed
+      # published to the host for manual testing (e.g. opening
+      # rtsp://localhost:9500/relay directly in VLC); MediaMTX reaches them
+      # over the internal docker network regardless of this.
+      - "9500-9510:9500-9510"
+    environment:
+      PORT: 4000
+      NODE_ENV: production
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      # Login session lifetime (see backend/src/api/routes/auth.routes.ts).
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+      # Only set to "true" if this is deployed behind HTTPS (e.g. a reverse
+      # proxy terminating TLS) - see auth/token.ts for why this defaults off
+      # (plain-HTTP LAN access is the common case for this app).
+      COOKIE_SECURE: ${COOKIE_SECURE:-}
+      DATA_DIR: /data
+      RECORDINGS_DIR: /recordings
+      SNAPSHOTS_DIR: /data/snapshots
+      DB_FILE: /data/ipcam.db
+      MEDIAMTX_API_URL: http://mediamtx:9997
+      MEDIAMTX_RTSP_URL: rtsp://mediamtx:8554
+      MEDIAMTX_HLS_URL: http://mediamtx:8888
+      MEDIAMTX_PLAYBACK_URL: http://mediamtx:9996
+      # Hostname MediaMTX uses to reach this backend's VLC RTSP compatibility
+      # relay processes (see backend/src/media/vlcRelay.ts) - the service
+      # name below, since they're on the same docker-compose network.
+      VLC_RELAY_HOST: backend
+      # Optional external notifications on motion/tamper events (see
+      # backend/src/notifications/*.ts) - set these in a .env file at the
+      # repo root to enable; leave unset to disable a channel. All are also
+      # editable at runtime from the Settings page (takes precedence).
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      GENERIC_WEBHOOK_URL: ${GENERIC_WEBHOOK_URL:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_SECURE: ${SMTP_SECURE:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      EMAIL_TO: ${EMAIL_TO:-}
+    volumes:
+      - ./app-data:/data
+      - ./recordings:/recordings

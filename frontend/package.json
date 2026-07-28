@@ -1,0 +1,40 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "start": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/react-query": "^5.101.4",
+    "axios": "^1.18.1",
+    "date-fns": "^4.4.0",
+    "hls.js": "^1.6.16",
+    "i18next": "^26.3.6",
+    "nipplejs": "^1.0.4",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-grid-layout": "^2.2.3",
+    "react-i18next": "^17.0.11",
+    "react-router-dom": "^7.18.1",
+    "socket.io-client": "^4.8.3",
+    "tailwindcss": "^4.3.3",
+    "zod": "^4.4.3",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "oxlint": "^1.71.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.1"
+  }
+}

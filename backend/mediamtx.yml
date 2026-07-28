@@ -1,0 +1,87 @@
+# Configuração base do MediaMTX (motor de streaming) usado pelo OpenDVR.
+#
+# Local (sem Docker): baixe o binário em
+#   https://github.com/bluenviron/mediamtx/releases e rode:
+#   ./mediamtx mediamtx.yml
+#
+# Com Docker: já é iniciado pelo serviço "mediamtx" do docker-compose.yml
+# na raiz do projeto, que monta este arquivo automaticamente.
+#
+# O backend Node.js só lida com ONVIF (descoberta, PTZ, eventos) e com a
+# API/DB de câmeras. Quem faz ingestão RTSP, republicação em HLS/WebRTC e
+# GRAVAÇÃO em disco é o próprio MediaMTX (recurso nativo, sem precisar de
+# ffmpeg para esses casos).
+
+logLevel: info
+
+# Timeouts de leitura/escrita para conexões de origem (RTSP source) e
+# outras. Padrão do MediaMTX é 10s - aumentado bem além disso para tolerar
+# câmeras de alta latência (Wi-Fi congestionado, stacks embarcadas lentas,
+# o relay VLC usado para contornar incompatibilidades RTSP - ver
+# media/vlcRelay.ts) sem gerar "stopped: timed out" prematuramente.
+readTimeout: 120s
+writeTimeout: 120s
+
+# Importante: use ":9997" (todas as interfaces) em vez de "127.0.0.1:9997"
+# para que outros containers (o backend) consigam alcançar a API.
+api: yes
+apiAddress: :9997
+
+# Por padrão, o MediaMTX só permite a ação "api" (usada pelo backend para
+# registrar câmeras dinamicamente) para requisições vindas de 127.0.0.1.
+# Como o backend acessa essa API a partir de outro container (IP diferente
+# de loopback), liberamos a ação "api"/"metrics" para qualquer IP aqui.
+# Isso só é seguro porque as portas 9997/9996 NÃO são publicadas para a
+# rede local no docker-compose.yml (acessíveis apenas dentro da rede
+# interna do Docker). As ações de mídia (publish/read/playback) já são
+# liberadas por padrão pelo MediaMTX.
+authInternalUsers:
+  - user: any
+    pass:
+    ips: []
+    permissions:
+      - action: publish
+      - action: read
+      - action: playback
+  - user: any
+    pass:
+    ips: []
+    permissions:
+      - action: api
+      - action: metrics
+
+rtsp: yes
+rtspAddress: :8554
+
+hls: yes
+hlsAddress: :8888
+hlsAllowOrigin: "*"
+
+webrtc: yes
+webrtcAddress: :8889
+
+# Servidor de playback: permite baixar/servir trechos gravados via HTTP,
+# usado pela timeline do frontend (GET /get?path=...&start=...&duration=...).
+playback: yes
+playbackAddress: :9996
+playbackAllowOrigins: ["*"]
+
+# Configurações padrão aplicadas a todos os paths (câmeras), a menos que
+# sejam sobrescritas individualmente em "paths".
+pathDefaults:
+  # Grava continuamente em segmentos fMP4 dentro de /recordings/<camera>/...
+  record: no
+  recordPath: /recordings/%path/%Y-%m-%d_%H-%M-%S-%f
+  recordFormat: fmp4
+  recordSegmentDuration: 5m
+  # Apaga segmentos após N dias (retenção). 0s desabilita a limpeza automática.
+  recordDeleteAfter: 7d
+
+paths:
+  # Câmeras são registradas dinamicamente pelo backend via API do MediaMTX
+  # (POST /v3/config/paths/add/<nome>) quando cadastradas na aplicação.
+  # Exemplo de registro manual/estático:
+  # sala:
+  #   source: rtsp://usuario:senha@192.168.0.50:554/stream1
+  #   sourceOnDemand: yes
+  #   record: yes

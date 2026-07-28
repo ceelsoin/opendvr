@@ -1,0 +1,8 @@
+**/node_modules
+backend/dist
+backend/data
+frontend/dist
+**/.env
+**/*.log
+.git
+*.mp4

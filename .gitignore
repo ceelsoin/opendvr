@@ -1,0 +1,5 @@
+app-data/
+recordings/
+# Stray local-dev data dir (created if the backend is run from the repo root instead of backend/).
+data/
+.DS_Store
