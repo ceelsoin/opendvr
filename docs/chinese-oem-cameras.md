@@ -50,6 +50,37 @@ tried "Alertas de movimento" (ONVIF) and no events ever arrived, this is the
 explanation — no need to dig further, it's a known firmware limitation of
 the camera.
 
+## Limitation: PTZ may not actually work even if the camera has a motor
+
+**Symptom**: "Câmera com PTZ" is enabled, the PTZ joystick/buttons are
+visible, but moving them does nothing (or errors out).
+
+Most cameras sold under these brands are **fixed** (no pan/tilt motor at
+all) — if that's the case here, no software fix is possible, ONVIF PTZ
+requires physical hardware to move. If the camera genuinely is a
+motorized/PTZ model, the same pattern documented above for ONVIF Events
+applies: some cheap OEM ONVIF stacks advertise a capability in
+`GetCapabilities` without actually implementing the corresponding SOAP
+service correctly, and PTZ is not immune to this.
+
+**What to do to tell these apart**: as of this app's PTZ error handling,
+a failed move/stop/preset action now shows a toast with the underlying
+ONVIF error message (previously this failed silently, making it impossible
+to tell "no motor" apart from "broken ONVIF PTZ implementation" apart from
+"wrong profile token", etc). Read that message first:
+- *"Esta câmera não anunciou um serviço PTZ via ONVIF"* — `GetCapabilities`
+  never listed a PTZ service for this camera at all. If it has no motor,
+  this is expected and there's nothing to fix. If it does have a motor,
+  the camera's ONVIF stack simply doesn't expose PTZ over ONVIF — try the
+  manufacturer's own app instead (same advice as the Events limitation
+  above).
+- Any other ONVIF/SOAP error (timeout, hang up, fault response) when a
+  move/preset command is sent — the capability was advertised but the
+  actual command failed, matching the same "advertises but doesn't
+  implement" pattern seen with Events on these cameras. Try the ONVIF debug
+  console (`/onvif-debug`, commands `ptz.status`/`ptz.move`) against the
+  camera for a lower-level look before assuming it's fixable.
+
 ## Limitation 2: incomplete RTSP (broken Digest authentication)
 
 **Symptom**: RTSP works fine in VLC, ffplay, AgentDVR — but this app's
@@ -62,6 +93,7 @@ original `401` challenge. MediaMTX's Go RTSP client (`gortsplib`) doesn't
 replicate that behavior (not a bug on its part — it's a strict reading of
 the RTSP spec that these cameras don't follow); the `live555` client used
 by VLC tolerates this out of the box.
+
 
 **Fallback implemented**: the `rtspCompatMode: "vlc-relay"` camera
 compatibility mode. A headless VLC process

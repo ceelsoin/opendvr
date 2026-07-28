@@ -11,7 +11,7 @@
 # Override the image name if you're publishing to your own Docker Hub
 # account/org: `make release IMAGE=yourname/opendvr`.
 
-IMAGE ?= ceelsoin/opendvr
+IMAGE ?= celsoenssure/opendvr
 TAG ?= latest
 VERSION ?=
 PLATFORMS ?= linux/amd64,linux/arm64

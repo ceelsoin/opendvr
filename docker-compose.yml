@@ -17,6 +17,7 @@ services:
       - ./recordings:/recordings
 
   backend:
+    image: celsoenssure/opendvr:latest
     build:
       context: .
       dockerfile: backend/Dockerfile
