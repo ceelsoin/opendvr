@@ -1,5 +1,7 @@
 import { usePtzGotoPreset, usePtzPresets, usePtzSavePreset } from "../../api/ptz";
 import { usePtzTargetStore } from "../../store/ptzTargetStore";
+import { extractErrorMessage } from "../../lib/apiError";
+import { useToastStore } from "../../store/toastStore";
 import { PtzJoystick } from "./PtzJoystick";
 
 /**
@@ -12,6 +14,7 @@ import { PtzJoystick } from "./PtzJoystick";
 export function PtzTargetPanel() {
   const target = usePtzTargetStore((s) => s.target);
   const clearTarget = usePtzTargetStore((s) => s.clearTarget);
+  const addToast = useToastStore((s) => s.addToast);
   const cameraId = target?.id ?? "";
 
   const presets = usePtzPresets(cameraId, Boolean(target));
@@ -22,7 +25,17 @@ export function PtzTargetPanel() {
 
   const handleSavePreset = () => {
     const name = window.prompt("Nome do preset:");
-    if (name) savePreset.mutate(name);
+    if (name) {
+      savePreset.mutate(name, {
+        onError: (err) => addToast("error", extractErrorMessage(err, "Falha ao salvar o preset.")),
+      });
+    }
+  };
+
+  const handleGotoPreset = (token: string) => {
+    gotoPreset.mutate(token, {
+      onError: (err) => addToast("error", extractErrorMessage(err, "Falha ao ir para o preset.")),
+    });
   };
 
   return (
@@ -64,7 +77,7 @@ export function PtzTargetPanel() {
             <button
               key={preset.token}
               type="button"
-              onClick={() => gotoPreset.mutate(preset.token)}
+              onClick={() => handleGotoPreset(preset.token)}
               className="rounded border border-neutral-700 px-2 py-0.5 text-[11px] hover:bg-neutral-800"
             >
               {preset.name ?? preset.token}
