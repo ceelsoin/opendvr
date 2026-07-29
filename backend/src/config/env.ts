@@ -100,4 +100,17 @@ export const env = {
   // Contact URI required by the Web Push protocol (sent to push services
   // so they can reach the sender about issues) - a mailto: or https: URL.
   vapidSubject: process.env.VAPID_SUBJECT || "mailto:admin@opendvr.local",
+
+  // Optional local HTTPS listener, in ADDITION to the plain-HTTP one above
+  // (which keeps working unchanged) - browsers only allow Service
+  // Workers/the Push API on a "secure context" (HTTPS or `localhost`), so
+  // this is what makes push notifications (lib/webPush.ts) actually usable
+  // when accessing the app over a LAN IP instead of localhost. Point these
+  // at a cert/key pair generated with `mkcert` for your LAN
+  // hostname/IP (see docs/configuration.md) - both must be set (and
+  // readable) for the HTTPS listener to start; leaving them unset is fully
+  // supported and changes nothing about the existing HTTP-only behavior.
+  httpsPort: Number(process.env.HTTPS_PORT ?? 4443),
+  httpsCertFile: process.env.HTTPS_CERT_FILE || null,
+  httpsKeyFile: process.env.HTTPS_KEY_FILE || null,
 };

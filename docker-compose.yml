@@ -27,6 +27,11 @@ services:
       - mediamtx
     ports:
       - "4000:4000"
+      # Optional local HTTPS listener (see HTTPS_CERT_FILE/HTTPS_KEY_FILE
+      # below) - only needed for browser Push notifications to work when
+      # accessing over a LAN IP instead of localhost (the Push API requires
+      # a secure context). Harmless to leave published even if unused.
+      - "${HTTPS_PORT:-4443}:${HTTPS_PORT:-4443}"
       # VLC RTSP compatibility relay ports (media/vlcRelay.ts) - only needed
       # published to the host for manual testing (e.g. opening
       # rtsp://localhost:9500/relay directly in VLC); MediaMTX reaches them
@@ -43,6 +48,15 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       # Login session lifetime (see backend/src/api/routes/auth.routes.ts).
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+      # Optional local HTTPS (see backend/src/index.ts) - only needed to
+      # unlock browser Push notifications on a LAN IP (HTTPS or localhost
+      # only). Generate a cert trusted by your own devices with mkcert
+      # (see docs/configuration.md), then set these two to point at it and
+      # mount the files below. Leave both unset (default) to skip this
+      # entirely - HTTP-only behavior is unchanged.
+      HTTPS_PORT: ${HTTPS_PORT:-4443}
+      HTTPS_CERT_FILE: ${HTTPS_CERT_FILE:-}
+      HTTPS_KEY_FILE: ${HTTPS_KEY_FILE:-}
       # Only set to "true" if this is deployed behind HTTPS (e.g. a reverse
       # proxy terminating TLS) - see auth/token.ts for why this defaults off
       # (plain-HTTP LAN access is the common case for this app).
@@ -85,3 +99,9 @@ services:
     volumes:
       - ./app-data:/data
       - ./recordings:/recordings
+      # Mounts your mkcert-generated cert/key (see docs/configuration.md)
+      # read-only into the container, at the paths HTTPS_CERT_FILE/
+      # HTTPS_KEY_FILE point to above. Only takes effect if you actually
+      # set those two env vars and this file exists on the host -
+      # otherwise this volume line is simply unused.
+      - ./certs:/certs:ro

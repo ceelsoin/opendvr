@@ -1,4 +1,6 @@
 import { createServer } from "node:http";
+import { createServer as createHttpsServer } from "node:https";
+import fs from "node:fs";
 import cron from "node-cron";
 import { env } from "./config/env.js";
 import { createApp } from "./app.js";
@@ -28,6 +30,30 @@ initWebSocket(httpServer);
 httpServer.listen(env.port, () => {
   logger.info(`OpenDVR backend listening on http://localhost:${env.port}`);
 });
+
+// Optional second listener, over HTTPS, for browsers to unlock the Push
+// API/Service Workers (only available in a "secure context" - HTTPS or
+// localhost - see config/env.ts's httpsCertFile/httpsKeyFile doc comment).
+// Fully opt-in: only starts if BOTH files are set AND actually readable: a
+// misconfigured path (typo, forgot to mount the volume, etc) just skips
+// this with a warning instead of crashing the whole app on boot.
+let httpsServer: ReturnType<typeof createHttpsServer> | undefined;
+if (env.httpsCertFile && env.httpsKeyFile) {
+  try {
+    const key = fs.readFileSync(env.httpsKeyFile);
+    const cert = fs.readFileSync(env.httpsCertFile);
+    httpsServer = createHttpsServer({ key, cert }, app);
+    initWebSocket(httpsServer);
+    httpsServer.listen(env.httpsPort, () => {
+      logger.info(`OpenDVR backend also listening on https://localhost:${env.httpsPort}`);
+    });
+  } catch (err) {
+    logger.warn(
+      { err, certFile: env.httpsCertFile, keyFile: env.httpsKeyFile },
+      "HTTPS_CERT_FILE/HTTPS_KEY_FILE are set but couldn't be read - skipping the local HTTPS listener (HTTP still works normally)"
+    );
+  }
+}
 
 // MediaMTX paths only exist in-memory (registered via its Control API), so
 // they're lost whenever the MediaMTX container/process restarts - even if
@@ -177,6 +203,7 @@ function shutdown(signal: string) {
   void stopAllWebpageBridges();
   stopAllRotationBridges();
   stopAllMotionDetectors();
+  httpsServer?.close();
   httpServer.close(() => process.exit(0));
   setTimeout(() => process.exit(1), 5000).unref();
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
@@ -80,6 +80,60 @@ export function CameraTile({ camera, fillHeight = false }: { camera: Camera; fil
   const disableCamera = useDisableCamera();
   const restartCamera = useRestartCamera();
   const testConnection = useTestCameraConnection();
+
+  // Same terminal-log look as the "Testar conexão"/restart LogModal, but
+  // for this locally-computed diagnostic info (no backend log tailing
+  // involved) - lines are revealed one at a time when the panel is opened,
+  // instead of dumping the whole list at once, for the same "live log" feel.
+  const diagnosticLines = useMemo(() => {
+    if (!streamStatus.data) return [t("cameras.diagnosticLoading")];
+    const d = streamStatus.data;
+    const lines = [
+      t("cameras.diagnosticConfiguredPath", { value: d.configured ? t("cameras.yes") : t("cameras.no") }),
+      t("cameras.diagnosticReady", { value: d.ready ? t("cameras.yes") : t("cameras.no") }),
+      t("cameras.diagnosticSourceType", { value: d.sourceType ?? "-" }),
+      t("cameras.diagnosticReaders", { value: d.readerCount }),
+      t("cameras.diagnosticBytes", { value: d.bytesReceived }),
+      t("cameras.diagnosticOnvifUrl", { value: onvifUrlDisplay(camera) }),
+      t("cameras.diagnosticRtspUrl", { value: camera.rtspMainUri ?? "-" }),
+      t("cameras.diagnosticResolution", { value: resolutionDisplay(camera, t) }),
+    ];
+    if (camera.rtspCompatMode === "vlc-relay") {
+      lines.push(t("cameras.diagnosticRelayUrl", { value: d.relayUrl ?? t("cameras.diagnosticRelayNotRunning") }));
+    }
+    return lines;
+  }, [streamStatus.data, camera, t]);
+
+  const diagnosticLinesRef = useRef(diagnosticLines);
+  useEffect(() => {
+    diagnosticLinesRef.current = diagnosticLines;
+  }, [diagnosticLines]);
+
+  // Reveals one diagnostic line at a time, restarting from scratch every
+  // time the panel is (re)opened - each entry's timestamp is captured at
+  // reveal time (not tied to any real backend event), just for the "log
+  // being generated live" feel to match LogModal.
+  const [revealedLines, setRevealedLines] = useState<{ time: number }[]>([]);
+  const diagnosticLogRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!showStatus) {
+      setRevealedLines([]);
+      return;
+    }
+    setRevealedLines([]);
+    const interval = setInterval(() => {
+      setRevealedLines((prev) => {
+        if (prev.length >= diagnosticLinesRef.current.length) return prev;
+        return [...prev, { time: Date.now() }];
+      });
+    }, 150);
+    return () => clearInterval(interval);
+  }, [showStatus]);
+
+  useEffect(() => {
+    diagnosticLogRef.current?.scrollTo({ top: diagnosticLogRef.current.scrollHeight });
+  }, [revealedLines]);
 
   // Closes the context menu on any click elsewhere or on Escape.
   useEffect(() => {
@@ -281,24 +335,24 @@ export function CameraTile({ camera, fillHeight = false }: { camera: Camera; fil
         </div>
       </div>
       {showStatus && (
-        <div className="border-t border-neutral-800 p-3 text-xs text-neutral-400">
-          {streamStatus.data ? (
-            <ul className="flex flex-col gap-0.5">
-              <li>{t("cameras.diagnosticConfiguredPath", { value: streamStatus.data.configured ? t("cameras.yes") : t("cameras.no") })}</li>
-              <li>{t("cameras.diagnosticReady", { value: streamStatus.data.ready ? t("cameras.yes") : t("cameras.no") })}</li>
-              <li>{t("cameras.diagnosticSourceType", { value: streamStatus.data.sourceType ?? "-" })}</li>
-              <li>{t("cameras.diagnosticReaders", { value: streamStatus.data.readerCount })}</li>
-              <li>{t("cameras.diagnosticBytes", { value: streamStatus.data.bytesReceived })}</li>
-              <li className="mt-1 break-all font-mono">{t("cameras.diagnosticOnvifUrl", { value: onvifUrlDisplay(camera) })}</li>
-              <li className="break-all font-mono">{t("cameras.diagnosticRtspUrl", { value: camera.rtspMainUri ?? "-" })}</li>
-              <li>{t("cameras.diagnosticResolution", { value: resolutionDisplay(camera, t) })}</li>
-              {camera.rtspCompatMode === "vlc-relay" && (
-                <li className="break-all font-mono">{t("cameras.diagnosticRelayUrl", { value: streamStatus.data.relayUrl ?? t("cameras.diagnosticRelayNotRunning") })}</li>
-              )}
-            </ul>
-          ) : (
-            <p>{t("cameras.diagnosticLoading")}</p>
-          )}
+        <div className="border-t border-neutral-800 p-3">
+          <div
+            ref={diagnosticLogRef}
+            className="max-h-56 overflow-y-auto rounded-md border border-neutral-800 bg-black p-3 font-mono text-xs"
+          >
+            {revealedLines.length === 0 && (
+              <p className="text-neutral-600">{t("cameras.diagnosticLoading")}</p>
+            )}
+            {diagnosticLines.slice(0, revealedLines.length).map((line, i) => (
+              <div key={i} className="mb-1 whitespace-pre-wrap break-all">
+                <span className="text-neutral-600">[{new Date(revealedLines[i].time).toLocaleTimeString()}]</span>{" "}
+                <span className="text-neutral-300">INFO</span> <span className="text-neutral-200">{line}</span>
+              </div>
+            ))}
+            {revealedLines.length > 0 && revealedLines.length < diagnosticLines.length && (
+              <span className="animate-pulse text-neutral-600">▋</span>
+            )}
+          </div>
         </div>
       )}
       {isEditing && <CameraFormDialog camera={camera} onClose={() => setIsEditing(false)} />}

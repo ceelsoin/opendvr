@@ -37,8 +37,28 @@ The backend reads env vars via [backend/src/config/env.ts](../backend/src/config
 | `PUBLIC_BASE_URL` | unset | Optional, e.g. `http://192.168.1.50:4000`. Used to build a clickable link back to the Timeline in notifications, for cameras that are recording (see [Features](./features.md)). Without it, notifications for recording cameras just omit the link. |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | unset (auto-generated) | Optional: pins a specific VAPID key pair for Web Push notifications (see [Features → Push notifications](./features.md#push-notifications-pwa)). Leave unset and a pair is generated automatically on first use and persisted in the database - only set these if you need a stable, pre-known identity (e.g. restoring to a fresh `app-data` volume without re-subscribing every device). |
 | `VAPID_SUBJECT` | `mailto:admin@opendvr.local` | Contact URI (mailto: or https:) sent to push services alongside VAPID-signed requests, per the Web Push spec. Cosmetic - only used if a push service ever needs to contact the sender about delivery issues. |
+| `HTTPS_PORT` | `4443` | Port for the optional local HTTPS listener (see below) - only used if `HTTPS_CERT_FILE`/`HTTPS_KEY_FILE` are both set. |
+| `HTTPS_CERT_FILE` / `HTTPS_KEY_FILE` | unset (disabled) | Optional: paths (inside the container) to a TLS cert/key pair. When both are set and readable, the backend starts a second listener on `HTTPS_PORT`, in addition to the normal HTTP one on `PORT` - see [Local HTTPS for Push notifications](#local-https-for-push-notifications) below. |
 
 > Each notification channel (Discord/Telegram/generic webhook/email) is entirely optional and independent - leaving its variables unset simply disables that channel; nothing else is affected. Every one of these (including the per-channel "attach snapshot" toggle) is also editable at runtime from the **Configurações** page in the UI, persisted in the database - values set there take precedence over these env vars, which remain just the deploy-time/first-boot defaults. Push notifications need no channel-specific env vars at all - just install-time HTTPS (or `localhost` for development) and, per browser/device, clicking "Ativar" on the Settings page.
+
+## Local HTTPS for Push notifications
+
+Browsers only allow Service Workers/the Push API in a "secure context" - HTTPS, or `localhost`. If you access OpenDVR over a LAN IP (e.g. `http://192.168.1.50:4000`), the Settings page will show push notifications as "not supported", even though everything else works fine over plain HTTP.
+
+To fix this **without** a separate reverse proxy, the backend can serve a second listener directly over HTTPS (`backend/src/index.ts`), using a certificate you generate yourself with [mkcert](https://github.com/FiloSottile/mkcert) - a small tool that creates a local Certificate Authority and installs it into your OS/browser trust store, so certs it issues are trusted by your own devices without any warnings.
+
+1. Install mkcert (e.g. `brew install mkcert` on macOS, or see its README for other platforms) and run `mkcert -install` once, on the machine(s) that should trust the certificate (your phone/laptop, not the server).
+2. On the server, generate a cert covering however you access it - hostname, LAN IP, or both:
+   ```bash
+   mkdir -p certs
+   mkcert -cert-file certs/cert.pem -key-file certs/key.pem \
+     opendvr.local 192.168.1.50 localhost
+   ```
+   (Replace with your own hostname/IP. You can list several - all of them become valid for this one cert.)
+3. Set `HTTPS_CERT_FILE=/certs/cert.pem` and `HTTPS_KEY_FILE=/certs/key.pem` (a `.env` file at the repo root, read by `docker-compose.yml`) - the `./certs` folder is already mounted read-only into the container at `/certs` by `docker-compose.yml`.
+4. Restart (`docker compose up -d`) and access the app at `https://<hostname-or-ip>:4443` (or whatever `HTTPS_PORT` you chose) instead of the usual `http://...:4000` - only from THIS URL will the Settings page's push notification toggle become available. The plain-HTTP port keeps working unchanged for everything else/every other device.
+5. If a device wasn't the one that ran `mkcert -install`, it'll show a certificate warning - either run `mkcert -install` on that device too, or import its root CA manually (`mkcert -CAROOT` prints where the root cert lives).
 
 ## docker-compose environment
 

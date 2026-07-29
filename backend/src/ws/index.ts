@@ -1,11 +1,30 @@
 import type { Server as HttpServer } from "node:http";
+import type { Server as HttpsServer } from "node:https";
 import { Server, type Socket } from "socket.io";
 import { getCookie, verifyAuthToken } from "../auth/token.js";
 import { logger } from "../lib/logger.js";
 
 let io: Server | null = null;
 
-export function initWebSocket(httpServer: HttpServer): Server {
+/**
+ * Attaches Socket.IO to a server - called once for the plain-HTTP listener,
+ * and again for the optional local-HTTPS listener (see config/env.ts's
+ * `httpsCertFile`/`httpsKeyFile`) if one is running, so WebSocket clients
+ * connecting over https:// get real-time updates too. Only the FIRST call
+ * actually creates the `Server` instance (with its auth middleware/
+ * connection handler); subsequent calls just `.attach()` another listener
+ * to that SAME instance, so a single `io.emit(...)` (see
+ * `emitCameraStatus`/webhooks.ts's event broadcasts) reaches clients
+ * connected via either protocol - attaching a second, independent `Server`
+ * instead would silently stop delivering broadcasts to whichever server
+ * was attached first.
+ */
+export function initWebSocket(httpServer: HttpServer | HttpsServer): Server {
+  if (io) {
+    io.attach(httpServer);
+    return io;
+  }
+
   io = new Server(httpServer, {
     cors: { origin: "*" },
   });
