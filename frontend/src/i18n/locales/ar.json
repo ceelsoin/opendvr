@@ -1,0 +1,32 @@
+{
+  "nav": {
+    "grid": "مباشر",
+    "dashboard": "لوحة التحكم",
+    "timeline": "التسجيلات",
+    "events": "الأحداث",
+    "cameras": "الكاميرات",
+    "onvifDebug": "تصحيح ONVIF",
+    "settings": "الإعدادات",
+    "logout": "تسجيل الخروج"
+  },
+  "auth": {
+    "setupTitle": "الإعداد الأولي",
+    "setupSubtitle": "أنشئ حساب المسؤول لبدء استخدام OpenDVR.",
+    "loginTitle": "تسجيل الدخول",
+    "loginSubtitle": "الوصول إلى حساب OpenDVR الخاص بك.",
+    "username": "اسم المستخدم",
+    "password": "كلمة المرور",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "createAccount": "إنشاء حساب",
+    "signIn": "تسجيل الدخول",
+    "rememberMe": "إبقائي مسجلاً للدخول",
+    "passwordMismatch": "كلمتا المرور غير متطابقتين.",
+    "passwordTooShort": "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل.",
+    "invalidCredentials": "اسم المستخدم أو كلمة المرور غير صحيحة.",
+    "genericError": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+    "sessionExpired": "انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى."
+  },
+  "language": {
+    "label": "اللغة"
+  }
+}

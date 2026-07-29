@@ -8,6 +8,18 @@ interface CameraFormDialogProps {
   onClose: () => void;
 }
 
+const DIRECT_SOURCE_INFO: Record<Exclude<Camera["sourceType"], "onvif">, { label: string; placeholder: string }> = {
+  rtsp: {
+    label: "RTSP",
+    placeholder: "rtsp://192.168.1.10:554/canal1 (ou rtsp://usuario:senha@192.168.1.10:554/canal1)",
+  },
+  rtmp: { label: "RTMP", placeholder: "rtmp://192.168.1.10/live/stream" },
+  hls: { label: "HLS", placeholder: "https://192.168.1.10/stream.m3u8" },
+  srt: { label: "SRT", placeholder: "srt://192.168.1.10:9000?streamid=..." },
+  "mjpeg-http": { label: "MJPEG (HTTP)", placeholder: "http://usuario:senha@192.168.1.10/video.mjpg" },
+  webpage: { label: "página web", placeholder: "https://exemplo.com/pagina-com-video-ao-vivo" },
+};
+
 function streamLabel(stream: DiscoveredStream): string {
   const resolution = stream.width && stream.height ? `${stream.width}x${stream.height}` : "resolução desconhecida";
   return `${resolution}${stream.encoding ? ` (${stream.encoding})` : ""}: ${stream.rtspUri}`;
@@ -73,6 +85,10 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
   const probeOnvif = useProbeOnvif();
 
   const [onvifUrl, setOnvifUrl] = useState(() => onvifUrlDisplay(camera));
+  const [sourceType, setSourceType] = useState<Camera["sourceType"]>(camera?.sourceType ?? "onvif");
+  const [directUrl, setDirectUrl] = useState(() =>
+    camera && camera.sourceType !== "onvif" ? (camera.rtspMainUri ?? "") : ""
+  );
   const [name, setName] = useState(camera?.name ?? "");
   const [host, setHost] = useState(camera?.host ?? "");
   const [port, setPort] = useState(String(camera?.port ?? 80));
@@ -130,13 +146,20 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
     e.preventDefault();
     setFormError(null);
 
-    if (!isEdit && !password) {
-      setFormError("Senha é obrigatória");
+    if (sourceType === "onvif") {
+      if (!isEdit && !password) {
+        setFormError("Senha é obrigatória");
+        return;
+      }
+    } else if (!directUrl.trim()) {
+      setFormError("URL do stream é obrigatória");
       return;
     }
 
     const basePayload: CreateCameraInput | UpdateCameraInput = {
       name,
+      sourceType,
+      ...(sourceType !== "onvif" ? { rtspMainUri: directUrl.trim() } : {}),
       host,
       port: Number(port) || 80,
       onvifPath,
@@ -164,7 +187,10 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
       hasPtz,
       recordingMode,
       motionRecording,
-      motionDetectionSource,
+      // Non-ONVIF sources have no PullPoint events for the video connection
+      // itself (see types/camera.ts's CameraSourceType), so "onvif" isn't a
+      // valid choice here regardless of what's selected - always "video".
+      motionDetectionSource: sourceType === "onvif" ? motionDetectionSource : "video",
       retentionDays: Number(retentionDays) || 7,
     };
 
@@ -194,116 +220,238 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div>
-            <label className="mb-1 block text-xs text-neutral-500">
-              URL do serviço ONVIF (opcional — preenche os campos abaixo)
-            </label>
-            <div className="flex gap-2">
-              <input
-                value={onvifUrl}
-                onChange={(e) => setOnvifUrl(e.target.value)}
-                placeholder="http://admin:senha@192.168.88.35:5000/onvif"
-                className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
-              />
-            </div>
-            {isEdit && !onvifUrlHasCredentials && (
-              <p className="mt-1 text-[11px] text-neutral-500">
-                A senha não é reexibida por segurança — adicione-a aqui (user:senha@...) ou preencha o campo "Senha"
-                abaixo antes de clicar em "Obter URLs de vídeo".
-              </p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Nome (ex: Garagem)"
-              required
-              className="col-span-2 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
-            />
-            <input
-              value={host}
-              onChange={(e) => setHost(e.target.value)}
-              placeholder="IP/Host"
-              required
-              className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
-            />
-            <input
-              value={port}
-              onChange={(e) => setPort(e.target.value)}
-              placeholder="Porta ONVIF"
-              type="number"
-              className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
-            />
-            <input
-              value={onvifPath}
-              onChange={(e) => setOnvifPath(e.target.value)}
-              placeholder="Caminho ONVIF (/onvif/device_service)"
-              className="col-span-2 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
-            />
-            <input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Usuário"
-              required
-              className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
-            />
-            <input
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={isEdit ? "Senha (deixe em branco para manter)" : "Senha"}
-              type="password"
-              className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
-            />
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={handleProbe}
-              disabled={probeOnvif.isPending}
-              className="flex-1 rounded-md bg-neutral-800 px-3 py-2 text-sm hover:bg-neutral-700 disabled:opacity-50"
+            <label className="mb-1 block text-xs text-neutral-500">Tipo de fonte</label>
+            <select
+              value={sourceType}
+              onChange={(e) => setSourceType(e.target.value as Camera["sourceType"])}
+              className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
             >
-              {probeOnvif.isPending ? "Conectando..." : "Obter URLs de vídeo"}
-            </button>
+              <option value="onvif">ONVIF (descoberta automática, PTZ, eventos)</option>
+              <option value="rtsp">RTSP direto (URL manual, sem ONVIF)</option>
+              <option value="rtmp">RTMP direto (URL manual)</option>
+              <option value="hls">HLS direto (URL .m3u8)</option>
+              <option value="srt">SRT direto (URL manual)</option>
+              <option value="mjpeg-http">MJPEG por HTTP (webcams antigas)</option>
+              <option value="webpage">Página web (renderiza uma URL como câmera)</option>
+            </select>
           </div>
 
-          {streams.length > 0 && (
-            <div className="flex flex-col gap-2 rounded-md border border-neutral-800 p-3">
-              <div>
-                <label className="mb-1 block text-xs text-neutral-500">URL ao vivo (stream principal)</label>
-                <select
-                  value={mainToken}
-                  onChange={(e) => setMainToken(e.target.value)}
-                  className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
-                >
-                  {streams.map((s) => (
-                    <option key={s.profileToken} value={s.profileToken}>
-                      {streamLabel(s)}
-                    </option>
-                  ))}
-                </select>
-                {mainStream && (
-                  <p className="mt-1 break-all font-mono text-[11px] text-neutral-500">{mainStream.rtspUri}</p>
-                )}
-              </div>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Nome (ex: Garagem)"
+            required
+            className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+          />
+
+          {sourceType === "onvif" ? (
+            <>
               <div>
                 <label className="mb-1 block text-xs text-neutral-500">
-                  URL de gravação (stream sub, opcional)
+                  URL do serviço ONVIF (opcional — preenche os campos abaixo)
                 </label>
-                <select
-                  value={subToken}
-                  onChange={(e) => setSubToken(e.target.value)}
-                  className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+                <div className="flex gap-2">
+                  <input
+                    value={onvifUrl}
+                    onChange={(e) => setOnvifUrl(e.target.value)}
+                    placeholder="http://admin:senha@192.168.88.35:5000/onvif"
+                    className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+                  />
+                </div>
+                {isEdit && !onvifUrlHasCredentials && (
+                  <p className="mt-1 text-[11px] text-neutral-500">
+                    A senha não é reexibida por segurança — adicione-a aqui (user:senha@...) ou preencha o campo
+                    "Senha" abaixo antes de clicar em "Obter URLs de vídeo".
+                  </p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  value={host}
+                  onChange={(e) => setHost(e.target.value)}
+                  placeholder="IP/Host"
+                  required
+                  className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+                />
+                <input
+                  value={port}
+                  onChange={(e) => setPort(e.target.value)}
+                  placeholder="Porta ONVIF"
+                  type="number"
+                  className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+                />
+                <input
+                  value={onvifPath}
+                  onChange={(e) => setOnvifPath(e.target.value)}
+                  placeholder="Caminho ONVIF (/onvif/device_service)"
+                  className="col-span-2 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+                />
+                <input
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Usuário"
+                  required
+                  className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+                />
+                <input
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={isEdit ? "Senha (deixe em branco para manter)" : "Senha"}
+                  type="password"
+                  className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleProbe}
+                  disabled={probeOnvif.isPending}
+                  className="flex-1 rounded-md bg-neutral-800 px-3 py-2 text-sm hover:bg-neutral-700 disabled:opacity-50"
                 >
-                  {streams.map((s) => (
-                    <option key={s.profileToken} value={s.profileToken}>
-                      {streamLabel(s)}
-                    </option>
-                  ))}
-                </select>
-                {subStreamSelected && (
-                  <p className="mt-1 break-all font-mono text-[11px] text-neutral-500">{subStreamSelected.rtspUri}</p>
+                  {probeOnvif.isPending ? "Conectando..." : "Obter URLs de vídeo"}
+                </button>
+              </div>
+
+              {streams.length > 0 && (
+                <div className="flex flex-col gap-2 rounded-md border border-neutral-800 p-3">
+                  <div>
+                    <label className="mb-1 block text-xs text-neutral-500">URL ao vivo (stream principal)</label>
+                    <select
+                      value={mainToken}
+                      onChange={(e) => setMainToken(e.target.value)}
+                      className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+                    >
+                      {streams.map((s) => (
+                        <option key={s.profileToken} value={s.profileToken}>
+                          {streamLabel(s)}
+                        </option>
+                      ))}
+                    </select>
+                    {mainStream && (
+                      <p className="mt-1 break-all font-mono text-[11px] text-neutral-500">{mainStream.rtspUri}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs text-neutral-500">
+                      URL de gravação (stream sub, opcional)
+                    </label>
+                    <select
+                      value={subToken}
+                      onChange={(e) => setSubToken(e.target.value)}
+                      className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+                    >
+                      {streams.map((s) => (
+                        <option key={s.profileToken} value={s.profileToken}>
+                          {streamLabel(s)}
+                        </option>
+                      ))}
+                    </select>
+                    {subStreamSelected && (
+                      <p className="mt-1 break-all font-mono text-[11px] text-neutral-500">
+                        {subStreamSelected.rtspUri}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex flex-col gap-2 rounded-md border border-neutral-800 p-3">
+              <label className="text-xs text-neutral-500">URL do stream {DIRECT_SOURCE_INFO[sourceType].label}</label>
+              <input
+                value={directUrl}
+                onChange={(e) => setDirectUrl(e.target.value)}
+                placeholder={DIRECT_SOURCE_INFO[sourceType].placeholder}
+                required
+                className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 font-mono text-sm"
+              />
+              {sourceType === "webpage" && (
+                <p className="text-[11px] text-amber-500">
+                  Renderiza a página com um navegador headless (Chromium) e captura como vídeo (~2 fps) — de longe a
+                  fonte mais pesada em CPU/RAM do app. Use só quando realmente precisar (ex: espelhar um dashboard ou
+                  uma câmera pública sem RTSP).
+                </p>
+              )}
+              {sourceType === "mjpeg-http" && (
+                <p className="text-[11px] text-neutral-500">
+                  Para webcams/câmeras antigas que só falam MJPEG sobre HTTP (sem RTSP). Credenciais podem ir direto
+                  na URL (usuário:senha@host).
+                </p>
+              )}
+              {sourceType === "rtsp" && (
+                <>
+                  <p className="text-[11px] text-neutral-500">
+                    Câmeras DVR/NVR: cada canal costuma ter sua própria URL (ex:
+                    .../cam/realmonitor?channel=1&amp;subtype=0). Credenciais podem ir na própria URL, ou nos campos
+                    abaixo (mais seguro se a senha tiver caracteres especiais).
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="Usuário (opcional)"
+                      className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+                    />
+                    <input
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder={isEdit ? "Senha (deixe em branco para manter)" : "Senha (opcional)"}
+                      type="password"
+                      className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={useVlcRelay} onChange={(e) => setUseVlcRelay(e.target.checked)} />
+                    RTSP incompatível (usar relay VLC)
+                  </label>
+                </>
+              )}
+            </div>
+          )}
+
+          {hasPtz && sourceType !== "onvif" && (
+            <div className="flex flex-col gap-2 rounded-md border border-neutral-800 p-3">
+              <span className="text-xs text-neutral-500">
+                Conexão ONVIF (opcional, só para os controles de PTZ - não afeta o vídeo/gravação acima)
+              </span>
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  value={host}
+                  onChange={(e) => setHost(e.target.value)}
+                  placeholder="IP/Host ONVIF"
+                  className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+                />
+                <input
+                  value={port}
+                  onChange={(e) => setPort(e.target.value)}
+                  placeholder="Porta ONVIF"
+                  type="number"
+                  className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+                />
+                <input
+                  value={onvifPath}
+                  onChange={(e) => setOnvifPath(e.target.value)}
+                  placeholder="Caminho ONVIF (/onvif/device_service)"
+                  className="col-span-2 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+                />
+                {sourceType !== "rtsp" && (
+                  <>
+                    <input
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="Usuário ONVIF"
+                      className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+                    />
+                    <input
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder={isEdit ? "Senha (deixe em branco para manter)" : "Senha ONVIF"}
+                      type="password"
+                      className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+                    />
+                  </>
                 )}
               </div>
             </div>
@@ -374,7 +522,7 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
                     className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1"
                   >
                     <option value="video">Vídeo (análise local, OpenCV) — recomendado</option>
-                    <option value="onvif">ONVIF (evento da câmera)</option>
+                    {sourceType === "onvif" && <option value="onvif">ONVIF (evento da câmera)</option>}
                   </select>
                 </label>
                 <p className="text-[11px] text-neutral-500">
@@ -396,19 +544,23 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
                 className="w-20 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1"
               />
             </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={useVlcRelay}
-                onChange={(e) => setUseVlcRelay(e.target.checked)}
-              />
-              Câmera com RTSP incompatível (usar relay VLC)
-            </label>
-            {useVlcRelay && (
-              <p className="text-[11px] text-neutral-500">
-                Use quando o stream aparece "indisponível" mesmo com a câmera online. Um processo VLC interno se
-                conecta à câmera e reexpõe o vídeo em um formato compatível para o MediaMTX consumir.
-              </p>
+            {sourceType === "onvif" && (
+              <>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={useVlcRelay}
+                    onChange={(e) => setUseVlcRelay(e.target.checked)}
+                  />
+                  Câmera com RTSP incompatível (usar relay VLC)
+                </label>
+                {useVlcRelay && (
+                  <p className="text-[11px] text-neutral-500">
+                    Use quando o stream aparece "indisponível" mesmo com a câmera online. Um processo VLC interno se
+                    conecta à câmera e reexpõe o vídeo em um formato compatível para o MediaMTX consumir.
+                  </p>
+                )}
+              </>
             )}
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={hasPtz} onChange={(e) => setHasPtz(e.target.checked)} />

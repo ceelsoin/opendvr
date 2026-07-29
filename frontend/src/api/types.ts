@@ -23,6 +23,15 @@ export type RecordingMode = "off" | "continuous" | "motion";
  */
 export type MotionDetectionSource = "onvif" | "video";
 
+/**
+ * Which protocol/mechanism is used for this camera's video source - see the
+ * backend's types/camera.ts for the full rationale. "onvif" is the
+ * original/default full flow (discovery, PTZ, events, snapshot). Any other
+ * value is a directly-entered URL of that protocol, with ONVIF fields
+ * (host/port/onvifPath/username/password) only used - optionally - for PTZ.
+ */
+export type CameraSourceType = "onvif" | "rtsp" | "rtmp" | "hls" | "srt" | "mjpeg-http" | "webpage";
+
 /** ONVIF-discovered resolution/codec info for a stream, saved so the edit form can show it again without re-probing. */
 export interface StreamMetadata {
   width: number | null;
@@ -33,6 +42,7 @@ export interface StreamMetadata {
 export interface Camera {
   id: string;
   name: string;
+  sourceType: CameraSourceType;
   host: string;
   port: number;
   onvifPath: string;
@@ -54,17 +64,20 @@ export interface Camera {
   motionDetectionSource: MotionDetectionSource;
   retentionDays: number;
   status: CameraStatus;
+  /** Administrative on/off switch, independent of `status` (connectivity). */
+  enabled: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CreateCameraInput {
   name: string;
-  host: string;
+  sourceType?: CameraSourceType;
+  host?: string;
   port?: number;
   onvifPath?: string;
-  username: string;
-  password: string;
+  username?: string;
+  password?: string;
   mainProfileToken?: string;
   subProfileToken?: string;
   rtspMainUri?: string;

@@ -1,0 +1,32 @@
+{
+  "nav": {
+    "grid": "Прямой эфир",
+    "dashboard": "Панель управления",
+    "timeline": "Записи",
+    "events": "События",
+    "cameras": "Камеры",
+    "onvifDebug": "Отладка ONVIF",
+    "settings": "Настройки",
+    "logout": "Выйти"
+  },
+  "auth": {
+    "setupTitle": "Начальная настройка",
+    "setupSubtitle": "Создайте учётную запись администратора, чтобы начать использовать OpenDVR.",
+    "loginTitle": "Войти",
+    "loginSubtitle": "Войдите в свою учётную запись OpenDVR.",
+    "username": "Имя пользователя",
+    "password": "Пароль",
+    "confirmPassword": "Подтвердите пароль",
+    "createAccount": "Создать учётную запись",
+    "signIn": "Войти",
+    "rememberMe": "Оставаться в системе",
+    "passwordMismatch": "Пароли не совпадают.",
+    "passwordTooShort": "Пароль должен содержать не менее 8 символов.",
+    "invalidCredentials": "Неверное имя пользователя или пароль.",
+    "genericError": "Что-то пошло не так. Попробуйте ещё раз.",
+    "sessionExpired": "Срок действия сеанса истёк. Пожалуйста, войдите снова."
+  },
+  "language": {
+    "label": "Язык"
+  }
+}

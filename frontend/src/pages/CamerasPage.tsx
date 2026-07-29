@@ -3,12 +3,14 @@ import axios from "axios";
 import {
   useCameras,
   useDeleteCamera,
-  useDiscoverCameras,
+  useDisableCamera,
+  useEnableCamera,
   useRestartCamera,
   useTestCameraConnection,
 } from "../api/cameras";
 import type { Camera } from "../api/types";
 import { CameraFormDialog } from "../components/cameras/CameraFormDialog";
+import { OnvifScanModal } from "../components/cameras/OnvifScanModal";
 import { PtzControls } from "../components/ptz/PtzControls";
 import { useToastStore } from "../store/toastStore";
 
@@ -23,10 +25,12 @@ export function CamerasPage() {
   const deleteCamera = useDeleteCamera();
   const testConnection = useTestCameraConnection();
   const restartCamera = useRestartCamera();
-  const discoverCameras = useDiscoverCameras();
+  const enableCamera = useEnableCamera();
+  const disableCamera = useDisableCamera();
   const addToast = useToastStore((s) => s.addToast);
 
   const [dialogState, setDialogState] = useState<"closed" | "create" | Camera>("closed");
+  const [scanModalOpen, setScanModalOpen] = useState(false);
   const [expandedPtz, setExpandedPtz] = useState<string | null>(null);
   const [testedCameraId, setTestedCameraId] = useState<string | null>(null);
   const [restartingCameraId, setRestartingCameraId] = useState<string | null>(null);
@@ -61,6 +65,24 @@ export function CamerasPage() {
     });
   };
 
+  const handleToggleEnabled = (camera: Camera) => {
+    if (camera.enabled) {
+      disableCamera.mutate(camera.id, {
+        onSuccess: () => addToast("success", `${camera.name}: câmera desligada.`),
+        onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, "Falha ao desligar a câmera.")}`),
+      });
+    } else {
+      enableCamera.mutate(camera.id, {
+        onSuccess: (data) =>
+          addToast(
+            data.status === "online" ? "success" : "error",
+            `${camera.name}: câmera ligada${data.status !== "online" ? ", mas ficou offline (verifique host/credenciais)" : ""}.`
+          ),
+        onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, "Falha ao ligar a câmera.")}`),
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col gap-8">
       <section>
@@ -69,11 +91,10 @@ export function CamerasPage() {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => discoverCameras.mutate(5000)}
-              disabled={discoverCameras.isPending}
-              className="rounded-md bg-neutral-800 px-3 py-1.5 text-sm hover:bg-neutral-700 disabled:opacity-50"
+              onClick={() => setScanModalOpen(true)}
+              className="rounded-md bg-neutral-800 px-3 py-1.5 text-sm hover:bg-neutral-700"
             >
-              {discoverCameras.isPending ? "Procurando na rede..." : "Descobrir câmeras (ONVIF)"}
+              Descobrir câmeras (varredura de rede)
             </button>
             <button
               type="button"
@@ -85,76 +106,28 @@ export function CamerasPage() {
           </div>
         </div>
 
-        {discoverCameras.data && (
-          <div className="mb-4 flex flex-col gap-2">
-            {discoverCameras.data.length === 0 ? (
-              <p className="text-sm text-neutral-500">Nenhum dispositivo ONVIF encontrado na rede.</p>
-            ) : (
-              discoverCameras.data.map((device) => (
-                <div
-                  key={`${device.hostname}:${device.port}`}
-                  className="flex items-center justify-between rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-300"
-                >
-                  <span>
-                    {device.hostname}:{device.port}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setDialogState({
-                        id: "",
-                        name: "",
-                        host: device.hostname,
-                        port: device.port,
-                        onvifPath: "/onvif/device_service",
-                        username: "",
-                        rtspMainUri: null,
-                        rtspSubUri: null,
-                        onvifProfileToken: null,
-                        onvifSubProfileToken: null,
-                        rtspCompatMode: null,
-                        mainStreamWidth: null,
-                        mainStreamHeight: null,
-                        mainStreamEncoding: null,
-                        subStreamWidth: null,
-                        subStreamHeight: null,
-                        subStreamEncoding: null,
-                        hasPtz: false,
-                        recordingMode: "off",
-                        motionRecording: true,
-                        motionDetectionSource: "onvif",
-                        retentionDays: 7,
-                        status: "unknown",
-                        createdAt: "",
-                        updatedAt: "",
-                      })
-                    }
-                    className="rounded-md px-2 py-1 text-xs text-blue-400 hover:bg-blue-950"
-                  >
-                    Usar este endereço
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
         <div className="flex flex-col gap-2">
           {cameras?.map((camera) => (
             <div key={camera.id} className="rounded-md border border-neutral-800 bg-neutral-900">
               <div className="flex items-center justify-between px-4 py-2">
                 <div className="flex items-center gap-2">
                   <span
+                    title={!camera.enabled ? "Câmera desativada" : undefined}
                     className={`h-2 w-2 rounded-full ${
-                      camera.status === "online"
-                        ? "bg-green-500"
-                        : camera.status === "offline"
-                          ? "bg-red-500"
-                          : "bg-neutral-500"
+                      !camera.enabled
+                        ? "bg-neutral-700"
+                        : camera.status === "online"
+                          ? "bg-green-500"
+                          : camera.status === "offline"
+                            ? "bg-red-500"
+                            : "bg-neutral-500"
                     }`}
                   />
                   <div>
-                    <p className="text-sm font-medium">{camera.name}</p>
+                    <p className="text-sm font-medium">
+                      {camera.name}
+                      {!camera.enabled && <span className="ml-2 text-xs font-normal text-neutral-500">(desativada)</span>}
+                    </p>
                     <p className="text-xs text-neutral-500">
                       {camera.host}:{camera.port}
                       {camera.onvifPath}
@@ -162,6 +135,13 @@ export function CamerasPage() {
                   </div>
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleEnabled(camera)}
+                    className="rounded-md px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
+                  >
+                    {camera.enabled ? "Desligar" : "Ligar"}
+                  </button>
                   <button
                     type="button"
                     onClick={() => handleTestConnection(camera)}
@@ -173,8 +153,8 @@ export function CamerasPage() {
                   <button
                     type="button"
                     onClick={() => handleRestart(camera)}
-                    disabled={restartingCameraId === camera.id}
-                    className="rounded-md px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
+                    disabled={restartingCameraId === camera.id || !camera.enabled}
+                    className="rounded-md px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {restartingCameraId === camera.id ? "Reiniciando..." : "Reiniciar"}
                   </button>
@@ -232,6 +212,8 @@ export function CamerasPage() {
           onClose={() => setDialogState("closed")}
         />
       )}
+
+      {scanModalOpen && <OnvifScanModal onClose={() => setScanModalOpen(false)} />}
     </div>
   );
 }

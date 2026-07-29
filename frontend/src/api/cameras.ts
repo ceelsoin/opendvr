@@ -103,6 +103,34 @@ export function useRestartCamera() {
   });
 }
 
+/** Administrative on/off switch (distinct from `status`, which reflects connectivity) - tears down MediaMTX path/motion listener/VLC relay but keeps the camera's config. */
+export function useDisableCamera() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await apiClient.post<Camera>(`/cameras/${id}/disable`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: CAMERAS_KEY });
+    },
+  });
+}
+
+/** Re-enables a previously disabled camera: re-provisions it and resumes motion detection if configured. */
+export function useEnableCamera() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await apiClient.post<Camera>(`/cameras/${id}/enable`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: CAMERAS_KEY });
+    },
+  });
+}
+
 export function useDiscoverCameras() {
   return useMutation<DiscoveredCamera[], Error, number | void>({
     mutationFn: async (timeoutMs = 5000) => {

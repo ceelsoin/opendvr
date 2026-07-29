@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Toaster } from "../ui/Toaster";
@@ -20,6 +21,7 @@ export function AppLayout() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const logout = useLogout();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout.mutateAsync();
@@ -30,9 +32,19 @@ export function AppLayout() {
     <div className="flex h-full min-h-screen flex-col bg-neutral-950 text-neutral-100">
       <Toaster />
       <EventSocketListener />
-      <TopStatusBar />
+      <TopStatusBar onMenuClick={() => setSidebarOpen((v) => !v)} />
       <div className="flex flex-1">
-        <aside className="flex w-56 shrink-0 flex-col border-r border-neutral-800 p-4">
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 z-30 bg-black/50 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+        <aside
+          className={`fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 -translate-x-full transform flex-col overflow-y-auto border-r border-neutral-800 bg-neutral-950 p-4 transition-transform duration-200 md:relative md:z-auto md:w-56 md:translate-x-0 ${
+            sidebarOpen ? "translate-x-0" : ""
+          }`}
+        >
           <div className="mb-6 flex items-center gap-2">
             <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="h-7 w-7 shrink-0" />
             <h1 className="text-lg font-semibold tracking-tight">OpenDVR</h1>
@@ -43,6 +55,7 @@ export function AppLayout() {
                 key={item.to}
                 to={item.to}
                 end={item.end}
+                onClick={() => setSidebarOpen(false)}
                 className={({ isActive }) =>
                   `rounded-md px-3 py-2 text-sm transition-colors ${
                     isActive
@@ -66,7 +79,7 @@ export function AppLayout() {
             </button>
           </div>
         </aside>
-        <main className="flex-1 overflow-auto p-6">
+        <main className="min-w-0 flex-1 overflow-auto p-4 sm:p-6">
           <Outlet />
         </main>
       </div>

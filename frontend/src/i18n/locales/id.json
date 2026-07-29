@@ -1,0 +1,32 @@
+{
+  "nav": {
+    "grid": "Langsung",
+    "dashboard": "Dasbor",
+    "timeline": "Rekaman",
+    "events": "Peristiwa",
+    "cameras": "Kamera",
+    "onvifDebug": "Debug ONVIF",
+    "settings": "Pengaturan",
+    "logout": "Keluar"
+  },
+  "auth": {
+    "setupTitle": "Pengaturan awal",
+    "setupSubtitle": "Buat akun administrator untuk mulai menggunakan OpenDVR.",
+    "loginTitle": "Masuk",
+    "loginSubtitle": "Akses akun OpenDVR Anda.",
+    "username": "Nama pengguna",
+    "password": "Kata sandi",
+    "confirmPassword": "Konfirmasi kata sandi",
+    "createAccount": "Buat akun",
+    "signIn": "Masuk",
+    "rememberMe": "Tetap masuk",
+    "passwordMismatch": "Kata sandi tidak cocok.",
+    "passwordTooShort": "Kata sandi harus terdiri dari minimal 8 karakter.",
+    "invalidCredentials": "Nama pengguna atau kata sandi tidak valid.",
+    "genericError": "Terjadi kesalahan. Silakan coba lagi.",
+    "sessionExpired": "Sesi Anda telah berakhir. Silakan masuk kembali."
+  },
+  "language": {
+    "label": "Bahasa"
+  }
+}

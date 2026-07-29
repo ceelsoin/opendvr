@@ -6,9 +6,9 @@ export interface AuthTokenPayload {
   username: string;
 }
 
-/** Signs a session JWT for a user - expires per `JWT_EXPIRES_IN` (default 1h, see config/env.ts). */
-export function signAuthToken(payload: AuthTokenPayload): string {
-  return jwt.sign(payload, env.jwtSecret, { expiresIn: env.jwtExpiresIn as jwt.SignOptions["expiresIn"] });
+/** Signs a session JWT for a user - expires per `expiresIn` (defaults to `JWT_EXPIRES_IN`, see config/env.ts; pass `env.jwtRememberMeExpiresIn` for a "keep me signed in" session). */
+export function signAuthToken(payload: AuthTokenPayload, expiresIn: string = env.jwtExpiresIn): string {
+  return jwt.sign(payload, env.jwtSecret, { expiresIn: expiresIn as jwt.SignOptions["expiresIn"] });
 }
 
 /** Verifies a session JWT; returns null (never throws) if missing/invalid/expired. */

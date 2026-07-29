@@ -11,6 +11,8 @@ import { stopAllMotionDetectors } from "./media/motionDetector.js";
 import { provisionCamera } from "./media/provisioning.js";
 import { getCameraPathStatus } from "./media/mediamtx.js";
 import { stopAllVlcRelays } from "./media/vlcRelay.js";
+import { stopAllMjpegBridges } from "./media/mjpegBridge.js";
+import { stopAllWebpageBridges } from "./media/webpageBridge.js";
 import { runRetentionCleanup } from "./jobs/retentionCleanup.js";
 import { logger } from "./lib/logger.js";
 
@@ -30,6 +32,7 @@ httpServer.listen(env.port, () => {
 // streams/recording resume without the user having to manually hit
 // "Reiniciar" on each camera after any restart.
 for (const camera of listCameras()) {
+  if (!camera.enabled) continue;
   void provisionCamera(camera);
   if (shouldDetectMotion(camera)) {
     void startMotionListening(camera);
@@ -39,42 +42,56 @@ for (const camera of listCameras()) {
 // Also guard against MediaMTX restarting on its own (crash/OOM) while the
 // backend keeps running: periodically check whether each camera's path is
 // still configured, and re-provision it if MediaMTX forgot about it.
-// Additionally, self-heal cameras that are configured but stuck not-ready
-// for too long (e.g. a VLC relay process that's alive but hung talking to a
-// flaky camera - re-registering the path alone doesn't fix that, since the
-// path was never missing in the first place; only a forced reprovision
-// (which kills and restarts the VLC relay) does).
-const RECONCILE_INTERVAL_MS = 60_000;
-const STUCK_READY_THRESHOLD_MS = 3 * 60_000;
-const notReadySince = new Map<string, number>();
+// Additionally, self-heal cameras that are stuck unhealthy for too long -
+// either "configured but not ready", OR (the sneakier case) "ready" per
+// MediaMTX but with zero new bytes since the last check. That second case
+// matters specifically for VLC-relay cameras (see media/vlcRelay.ts): VLC's
+// own RTSP-output module can wedge itself (process stays alive - never
+// exits, so the relay's own exit-triggered respawn never fires - but stops
+// actually relaying frames) while MediaMTX still reports the path as
+// "ready" for a while (its own readTimeout is a generous 120s, see
+// mediamtx.yml), which "ready" alone doesn't catch. Only a forced
+// reprovision (which kills and restarts the VLC relay) fixes either case.
+const RECONCILE_INTERVAL_MS = 30_000;
+const STUCK_THRESHOLD_MS = 90_000;
+const unhealthySince = new Map<string, number>();
+const lastBytesReceived = new Map<string, number>();
 
 setInterval(() => {
   for (const camera of listCameras()) {
+    if (!camera.enabled) continue;
     void getCameraPathStatus(camera.id).then((status) => {
       if (!status.configured) {
         logger.warn({ cameraId: camera.id }, "MediaMTX path missing (likely restarted); re-provisioning");
-        notReadySince.delete(camera.id);
+        unhealthySince.delete(camera.id);
+        lastBytesReceived.delete(camera.id);
         void provisionCamera(camera);
         return;
       }
 
-      // Every camera path is now always-connected (sourceOnDemand: false, see
-      // media/provisioning.ts), so "configured but not ready" is always a
-      // real problem worth self-healing, regardless of continuousRecording
-      // or whether anyone is currently watching.
-      if (status.ready) {
-        notReadySince.delete(camera.id);
+      // "Flowing" requires BOTH ready AND actual byte progress since the
+      // last check (30s ago) - not just ready, which a wedged VLC relay can
+      // keep reporting true for a while with no new frames ever arriving.
+      // On the very first check for a camera (no previous byte count yet),
+      // ready alone is treated as healthy to avoid a false positive.
+      const previousBytes = lastBytesReceived.get(camera.id);
+      const isFlowing = status.ready && (previousBytes === undefined || status.bytesReceived > previousBytes);
+      lastBytesReceived.set(camera.id, status.bytesReceived);
+
+      if (isFlowing) {
+        unhealthySince.delete(camera.id);
         return;
       }
 
-      const stuckSince = notReadySince.get(camera.id) ?? Date.now();
-      notReadySince.set(camera.id, stuckSince);
-      if (Date.now() - stuckSince >= STUCK_READY_THRESHOLD_MS) {
+      const stuckSince = unhealthySince.get(camera.id) ?? Date.now();
+      unhealthySince.set(camera.id, stuckSince);
+      if (Date.now() - stuckSince >= STUCK_THRESHOLD_MS) {
         logger.warn(
-          { cameraId: camera.id, stuckForMs: Date.now() - stuckSince },
-          "Camera stream stuck (configured but not ready for too long); forcing full reprovision"
+          { cameraId: camera.id, stuckForMs: Date.now() - stuckSince, ready: status.ready, bytesReceived: status.bytesReceived },
+          "Camera stream stuck (not ready, or ready but no new bytes) for too long; forcing full reprovision"
         );
-        notReadySince.delete(camera.id);
+        unhealthySince.delete(camera.id);
+        lastBytesReceived.delete(camera.id);
         void provisionCamera(camera, { forceRefresh: true });
       }
     });
@@ -93,6 +110,8 @@ function shutdown(signal: string) {
   logger.info({ signal }, "Shutting down gracefully");
   stopAllRecordings();
   stopAllVlcRelays();
+  stopAllMjpegBridges();
+  void stopAllWebpageBridges();
   stopAllMotionDetectors();
   httpServer.close(() => process.exit(0));
   setTimeout(() => process.exit(1), 5000).unref();

@@ -4,10 +4,14 @@ import { apiClient } from "./client";
 const NOTIFICATION_SETTINGS_KEY = ["settings", "notifications"] as const;
 
 export interface NotificationSettingsStatus {
+  discordWebhookUrl: string | null;
   discordWebhookConfigured: boolean;
   discordAttachSnapshot: boolean;
+  telegramBotToken: string | null;
+  telegramChatId: string | null;
   telegramConfigured: boolean;
   telegramAttachSnapshot: boolean;
+  webhookUrl: string | null;
   webhookConfigured: boolean;
   webhookAttachSnapshot: boolean;
   emailConfigured: boolean;
@@ -18,6 +22,11 @@ export interface NotificationSettingsStatus {
   emailFrom: string | null;
   emailTo: string | null;
   emailAttachSnapshot: boolean;
+  s3Endpoint: string | null;
+  s3Region: string | null;
+  s3AccessKey: string | null;
+  s3BucketName: string | null;
+  s3Configured: boolean;
 }
 
 export function useNotificationSettings() {
@@ -46,6 +55,11 @@ export interface UpdateNotificationSettingsInput {
   emailFrom?: string | null;
   emailTo?: string | null;
   emailAttachSnapshot?: boolean;
+  s3Endpoint?: string | null;
+  s3Region?: string | null;
+  s3AccessKey?: string | null;
+  s3SecretKey?: string | null;
+  s3BucketName?: string | null;
 }
 
 export function useUpdateNotificationSettings() {

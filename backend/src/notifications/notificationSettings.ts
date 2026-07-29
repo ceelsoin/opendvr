@@ -25,6 +25,11 @@ const KEYS = {
   emailTo: "notifications.emailTo",
   emailAttachSnapshot: "notifications.emailAttachSnapshot",
   publicBaseUrl: "notifications.publicBaseUrl",
+  s3Endpoint: "notifications.s3Endpoint",
+  s3Region: "notifications.s3Region",
+  s3AccessKey: "notifications.s3AccessKey",
+  s3SecretKey: "notifications.s3SecretKey",
+  s3BucketName: "notifications.s3BucketName",
 } as const;
 
 function getBool(key: string, fallback: boolean): boolean {
@@ -57,6 +62,11 @@ export interface NotificationSettings {
   emailTo: string | null;
   emailAttachSnapshot: boolean;
   publicBaseUrl: string | null;
+  s3Endpoint: string | null;
+  s3Region: string | null;
+  s3AccessKey: string | null;
+  s3SecretKey: string | null;
+  s3BucketName: string | null;
 }
 
 export function getNotificationSettings(): NotificationSettings {
@@ -77,6 +87,11 @@ export function getNotificationSettings(): NotificationSettings {
     emailTo: getSetting(KEYS.emailTo) ?? env.emailTo,
     emailAttachSnapshot: getBool(KEYS.emailAttachSnapshot, true),
     publicBaseUrl: getSetting(KEYS.publicBaseUrl) ?? env.publicBaseUrl,
+    s3Endpoint: getSetting(KEYS.s3Endpoint) ?? env.s3Endpoint,
+    s3Region: getSetting(KEYS.s3Region) ?? env.s3Region,
+    s3AccessKey: getSetting(KEYS.s3AccessKey) ?? env.s3AccessKey,
+    s3SecretKey: getSetting(KEYS.s3SecretKey) ?? env.s3SecretKey,
+    s3BucketName: getSetting(KEYS.s3BucketName) ?? env.s3BucketName,
   };
 }
 
@@ -98,6 +113,11 @@ export interface UpdateNotificationSettingsInput {
   emailTo?: string | null;
   emailAttachSnapshot?: boolean;
   publicBaseUrl?: string | null;
+  s3Endpoint?: string | null;
+  s3Region?: string | null;
+  s3AccessKey?: string | null;
+  s3SecretKey?: string | null;
+  s3BucketName?: string | null;
 }
 
 function setStringSetting(key: string, value: string | null | undefined): void {
@@ -129,6 +149,11 @@ export function updateNotificationSettings(input: UpdateNotificationSettingsInpu
   setStringSetting(KEYS.emailTo, input.emailTo);
   setBoolSetting(KEYS.emailAttachSnapshot, input.emailAttachSnapshot);
   setStringSetting(KEYS.publicBaseUrl, input.publicBaseUrl);
+  setStringSetting(KEYS.s3Endpoint, input.s3Endpoint);
+  setStringSetting(KEYS.s3Region, input.s3Region);
+  setStringSetting(KEYS.s3AccessKey, input.s3AccessKey);
+  setStringSetting(KEYS.s3SecretKey, input.s3SecretKey);
+  setStringSetting(KEYS.s3BucketName, input.s3BucketName);
   return getNotificationSettings();
 }
 

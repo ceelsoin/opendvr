@@ -2,9 +2,9 @@ import nodemailer from "nodemailer";
 import { getNotificationSettings } from "./notificationSettings.js";
 
 /**
- * Sends a notification email via SMTP. Either attaches the snapshot (camera
- * not recording) or includes a link to view the recording in the body
- * (camera is recording).
+ * Sends a notification email via SMTP. Attaches the snapshot when one was
+ * captured and includes a link to view the recording in the body when the
+ * camera is actively recording - both can be present at once.
  */
 export async function notifyEmail(subject: string, text: string, snapshot?: Buffer, recordingLink?: string): Promise<void> {
   const settings = getNotificationSettings();

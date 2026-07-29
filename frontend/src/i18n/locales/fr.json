@@ -1,0 +1,32 @@
+{
+  "nav": {
+    "grid": "En direct",
+    "dashboard": "Tableau de bord",
+    "timeline": "Enregistrements",
+    "events": "Événements",
+    "cameras": "Caméras",
+    "onvifDebug": "Débogage ONVIF",
+    "settings": "Paramètres",
+    "logout": "Déconnexion"
+  },
+  "auth": {
+    "setupTitle": "Configuration initiale",
+    "setupSubtitle": "Créez le compte administrateur pour commencer à utiliser OpenDVR.",
+    "loginTitle": "Se connecter",
+    "loginSubtitle": "Accédez à votre compte OpenDVR.",
+    "username": "Nom d'utilisateur",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "createAccount": "Créer un compte",
+    "signIn": "Se connecter",
+    "rememberMe": "Rester connecté",
+    "passwordMismatch": "Les mots de passe ne correspondent pas.",
+    "passwordTooShort": "Le mot de passe doit comporter au moins 8 caractères.",
+    "invalidCredentials": "Nom d'utilisateur ou mot de passe invalide.",
+    "genericError": "Une erreur s'est produite. Veuillez réessayer.",
+    "sessionExpired": "Votre session a expiré. Veuillez vous reconnecter."
+  },
+  "language": {
+    "label": "Langue"
+  }
+}

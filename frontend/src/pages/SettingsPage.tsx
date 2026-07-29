@@ -32,10 +32,20 @@ export function SettingsPage() {
   const [emailTo, setEmailTo] = useState("");
   const [emailAttachSnapshot, setEmailAttachSnapshot] = useState(true);
 
+  const [s3Endpoint, setS3Endpoint] = useState("");
+  const [s3Region, setS3Region] = useState("");
+  const [s3AccessKey, setS3AccessKey] = useState("");
+  const [s3SecretKey, setS3SecretKey] = useState("");
+  const [s3BucketName, setS3BucketName] = useState("");
+
   useEffect(() => {
     if (!status) return;
+    setDiscordWebhookUrl(status.discordWebhookUrl ?? "");
     setDiscordAttachSnapshot(status.discordAttachSnapshot);
+    setTelegramBotToken(status.telegramBotToken ?? "");
+    setTelegramChatId(status.telegramChatId ?? "");
     setTelegramAttachSnapshot(status.telegramAttachSnapshot);
+    setWebhookUrl(status.webhookUrl ?? "");
     setWebhookAttachSnapshot(status.webhookAttachSnapshot);
     setEmailSmtpHost(status.emailSmtpHost ?? "");
     setEmailSmtpPort(String(status.emailSmtpPort ?? 587));
@@ -44,6 +54,10 @@ export function SettingsPage() {
     setEmailFrom(status.emailFrom ?? "");
     setEmailTo(status.emailTo ?? "");
     setEmailAttachSnapshot(status.emailAttachSnapshot);
+    setS3Endpoint(status.s3Endpoint ?? "");
+    setS3Region(status.s3Region ?? "");
+    setS3AccessKey(status.s3AccessKey ?? "");
+    setS3BucketName(status.s3BucketName ?? "");
   }, [status]);
 
   const extractErrorMessage = (err: unknown, fallback: string): string => {
@@ -166,6 +180,38 @@ export function SettingsPage() {
     }
   };
 
+  const handleSaveS3 = async (e: FormEvent) => {
+    e.preventDefault();
+    try {
+      await updateSettings.mutateAsync({
+        ...(s3Endpoint ? { s3Endpoint } : {}),
+        ...(s3Region ? { s3Region } : {}),
+        ...(s3AccessKey ? { s3AccessKey } : {}),
+        ...(s3SecretKey ? { s3SecretKey } : {}),
+        ...(s3BucketName ? { s3BucketName } : {}),
+      });
+      setS3SecretKey("");
+      addToast("success", "Armazenamento S3 salvo.");
+    } catch (err) {
+      addToast("error", extractErrorMessage(err, "Falha ao salvar o armazenamento S3."));
+    }
+  };
+
+  const handleClearS3 = async () => {
+    try {
+      await updateSettings.mutateAsync({
+        s3Endpoint: null,
+        s3Region: null,
+        s3AccessKey: null,
+        s3SecretKey: null,
+        s3BucketName: null,
+      });
+      addToast("success", "Armazenamento S3 removido.");
+    } catch (err) {
+      addToast("error", extractErrorMessage(err, "Falha ao remover o armazenamento S3."));
+    }
+  };
+
   if (isLoading) {
     return <p className="text-neutral-400">Carregando configurações...</p>;
   }
@@ -199,7 +245,7 @@ export function SettingsPage() {
           className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
         />
         <p className="text-[11px] text-neutral-500">
-          A URL não é reexibida por segurança depois de salva — deixe em branco se não quiser alterá-la.
+          Salvo automaticamente com o valor acima. Use "Remover" para limpar.
         </p>
         <label className="flex items-center gap-2 text-sm">
           <input
@@ -262,7 +308,7 @@ export function SettingsPage() {
           className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
         />
         <p className="text-[11px] text-neutral-500">
-          Os valores não são reexibidos por segurança depois de salvos — deixe em branco se não quiser alterá-los.
+          Salvo automaticamente com os valores acima. Use "Remover" para limpar.
         </p>
         <label className="flex items-center gap-2 text-sm">
           <input
@@ -320,7 +366,7 @@ export function SettingsPage() {
         />
         <p className="text-[11px] text-neutral-500">
           Envia um POST com JSON (câmera, tipo do evento, mensagem, horário). Útil pra integrar com n8n, Home
-          Assistant, etc. A URL não é reexibida por segurança depois de salva.
+          Assistant, etc.
         </p>
         <label className="flex items-center gap-2 text-sm">
           <input
@@ -451,7 +497,79 @@ export function SettingsPage() {
           </button>
         </div>
       </form>
+
+      {/* Armazenamento S3 (snapshots públicos) */}
+      <form onSubmit={handleSaveS3} className="flex flex-col gap-2 rounded-lg border border-neutral-800 p-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium">Armazenamento S3 (snapshots)</h3>
+          <span
+            className={`rounded-full px-2 py-0.5 text-xs ${
+              status?.s3Configured ? "bg-green-950 text-green-400" : "bg-neutral-800 text-neutral-500"
+            }`}
+          >
+            {status?.s3Configured ? "Configurado" : "Não configurado"}
+          </span>
+        </div>
+        <p className="text-sm text-neutral-500">
+          Opcional: envia os snapshots de eventos para um bucket S3 (ou compatível, ex. Linode, DigitalOcean Spaces,
+          MinIO) numa pasta <code className="font-mono text-neutral-400">camsnapshots/&lt;câmera&gt;</code>, e usa a
+          URL pública ao notificar Discord/Telegram/webhook genérico — mais confiável que anexo multipart em alguns
+          casos. Os arquivos são apagados automaticamente seguindo a retenção de cada câmera.
+        </p>
+        <input
+          value={s3Endpoint}
+          onChange={(e) => setS3Endpoint(e.target.value)}
+          placeholder="Endpoint (ex: https://us-southeast-1.linodeobjects.com)"
+          className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+        />
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            value={s3Region}
+            onChange={(e) => setS3Region(e.target.value)}
+            placeholder="Região (ex: us-east-1)"
+            className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+          />
+          <input
+            value={s3BucketName}
+            onChange={(e) => setS3BucketName(e.target.value)}
+            placeholder="Nome do bucket"
+            className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+          />
+        </div>
+        <input
+          value={s3AccessKey}
+          onChange={(e) => setS3AccessKey(e.target.value)}
+          placeholder="Access Key"
+          className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+        />
+        <input
+          value={s3SecretKey}
+          onChange={(e) => setS3SecretKey(e.target.value)}
+          placeholder="Secret Key (deixe em branco para manter)"
+          type="password"
+          className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+        />
+        <div className="flex justify-end gap-2">
+          {status?.s3Configured && (
+            <button
+              type="button"
+              onClick={handleClearS3}
+              className="rounded-md px-3 py-2 text-sm text-red-400 hover:bg-red-950"
+            >
+              Remover
+            </button>
+          )}
+          <button
+            type="submit"
+            disabled={updateSettings.isPending}
+            className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium hover:bg-blue-500 disabled:opacity-50"
+          >
+            Salvar
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
+
 

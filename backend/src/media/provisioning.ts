@@ -3,16 +3,88 @@ import { discoverStreams } from "../onvif/device.js";
 import { upsertCameraPath } from "./mediamtx.js";
 import { withRtspCredentials } from "../lib/rtsp.js";
 import { ensureVlcRelay, stopVlcRelay } from "./vlcRelay.js";
+import { ensureMjpegBridge } from "./mjpegBridge.js";
+import { ensureWebpageBridge } from "./webpageBridge.js";
 import { updateCameraConnection } from "../db/cameras.repository.js";
 import { logger } from "../lib/logger.js";
 
 /**
- * (Re)connects to a camera via ONVIF (unless a pre-resolved RTSP URI is
- * already stored and a refresh wasn't requested) and (re)registers its
- * MediaMTX path. Best-effort: never throws, always persists the resulting
- * status ("online"/"offline") on the camera row.
+ * (Re)connects to a camera and (re)registers its MediaMTX path. Dispatches
+ * based on `camera.sourceType`: full ONVIF flow (discovery + PTZ + events +
+ * snapshot) for "onvif" cameras, or a much simpler "just (re)register
+ * whatever URL was entered" path for "rtsp"/"rtmp"/"hls"/"srt" cameras -
+ * see types/camera.ts's CameraSourceType doc comment for the full
+ * rationale. Best-effort either way: never throws, always persists the
+ * resulting status ("online"/"offline") on the camera row.
  */
 export async function provisionCamera(camera: Camera, options: { forceRefresh?: boolean } = {}): Promise<Camera["status"]> {
+  if (camera.sourceType !== "onvif") {
+    return provisionDirectSourceCamera(camera);
+  }
+  return provisionOnvifCamera(camera, options);
+}
+
+/**
+ * Registers a directly-entered stream URL (`camera.rtspMainUri`, despite
+ * the name - holds whatever URL scheme matches `camera.sourceType`) as the
+ * camera's MediaMTX path, with no ONVIF discovery involved. "mjpeg-http"
+ * and "webpage" go through their own ffmpeg-based bridges first (see
+ * media/mjpegBridge.ts, media/webpageBridge.ts), which PUBLISH into the
+ * path instead of MediaMTX pulling from anywhere (`source: "publisher"`) -
+ * MediaMTX can't pull either of those directly (no MJPEG/browser-rendering
+ * source type exists). "rtsp" optionally still goes through the VLC
+ * compatibility relay (rtspCompatMode) for the same Digest-auth quirk as
+ * ONVIF-resolved cameras - not meaningful for rtmp/hls/srt sources.
+ */
+async function provisionDirectSourceCamera(camera: Camera): Promise<Camera["status"]> {
+  try {
+    if (!camera.rtspMainUri) {
+      throw new Error("URL do stream não configurada.");
+    }
+
+    if (camera.sourceType === "mjpeg-http" || camera.sourceType === "webpage") {
+      await upsertCameraPath(camera.id, {
+        source: "publisher",
+        sourceOnDemand: false,
+        record: camera.recordingMode === "continuous",
+        recordDeleteAfter: `${camera.retentionDays}d`,
+      });
+      if (camera.sourceType === "mjpeg-http") {
+        ensureMjpegBridge(camera.id, camera.rtspMainUri);
+      } else {
+        await ensureWebpageBridge(camera.id, camera.rtspMainUri);
+      }
+      updateCameraConnection(camera.id, { status: "online" });
+      return "online";
+    }
+
+    if (camera.rtspCompatMode === "vlc-relay") {
+      await stopVlcRelay(camera.id);
+    }
+    const sourceUri =
+      camera.sourceType === "rtsp" && camera.rtspCompatMode === "vlc-relay"
+        ? await ensureVlcRelay(camera, camera.rtspMainUri)
+        : camera.sourceType === "rtsp" && camera.username
+          ? withRtspCredentials(camera.rtspMainUri, camera.username, camera.password)
+          : camera.rtspMainUri;
+
+    await upsertCameraPath(camera.id, {
+      source: sourceUri,
+      sourceOnDemand: false,
+      record: camera.recordingMode === "continuous",
+      rtspTransport: camera.sourceType === "rtsp" ? (camera.rtspCompatMode === "vlc-relay" ? "udp" : "tcp") : undefined,
+      recordDeleteAfter: `${camera.retentionDays}d`,
+    });
+    updateCameraConnection(camera.id, { status: "online" });
+    return "online";
+  } catch (err) {
+    logger.warn({ err, cameraId: camera.id }, "Failed to provision direct-source stream for camera");
+    updateCameraConnection(camera.id, { status: "offline" });
+    return "offline";
+  }
+}
+
+async function provisionOnvifCamera(camera: Camera, options: { forceRefresh?: boolean } = {}): Promise<Camera["status"]> {
   try {
     let rtspUri = camera.rtspMainUri ?? undefined;
     let mainStreamMetadata: { width: number | null; height: number | null; encoding: string | null } | undefined;

@@ -11,13 +11,14 @@ export function LoginPage() {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     try {
-      await login.mutateAsync({ username, password });
+      await login.mutateAsync({ username, password, rememberMe });
       navigate("/", { replace: true });
     } catch (err) {
       const status = axios.isAxiosError(err) ? err.response?.status : undefined;
@@ -52,6 +53,16 @@ export function LoginPage() {
             required
             className="rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
           />
+
+          <label className="flex items-center gap-2 text-sm text-neutral-400">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="h-4 w-4 rounded border-neutral-700 bg-neutral-950"
+            />
+            {t("auth.rememberMe")}
+          </label>
 
           {error && <p className="text-xs text-red-400">{error}</p>}
 

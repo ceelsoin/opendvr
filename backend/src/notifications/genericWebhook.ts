@@ -8,6 +8,8 @@ export interface GenericWebhookPayload {
   occurredAt: string;
   /** Set when the camera is recording (continuous/motion) - a link to view the clip in the Timeline instead of a snapshot. */
   recordingLink?: string;
+  /** Public URL of the snapshot (uploaded to S3-compatible storage, see lib/s3Storage.ts), when configured - sent alongside/instead of the base64 blob below. */
+  snapshotUrl?: string;
 }
 
 /**

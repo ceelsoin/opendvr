@@ -2,6 +2,7 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { listCameras } from "../db/cameras.repository.js";
 import { findEventsOlderThan, deleteEventsOlderThan } from "../db/events.repository.js";
+import { deleteExpiredS3Snapshots } from "../lib/s3Storage.js";
 import { env } from "../config/env.js";
 import { logger } from "../lib/logger.js";
 
@@ -68,6 +69,7 @@ export async function runRetentionCleanup(): Promise<void> {
   for (const camera of cameras) {
     try {
       await cleanupCameraEvents(camera.id, camera.retentionDays);
+      await deleteExpiredS3Snapshots(camera.id, camera.retentionDays);
     } catch (err) {
       logger.warn({ err, cameraId: camera.id }, "Retention cleanup failed for camera");
     }

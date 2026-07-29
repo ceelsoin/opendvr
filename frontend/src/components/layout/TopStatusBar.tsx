@@ -18,11 +18,24 @@ function Metric({ label, percent, detail }: { label: string; percent: number; de
  * AppLayout (like the sidebar nav) so it appears on every screen except the
  * kiosk custom-grid view, which deliberately has no chrome at all.
  */
-export function TopStatusBar() {
+export function TopStatusBar({ onMenuClick }: { onMenuClick?: () => void }) {
   const { data } = useSystemStats();
 
   return (
-    <header className="flex h-10 shrink-0 items-center justify-end gap-4 border-b border-neutral-800 bg-neutral-950 px-4 text-xs">
+    <header className="flex h-10 shrink-0 items-center justify-between gap-4 border-b border-neutral-800 bg-neutral-950 px-4 text-xs">
+      {onMenuClick && (
+        <button
+          type="button"
+          onClick={onMenuClick}
+          aria-label="Abrir menu"
+          className="rounded p-1 text-neutral-400 hover:bg-neutral-900 hover:text-neutral-200 md:hidden"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      )}
+      <div className="flex flex-1 items-center justify-end gap-4">
       {data ? (
         <Link to="/dashboard" className="flex items-center gap-4 hover:opacity-80">
           <Metric
@@ -47,6 +60,7 @@ export function TopStatusBar() {
       ) : (
         <span className="text-neutral-600">Carregando estatísticas...</span>
       )}
+      </div>
     </header>
   );
 }

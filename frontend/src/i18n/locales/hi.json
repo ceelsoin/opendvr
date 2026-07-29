@@ -1,0 +1,32 @@
+{
+  "nav": {
+    "grid": "लाइव",
+    "dashboard": "डैशबोर्ड",
+    "timeline": "रिकॉर्डिंग",
+    "events": "घटनाएं",
+    "cameras": "कैमरे",
+    "onvifDebug": "ONVIF डीबग",
+    "settings": "सेटिंग्स",
+    "logout": "लॉग आउट"
+  },
+  "auth": {
+    "setupTitle": "प्रारंभिक सेटअप",
+    "setupSubtitle": "OpenDVR का उपयोग शुरू करने के लिए व्यवस्थापक खाता बनाएं।",
+    "loginTitle": "साइन इन करें",
+    "loginSubtitle": "अपने OpenDVR खाते तक पहुंचें।",
+    "username": "उपयोगकर्ता नाम",
+    "password": "पासवर्ड",
+    "confirmPassword": "पासवर्ड की पुष्टि करें",
+    "createAccount": "खाता बनाएं",
+    "signIn": "साइन इन करें",
+    "rememberMe": "मुझे साइन इन रखें",
+    "passwordMismatch": "पासवर्ड मेल नहीं खाते।",
+    "passwordTooShort": "पासवर्ड कम से कम 8 वर्णों का होना चाहिए।",
+    "invalidCredentials": "अमान्य उपयोगकर्ता नाम या पासवर्ड।",
+    "genericError": "कुछ गलत हो गया। कृपया पुनः प्रयास करें।",
+    "sessionExpired": "आपका सत्र समाप्त हो गया है। कृपया फिर से साइन इन करें।"
+  },
+  "language": {
+    "label": "भाषा"
+  }
+}

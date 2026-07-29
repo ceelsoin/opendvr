@@ -1,9 +1,22 @@
 import { useTranslation } from "react-i18next";
 import { SUPPORTED_LANGUAGES } from "../../i18n";
 
+// Each language's own native name/script (standard UX convention - a
+// visitor should recognize their language even if the current UI language
+// is one they don't read).
 const LANGUAGE_LABELS: Record<string, string> = {
   "pt-BR": "Português (BR)",
   en: "English",
+  es: "Español",
+  fr: "Français",
+  de: "Deutsch",
+  "zh-CN": "中文（简体）",
+  ja: "日本語",
+  ko: "한국어",
+  ru: "Русский",
+  ar: "العربية",
+  hi: "हिन्दी",
+  id: "Bahasa Indonesia",
 };
 
 export function LanguageSwitcher() {

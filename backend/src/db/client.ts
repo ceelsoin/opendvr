@@ -139,6 +139,19 @@ const COLUMN_MIGRATIONS: Record<string, string[]> = {
     // see media/motionDetector.ts) - needed for cameras whose ONVIF Events
     // service doesn't actually work despite advertising support.
     "ALTER TABLE cameras ADD COLUMN motion_detection_source TEXT NOT NULL DEFAULT 'onvif'",
+    // Administrative on/off switch (POST /cameras/:id/enable|disable) -
+    // distinct from `status`, which reflects connectivity. A disabled
+    // camera has its MediaMTX path/motion listener/VLC relay torn down and
+    // is skipped entirely on boot/reconcile, but stays in the DB so its
+    // config isn't lost.
+    "ALTER TABLE cameras ADD COLUMN enabled INTEGER NOT NULL DEFAULT 1",
+    // Which protocol is used for this camera's video source: "onvif" (the
+    // original/default full ONVIF flow) or a directly-entered URL of type
+    // "rtsp"/"rtmp"/"hls"/"srt" (no ONVIF discovery for video at all -
+    // ONVIF connection fields may still be filled in just for PTZ, see
+    // types/camera.ts's CameraSourceType doc comment). Existing rows
+    // default to 'onvif' to preserve current behavior exactly.
+    "ALTER TABLE cameras ADD COLUMN source_type TEXT NOT NULL DEFAULT 'onvif'",
   ],
   events: [
     "ALTER TABLE events ADD COLUMN read INTEGER NOT NULL DEFAULT 0",

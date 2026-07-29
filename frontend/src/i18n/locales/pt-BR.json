@@ -1,8 +1,8 @@
 {
   "nav": {
-    "grid": "Grid",
+    "grid": "Ao vivo",
     "dashboard": "Dashboard",
-    "timeline": "Timeline",
+    "timeline": "Gravações",
     "events": "Eventos",
     "cameras": "Câmeras",
     "onvifDebug": "Debug ONVIF",
@@ -19,6 +19,7 @@
     "confirmPassword": "Confirmar senha",
     "createAccount": "Criar conta",
     "signIn": "Entrar",
+    "rememberMe": "Manter conectado",
     "passwordMismatch": "As senhas não coincidem.",
     "passwordTooShort": "A senha precisa ter pelo menos 8 caracteres.",
     "invalidCredentials": "Usuário ou senha inválidos.",

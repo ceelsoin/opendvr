@@ -8,6 +8,7 @@ The backend reads env vars via [backend/src/config/env.ts](../backend/src/config
 |---|---|---|
 | `PORT` | `4000` | HTTP port the backend listens on. |
 | `NODE_ENV` | `development` | `production` enables serving the built frontend from `dist/web`. |
+| `TZ` | `America/Sao_Paulo` | Container/process timezone. Used both for the daily 03:00 retention cron ([jobs/retentionCleanup.ts](../backend/src/jobs/retentionCleanup.ts)) and for human-readable timestamps in notification messages ([notifications/webhooks.ts](../backend/src/notifications/webhooks.ts)). Without it, Node defaults to UTC, which shows up as notification times being several hours ahead of local time. Also read directly as the fallback for `env.timezone`, used explicitly in `toLocaleString` calls as a defense-in-depth measure independent of whether the container's system `TZ` propagates to `Intl`. |
 | `JWT_SECRET` | `dev-secret-change-me` | Signs session JWTs (see [Features → Authentication](./features.md#authentication)). **Change this in production** - the default is well-known/insecure. |
 | `JWT_EXPIRES_IN` | `1h` | Session/login lifetime. Accepts any [`ms`](https://github.com/vercel/ms)-style string (`1h`, `30m`, `7d`, ...). |
 | `COOKIE_SECURE` | `false` | Set to `true` only if this app is deployed behind HTTPS (e.g. a reverse proxy terminating TLS). Leave unset for the common case of plain-HTTP LAN access - setting this without HTTPS breaks login (browsers won't send `Secure` cookies over HTTP). |

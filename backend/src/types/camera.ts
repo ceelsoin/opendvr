@@ -26,6 +26,33 @@ export type RecordingMode = "off" | "continuous" | "motion";
  */
 export type MotionDetectionSource = "onvif" | "video";
 
+/**
+ * Which protocol/mechanism is used to pull (or, for "onvif", resolve then
+ * pull) this camera's video:
+ *  - "onvif": full ONVIF flow (device discovery, profile/stream resolution,
+ *    PullPoint events, GetSnapshotUri) - the original/default behavior.
+ *  - "rtsp": a plain RTSP URL entered directly (`rtspMainUri`), no ONVIF
+ *    involved for video at all - optionally still using ONVIF `host`/
+ *    `port`/`onvifPath`/`username`/`password`/`onvifProfileToken` purely for
+ *    PTZ control, if `hasPtz` is set (see media/ptzCamera.ts).
+ *  - "rtmp" / "hls" / "srt": likewise a directly-entered URL of that
+ *    protocol, pulled by MediaMTX natively (no transcoding bridge needed -
+ *    see mediamtx.yml's documented `source:` URL schemes).
+ * For any non-"onvif" type, motion detection is always video-based (OpenCV)
+ * since there's no ONVIF Events subscription for the video connection
+ * itself, and snapshots always use the ffmpeg/MediaMTX fallback instead of
+ * ONVIF's GetSnapshotUri (unless PTZ-hybrid ONVIF fields are set, which
+ * doesn't change this - snapshot still prefers the cheaper ffmpeg route).
+ *  - "mjpeg-http": an MJPEG-over-HTTP camera (`rtspMainUri` holds the http(s)
+ *    URL, despite the field name) - bridged into RTSP via ffmpeg, see
+ *    media/mjpegBridge.ts.
+ *  - "webpage": an arbitrary web page (`rtspMainUri` holds the http(s) URL)
+ *    rendered by a headless Chromium and captured as a video feed - see
+ *    media/webpageBridge.ts. By far the heaviest source type (runs a real
+ *    browser engine).
+ */
+export type CameraSourceType = "onvif" | "rtsp" | "rtmp" | "hls" | "srt" | "mjpeg-http" | "webpage";
+
 /** ONVIF-discovered resolution/codec info for a stream, saved so the edit form can show it again without re-probing. */
 export interface StreamMetadata {
   width: number | null;
@@ -36,6 +63,7 @@ export interface StreamMetadata {
 export interface Camera {
   id: string;
   name: string;
+  sourceType: CameraSourceType;
   host: string;
   port: number;
   /** ONVIF device service path, e.g. "/onvif/device_service" or "/onvif". */
@@ -60,6 +88,8 @@ export interface Camera {
   motionDetectionSource: MotionDetectionSource;
   retentionDays: number;
   status: CameraStatus;
+  /** Administrative on/off switch, independent of `status` (connectivity). See media/provisioning.ts callers in cameras.routes.ts's enable/disable actions. */
+  enabled: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -68,11 +98,12 @@ export type CameraPublic = Omit<Camera, "password">;
 
 export interface CreateCameraInput {
   name: string;
-  host: string;
+  sourceType?: CameraSourceType;
+  host?: string;
   port?: number;
   onvifPath?: string;
-  username: string;
-  password: string;
+  username?: string;
+  password?: string;
   /** Pre-resolved via /api/onvif/probe, so creation doesn't need to reconnect. */
   mainProfileToken?: string;
   subProfileToken?: string;
@@ -90,6 +121,7 @@ export interface CreateCameraInput {
 
 export interface UpdateCameraInput {
   name?: string;
+  sourceType?: CameraSourceType;
   host?: string;
   port?: number;
   onvifPath?: string;

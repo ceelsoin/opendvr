@@ -8,18 +8,25 @@ import { logger } from "../../lib/logger.js";
 export const settingsRouter = Router();
 
 /**
- * Never returns the raw secret values back to the client (same convention
- * as camera passwords) - just whether each channel is currently configured,
- * plus its attach-snapshot preference. Saving a new value always requires
- * typing it in again (a blank field on save means "leave unchanged", not
- * "clear" - see updateNotificationSettingsSchema).
+ * Returns the actual saved values for most fields (so the Settings page can
+ * show what's already configured, instead of a blank field the user has no
+ * way to verify) - this endpoint is already gated behind global auth
+ * (requireAuth), so there's no unauthenticated exposure risk. The one
+ * exception is `emailSmtpPass` (an actual password, not just a scoped/
+ * revocable webhook URL or bot token) - that one is never returned, same
+ * convention as camera/login passwords; leaving it blank on save means
+ * "keep the current one".
  */
 function serializeSettings(settings: ReturnType<typeof getNotificationSettings>) {
   return {
+    discordWebhookUrl: settings.discordWebhookUrl,
     discordWebhookConfigured: Boolean(settings.discordWebhookUrl),
     discordAttachSnapshot: settings.discordAttachSnapshot,
+    telegramBotToken: settings.telegramBotToken,
+    telegramChatId: settings.telegramChatId,
     telegramConfigured: Boolean(settings.telegramBotToken && settings.telegramChatId),
     telegramAttachSnapshot: settings.telegramAttachSnapshot,
+    webhookUrl: settings.webhookUrl,
     webhookConfigured: Boolean(settings.webhookUrl),
     webhookAttachSnapshot: settings.webhookAttachSnapshot,
     emailConfigured: Boolean(settings.emailSmtpHost && settings.emailFrom && settings.emailTo),
@@ -30,6 +37,11 @@ function serializeSettings(settings: ReturnType<typeof getNotificationSettings>)
     emailFrom: settings.emailFrom,
     emailTo: settings.emailTo,
     emailAttachSnapshot: settings.emailAttachSnapshot,
+    s3Endpoint: settings.s3Endpoint,
+    s3Region: settings.s3Region,
+    s3AccessKey: settings.s3AccessKey,
+    s3BucketName: settings.s3BucketName,
+    s3Configured: Boolean(settings.s3Endpoint && settings.s3AccessKey && settings.s3SecretKey && settings.s3BucketName),
   };
 }
 
@@ -53,6 +65,11 @@ const updateNotificationSettingsSchema = z.object({
   emailFrom: z.string().nullable().optional(),
   emailTo: z.string().nullable().optional(),
   emailAttachSnapshot: z.boolean().optional(),
+  s3Endpoint: z.string().nullable().optional(),
+  s3Region: z.string().nullable().optional(),
+  s3AccessKey: z.string().nullable().optional(),
+  s3SecretKey: z.string().nullable().optional(),
+  s3BucketName: z.string().nullable().optional(),
 });
 
 settingsRouter.put("/notifications", (req, res) => {

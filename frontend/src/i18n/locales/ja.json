@@ -1,0 +1,32 @@
+{
+  "nav": {
+    "grid": "ライブ",
+    "dashboard": "ダッシュボード",
+    "timeline": "録画",
+    "events": "イベント",
+    "cameras": "カメラ",
+    "onvifDebug": "ONVIFデバッグ",
+    "settings": "設定",
+    "logout": "ログアウト"
+  },
+  "auth": {
+    "setupTitle": "初期設定",
+    "setupSubtitle": "OpenDVRの利用を開始するには、管理者アカウントを作成してください。",
+    "loginTitle": "サインイン",
+    "loginSubtitle": "OpenDVRアカウントにアクセスします。",
+    "username": "ユーザー名",
+    "password": "パスワード",
+    "confirmPassword": "パスワードの確認",
+    "createAccount": "アカウントを作成",
+    "signIn": "サインイン",
+    "rememberMe": "ログイン状態を保持する",
+    "passwordMismatch": "パスワードが一致しません。",
+    "passwordTooShort": "パスワードは8文字以上である必要があります。",
+    "invalidCredentials": "ユーザー名またはパスワードが正しくありません。",
+    "genericError": "問題が発生しました。もう一度お試しください。",
+    "sessionExpired": "セッションの有効期限が切れました。再度サインインしてください。"
+  },
+  "language": {
+    "label": "言語"
+  }
+}

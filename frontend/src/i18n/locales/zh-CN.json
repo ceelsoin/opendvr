@@ -1,0 +1,32 @@
+{
+  "nav": {
+    "grid": "直播",
+    "dashboard": "仪表盘",
+    "timeline": "录像",
+    "events": "事件",
+    "cameras": "摄像头",
+    "onvifDebug": "ONVIF 调试",
+    "settings": "设置",
+    "logout": "退出登录"
+  },
+  "auth": {
+    "setupTitle": "初始设置",
+    "setupSubtitle": "创建管理员账户以开始使用 OpenDVR。",
+    "loginTitle": "登录",
+    "loginSubtitle": "访问您的 OpenDVR 账户。",
+    "username": "用户名",
+    "password": "密码",
+    "confirmPassword": "确认密码",
+    "createAccount": "创建账户",
+    "signIn": "登录",
+    "rememberMe": "保持登录状态",
+    "passwordMismatch": "密码不匹配。",
+    "passwordTooShort": "密码长度至少为 8 个字符。",
+    "invalidCredentials": "用户名或密码无效。",
+    "genericError": "出了点问题，请重试。",
+    "sessionExpired": "您的会话已过期，请重新登录。"
+  },
+  "language": {
+    "label": "语言"
+  }
+}

@@ -11,9 +11,11 @@
 
 ## Internationalization (i18n)
 
-- Built on [`react-i18next`](https://react.i18next.com/), with a language switcher in the sidebar (persisted to `localStorage`, defaults to the browser's language if it's English, otherwise Portuguese).
-- **Current translation coverage**: the app shell (sidebar nav labels, logout) and the Setup/Login pages are fully translated (`frontend/src/i18n/locales/{pt-BR,en}.json`). The rest of the application's pages (Cameras, Events, Timeline, Settings, etc.) still have their text hardcoded in Portuguese - the i18n infrastructure is in place and ready, but translating every existing page's strings is a larger follow-up task, not yet done.
-- To add a string: add the key to both locale JSON files, then use `const { t } = useTranslation()` + `t("your.key")` in the component.
+- Built on [`react-i18next`](https://react.i18next.com/), with a language switcher in the sidebar (persisted to `localStorage`). Detects the browser's language on first visit (`navigator.languages`, matched against the primary language subtag - e.g. `es-MX` → Spanish, `zh-Hans-CN` → Chinese), falling back to Portuguese if none of the supported languages match.
+- **12 languages**: Portuguese (`pt-BR`) and English, plus the ten languages covering the largest populations that predominantly don't speak English - Spanish, French, German, Chinese (`zh-CN`), Japanese, Korean, Russian, Arabic, Hindi, and Indonesian (`frontend/src/i18n/locales/*.json`).
+- **Arabic reads right-to-left**: `<html dir>` is set to `rtl`/`ltr` automatically based on the selected language (`frontend/src/i18n/index.ts`'s `RTL_LANGUAGES`), so at least text alignment/reading order is correct. Full RTL-mirrored layout (flipping the sidebar, icons, etc.) is **not** implemented - that would need every Tailwind flex/grid layout in the app reviewed for RTL-awareness, a larger follow-up task.
+- **Current translation coverage**: the app shell (sidebar nav labels, logout) and the Setup/Login pages are fully translated in all 12 languages. The rest of the application's pages (Cameras, Events, Timeline, Settings, etc.) still have their text hardcoded in Portuguese - the i18n infrastructure is in place and ready, but translating every existing page's strings is a larger follow-up task, not yet done.
+- To add a string: add the key to **every** locale JSON file under `frontend/src/i18n/locales/`, then use `const { t } = useTranslation()` + `t("your.key")` in the component.
 
 ## Camera management
 
@@ -25,6 +27,7 @@
   - Optional **"vlc-relay" compatibility mode** for cameras whose RTSP server doesn't work with MediaMTX's RTSP client (see [Troubleshooting](./troubleshooting.md)).
 - **Test connection** — re-probes ONVIF for an already-saved camera and shows the result (streams found, or a detailed connection error) inline.
 - **Restart/reprovision** — forces a fresh ONVIF reconnect and MediaMTX path re-registration for a camera, without needing to edit/re-save it.
+- **Enable/disable** (`POST /api/cameras/:id/enable` / `/disable`) — an administrative on/off switch distinct from the connectivity-based `status` field: disabling tears down the camera's MediaMTX path, motion listener/detector, motion-recording timer, and VLC relay, but keeps its row/config in the database so it can be re-enabled later without re-entering anything. Disabled cameras are skipped entirely on backend boot and by the periodic MediaMTX-path reconciliation loop, so they won't be silently re-provisioned. Available from the **Câmeras** page and from each camera tile's right-click context menu.
 - **Stream diagnostics** — a "diagnóstico" toggle on each camera tile polls `GET /api/cameras/:id/stream-status` every 3s and shows: whether the MediaMTX path is configured, whether the RTSP source is actually `ready` (connected), source type, reader/viewer count, bytes received, resolved ONVIF/RTSP URLs, and (if applicable) the VLC relay URL. This is the tool to tell apart "ONVIF connected fine but MediaMTX can't pull RTSP" from other failure modes.
 - **Delete** — stops any event listener/motion-recording timer/VLC relay, removes the MediaMTX path, then deletes the DB row.
 
@@ -33,6 +36,8 @@
 - Live view over **HLS**, played with `hls.js` (native fallback for Safari), always via the backend's own reverse proxy at `/hls/<cameraId>/index.m3u8` — the browser never talks to MediaMTX directly (no extra CORS/ports to expose).
 - Cameras are pulled by MediaMTX with `rtspTransport: tcp` (forced, since UDP tends to fail silently with cheap cameras and containerized/NAT networking) and `sourceOnDemand: false` (always connected — required for continuous recording and for the stream to already be warm when someone opens the live view).
 - WebRTC is exposed by MediaMTX (port 8889) but not yet wired up in the frontend player.
+- **Fullscreen per camera** — a corner button (visible on hover) on each camera tile, and a "Tela cheia" item in the right-click context menu, requests fullscreen for just that camera's tile (`Element.requestFullscreen()`), independent of the browser's own fullscreen shortcut.
+- **Right-click context menu** on each camera tile ([CameraTile](../frontend/src/components/cameras/CameraTile.tsx)) — quick access to Tela cheia, Ligar/Desligar, Reiniciar, Testar conexão and Editar câmera directly from the live grid, without navigating to the **Câmeras** management page.
 
 ## Recording & playback
 

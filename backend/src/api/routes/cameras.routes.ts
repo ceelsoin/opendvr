@@ -5,6 +5,7 @@ import {
   deleteCamera,
   getCameraById,
   listCameras,
+  setCameraEnabled,
   toPublicCamera,
   updateCamera,
 } from "../../db/cameras.repository.js";
@@ -12,6 +13,8 @@ import { discoverStreams } from "../../onvif/device.js";
 import { deleteCameraPath, getCameraPathStatus } from "../../media/mediamtx.js";
 import { provisionCamera } from "../../media/provisioning.js";
 import { getVlcRelayUrl, stopVlcRelay } from "../../media/vlcRelay.js";
+import { stopMjpegBridge } from "../../media/mjpegBridge.js";
+import { stopWebpageBridge } from "../../media/webpageBridge.js";
 import { stopMotionRecording } from "../../media/motionRecording.js";
 import { restartMotionListening, shouldDetectMotion, startMotionListening, stopMotionListening } from "../../media/motionOrchestrator.js";
 import { errorMessage } from "../../lib/errors.js";
@@ -25,13 +28,16 @@ const streamMetadataSchema = z.object({
   encoding: z.string().nullable(),
 });
 
-const createCameraSchema = z.object({
+const baseCameraSchema = z.object({
   name: z.string().min(1),
-  host: z.string().min(1),
+  // "onvif" (default, unchanged behavior) or a directly-entered stream URL
+  // of that protocol - see types/camera.ts's CameraSourceType doc comment.
+  sourceType: z.enum(["onvif", "rtsp", "rtmp", "hls", "srt", "mjpeg-http", "webpage"]).optional(),
+  host: z.string().optional(),
   port: z.number().int().positive().optional(),
   onvifPath: z.string().optional(),
-  username: z.string().min(1),
-  password: z.string().min(1),
+  username: z.string().optional(),
+  password: z.string().optional(),
   mainProfileToken: z.string().optional(),
   subProfileToken: z.string().optional(),
   rtspMainUri: z.string().optional(),
@@ -46,7 +52,21 @@ const createCameraSchema = z.object({
   retentionDays: z.number().int().positive().optional(),
 });
 
-const updateCameraSchema = createCameraSchema.partial();
+// host/username/password are only required for "onvif" cameras (the
+// default); "rtsp"/"rtmp"/"hls"/"srt" cameras just need a directly-entered
+// `rtspMainUri` instead - see types/camera.ts's CameraSourceType.
+const createCameraSchema = baseCameraSchema.superRefine((data, ctx) => {
+  const sourceType = data.sourceType ?? "onvif";
+  if (sourceType === "onvif") {
+    if (!data.host) ctx.addIssue({ code: "custom", message: "Host é obrigatório.", path: ["host"] });
+    if (!data.username) ctx.addIssue({ code: "custom", message: "Usuário é obrigatório.", path: ["username"] });
+    if (!data.password) ctx.addIssue({ code: "custom", message: "Senha é obrigatória.", path: ["password"] });
+  } else if (!data.rtspMainUri) {
+    ctx.addIssue({ code: "custom", message: "URL do stream é obrigatória.", path: ["rtspMainUri"] });
+  }
+});
+
+const updateCameraSchema = baseCameraSchema.partial();
 
 camerasRouter.get("/", (_req, res) => {
   const cameras = listCameras().map(toPublicCamera);
@@ -171,9 +191,54 @@ camerasRouter.delete("/:id", async (req, res) => {
   stopMotionListening(camera.id);
   stopMotionRecording(camera.id);
   await stopVlcRelay(camera.id);
+  await stopMjpegBridge(camera.id);
+  await stopWebpageBridge(camera.id);
   await deleteCameraPath(camera.id);
   deleteCamera(camera.id);
   res.status(204).send();
+});
+
+/**
+ * Administrative on/off switch (distinct from `status`, which reflects
+ * connectivity): tears down everything provisioning set up (MediaMTX path,
+ * motion listener, motion recording, VLC relay) but keeps the camera's row
+ * and config intact, so it can be re-enabled later without re-entering
+ * anything.
+ */
+camerasRouter.post("/:id/disable", async (req, res) => {
+  const camera = getCameraById(req.params.id);
+  if (!camera) {
+    res.status(404).json({ error: "Camera not found" });
+    return;
+  }
+  stopMotionListening(camera.id);
+  stopMotionRecording(camera.id);
+  await stopVlcRelay(camera.id);
+  await stopMjpegBridge(camera.id);
+  await stopWebpageBridge(camera.id);
+  await deleteCameraPath(camera.id);
+  const updated = setCameraEnabled(camera.id, false);
+  res.json(toPublicCamera(updated ?? camera));
+});
+
+/** Re-provisions a previously disabled camera (fresh ONVIF lookup, same as /restart) and resumes motion detection if configured. */
+camerasRouter.post("/:id/enable", async (req, res) => {
+  const camera = getCameraById(req.params.id);
+  if (!camera) {
+    res.status(404).json({ error: "Camera not found" });
+    return;
+  }
+  const enabledCamera = setCameraEnabled(camera.id, true);
+  if (!enabledCamera) {
+    res.status(404).json({ error: "Camera not found" });
+    return;
+  }
+  await provisionCamera(enabledCamera, { forceRefresh: true });
+  if (shouldDetectMotion(enabledCamera)) {
+    await startMotionListening(enabledCamera);
+  }
+  const finalCamera = getCameraById(enabledCamera.id) ?? enabledCamera;
+  res.json(toPublicCamera(finalCamera));
 });
 
 /** Tests ONVIF connectivity for a stored camera and lists its available stream profiles. */

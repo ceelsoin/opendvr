@@ -35,6 +35,11 @@ services:
     environment:
       PORT: 4000
       NODE_ENV: production
+      # Used both for the daily 03:00 retention cron (jobs/retentionCleanup.ts)
+      # and for human-readable timestamps in notification messages
+      # (notifications/webhooks.ts) - without this, Node defaults to UTC,
+      # which is 3h ahead of Brazil time.
+      TZ: ${TZ:-America/Sao_Paulo}
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       # Login session lifetime (see backend/src/api/routes/auth.routes.ts).
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}

@@ -5,6 +5,7 @@ import type { Camera, CameraPublic, CreateCameraInput, UpdateCameraInput } from 
 interface CameraRow {
   id: string;
   name: string;
+  source_type: Camera["sourceType"];
   host: string;
   port: number;
   onvif_path: string;
@@ -27,6 +28,7 @@ interface CameraRow {
   motion_detection_source: Camera["motionDetectionSource"];
   retention_days: number;
   status: Camera["status"];
+  enabled: number;
   created_at: string;
   updated_at: string;
 }
@@ -35,6 +37,7 @@ function toCamera(row: CameraRow): Camera {
   return {
     id: row.id,
     name: row.name,
+    sourceType: row.source_type,
     host: row.host,
     port: row.port,
     onvifPath: row.onvif_path,
@@ -57,6 +60,7 @@ function toCamera(row: CameraRow): Camera {
     motionDetectionSource: row.motion_detection_source,
     retentionDays: row.retention_days,
     status: row.status,
+    enabled: Boolean(row.enabled),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -81,13 +85,13 @@ export function createCamera(input: CreateCameraInput): Camera {
   const id = randomUUID();
   db.prepare(
     `INSERT INTO cameras (
-      id, name, host, port, onvif_path, username, password,
+      id, name, source_type, host, port, onvif_path, username, password,
       rtsp_main_uri, rtsp_sub_uri, onvif_profile_token, onvif_sub_profile_token,
       rtsp_compat_mode, main_stream_width, main_stream_height, main_stream_encoding,
       sub_stream_width, sub_stream_height, sub_stream_encoding, has_ptz,
       recording_mode, motion_recording, motion_detection_source, retention_days
     ) VALUES (
-      @id, @name, @host, @port, @onvifPath, @username, @password,
+      @id, @name, @sourceType, @host, @port, @onvifPath, @username, @password,
       @rtspMainUri, @rtspSubUri, @mainProfileToken, @subProfileToken,
       @rtspCompatMode, @mainStreamWidth, @mainStreamHeight, @mainStreamEncoding,
       @subStreamWidth, @subStreamHeight, @subStreamEncoding, @hasPtz,
@@ -96,11 +100,12 @@ export function createCamera(input: CreateCameraInput): Camera {
   ).run({
     id,
     name: input.name,
-    host: input.host,
+    sourceType: input.sourceType ?? "onvif",
+    host: input.host ?? "",
     port: input.port ?? 80,
     onvifPath: input.onvifPath ?? "/onvif/device_service",
-    username: input.username,
-    password: input.password,
+    username: input.username ?? "",
+    password: input.password ?? "",
     rtspMainUri: input.rtspMainUri ?? null,
     rtspSubUri: input.rtspSubUri ?? null,
     mainProfileToken: input.mainProfileToken ?? null,
@@ -136,6 +141,7 @@ export function updateCamera(id: string, input: UpdateCameraInput): Camera | nul
 
   const setters: Array<[keyof UpdateCameraInput, string, (v: unknown) => unknown]> = [
     ["name", "name", (v) => v],
+    ["sourceType", "source_type", (v) => v],
     ["host", "host", (v) => v],
     ["port", "port", (v) => v],
     ["onvifPath", "onvif_path", (v) => v],
@@ -194,6 +200,14 @@ export function updateCameraStatus(id: string, status: Camera["status"]): void {
   db.prepare(
     "UPDATE cameras SET status = ?, updated_at = datetime('now') WHERE id = ?"
   ).run(status, id);
+}
+
+/** Administrative on/off switch - see cameras.routes.ts's /enable and /disable actions. */
+export function setCameraEnabled(id: string, enabled: boolean): Camera | null {
+  db.prepare(
+    "UPDATE cameras SET enabled = ?, updated_at = datetime('now') WHERE id = ?"
+  ).run(enabled ? 1 : 0, id);
+  return getCameraById(id);
 }
 
 interface CameraConnectionUpdate {

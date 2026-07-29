@@ -1,8 +1,8 @@
 {
   "nav": {
-    "grid": "Grid",
+    "grid": "Live",
     "dashboard": "Dashboard",
-    "timeline": "Timeline",
+    "timeline": "Recordings",
     "events": "Events",
     "cameras": "Cameras",
     "onvifDebug": "ONVIF Debug",
@@ -19,6 +19,7 @@
     "confirmPassword": "Confirm password",
     "createAccount": "Create account",
     "signIn": "Sign in",
+    "rememberMe": "Keep me signed in",
     "passwordMismatch": "Passwords don't match.",
     "passwordTooShort": "Password must be at least 8 characters long.",
     "invalidCredentials": "Invalid username or password.",

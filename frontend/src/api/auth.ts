@@ -24,6 +24,8 @@ export function useAuthStatus() {
 export interface Credentials {
   username: string;
   password: string;
+  /** "Manter conectado" - requests a much longer-lived session instead of the default short one. */
+  rememberMe?: boolean;
 }
 
 export function useSetup() {

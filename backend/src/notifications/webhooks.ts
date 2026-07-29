@@ -1,4 +1,5 @@
 import type { Camera } from "../types/camera.js";
+import { env } from "../config/env.js";
 import { getNotificationSettings } from "./notificationSettings.js";
 import { notifyDiscord } from "./discord.js";
 import { notifyTelegram } from "./telegram.js";
@@ -18,7 +19,7 @@ function friendlyEventType(topic: string): string {
 }
 
 function buildMessage(camera: Pick<Camera, "name">, topic: string, occurredAt: Date): string {
-  const time = occurredAt.toLocaleString("pt-BR");
+  const time = occurredAt.toLocaleString("pt-BR", { timeZone: env.timezone });
   return `📷 ${camera.name}: ${friendlyEventType(topic)} às ${time}`;
 }
 
@@ -30,15 +31,24 @@ function buildMessage(camera: Pick<Camera, "name">, topic: string, occurredAt: D
  * logged and doesn't affect the others or the caller (the ONVIF event
  * stream / video motion detector).
  */
-export async function notifyEvent(camera: Pick<Camera, "id" | "name">, topic: string, snapshot?: Buffer): Promise<void> {
+export async function notifyEvent(
+  camera: Pick<Camera, "id" | "name">,
+  topic: string,
+  snapshot?: Buffer,
+  recordingLink?: string,
+  snapshotUrl?: string
+): Promise<void> {
   const message = buildMessage(camera, topic, new Date());
   const occurredAt = new Date().toISOString();
 
   const results = await Promise.allSettled([
-    notifyDiscord(message, snapshot),
-    notifyTelegram(message, snapshot),
-    notifyGenericWebhook({ cameraId: camera.id, cameraName: camera.name, topic, message, occurredAt }, snapshot),
-    notifyEmail(`OpenDVR: ${friendlyEventType(topic)} (${camera.name})`, message, snapshot),
+    notifyDiscord(message, snapshot, recordingLink, snapshotUrl),
+    notifyTelegram(message, snapshot, recordingLink, snapshotUrl),
+    notifyGenericWebhook(
+      { cameraId: camera.id, cameraName: camera.name, topic, message, occurredAt, recordingLink, snapshotUrl },
+      snapshot
+    ),
+    notifyEmail(`OpenDVR: ${friendlyEventType(topic)} (${camera.name})`, message, snapshot, recordingLink),
   ]);
   for (const result of results) {
     if (result.status === "rejected") {

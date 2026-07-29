@@ -56,7 +56,16 @@ FROM node:22-alpine AS runtime
 # manylinux wheels are glibc-only and won't run on musl/Alpine, and building
 # OpenCV from source is impractically heavy) powers the video-based motion
 # detector (media/motionDetector.ts spawns motion_worker.py per camera).
-RUN apk add --no-cache ffmpeg vlc py3-opencv \
+#
+# chromium + freetype/harfbuzz/ttf-freefont: headless browser used by the
+# "webpage" camera source type (media/webpageBridge.ts) to render an
+# arbitrary URL as a video feed (Playwright's own bundled Chromium download
+# is skipped entirely - `playwright-core` instead drives this
+# already-installed, Alpine-native build via `executablePath`, same
+# rationale as py3-opencv: prebuilt platform packages over huge downloads
+# that may not even support musl). This is by far the heaviest optional
+# runtime dependency in this image - only pulled in for that one source type.
+RUN apk add --no-cache ffmpeg vlc py3-opencv chromium ttf-freefont \
   && addgroup -g 10001 vlcrelay \
   && adduser -D -H -h /tmp -u 10001 -G vlcrelay vlcrelay
 

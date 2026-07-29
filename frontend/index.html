@@ -2,8 +2,28 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!--
+      Absolute "/favicon.svg" was wrong in production: this app is served
+      under a "/web/" base path there (see vite.config.ts), not at the
+      domain root - a hardcoded "/favicon.svg" 404s once deployed via
+      Docker (nothing is served at "/"). "%BASE_URL%" is Vite's built-in
+      index.html placeholder, resolved to "/" in dev and "/web/" in
+      production builds automatically.
+    -->
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
+    <!--
+      SVG favicons aren't supported by Safari/iOS at all (only
+      Chromium/Firefox) - these PNG fallbacks cover it, including the
+      dedicated apple-touch-icon iOS uses for tab/bookmark icons and for
+      "Add to Home Screen" (relevant here: the app's custom-grid kiosk URLs
+      are meant to be pinned on tablets, see docs/features.md).
+    -->
+    <link rel="icon" type="image/png" sizes="32x32" href="%BASE_URL%favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="%BASE_URL%favicon-16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="%BASE_URL%apple-touch-icon.png" />
+    <link rel="manifest" href="%BASE_URL%manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#FF6A22" />
     <title>OpenDVR</title>
   </head>
   <body>

@@ -85,6 +85,12 @@ Partial update (same shape as `POST`, all fields optional). If any connection fi
 ### `POST /api/cameras/:id/restart`
 Forces a full reconnect: re-resolves the RTSP URI via ONVIF and re-registers the MediaMTX path. Returns `{ ok: boolean, status: "online" | "offline" | "unknown" }`.
 
+### `POST /api/cameras/:id/disable`
+Administrative on/off switch, distinct from the connectivity-based `status` field. Stops the motion listener/detector, motion-recording cooldown, and VLC relay (if any); deletes the MediaMTX path; sets `enabled: false` on the camera row (config is kept, nothing is deleted). Disabled cameras are skipped on backend boot and by the periodic MediaMTX-path reconciliation loop. Returns the updated camera.
+
+### `POST /api/cameras/:id/enable`
+Re-enables a previously disabled camera: sets `enabled: true`, then re-provisions it (fresh ONVIF lookup + MediaMTX path registration, same as `/restart`) and resumes motion detection if configured. Returns the updated camera.
+
 ### `DELETE /api/cameras/:id`
 Stops the event listener, motion-recording cooldown, and VLC relay (if any); deletes the MediaMTX path (a missing/404 path is treated as already-gone, not an error); deletes the DB row. `204 No Content`.
 

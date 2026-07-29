@@ -39,6 +39,14 @@ Some cheap RTSP servers only accept a Digest-auth retry if it arrives on the **s
 
 **Workaround built in**: set the camera's compatibility mode to **`vlc-relay`** (checkbox in the add/edit camera dialog). This spawns a headless VLC process (`backend/src/media/vlcRelay.ts`) that pulls the stream once as a real working client and re-serves it as a fresh, unauthenticated RTSP stream on a local port; MediaMTX then pulls from that relay instead of the picky camera directly. The relay is self-healing (auto-restarts on unexpected exit) and is torn down/recreated automatically whenever the camera is reprovisioned.
 
+## Notification timestamps are several hours ahead of local time
+
+By default, Node.js containers use **UTC** unless a timezone is explicitly configured — `docker-compose.yml` sets `TZ` (defaults to `America/Sao_Paulo`, see [Configuration](./configuration.md)) precisely to avoid this, but a deployment that predates this change, or a custom compose file, may still be missing it.
+
+**Symptom**: Discord/Telegram/Email notification messages show a time N hours ahead of the camera's real local time (e.g. 3h ahead for Brazil, since UTC-3 vs UTC).
+
+**Fix**: ensure `TZ` is set on the backend container (`docker-compose.yml`'s `environment:` block) to your local IANA timezone name (e.g. `America/Sao_Paulo`, `Europe/Lisbon`). This also affects when the daily 03:00 retention cleanup cron actually runs — without it, "03:00" is UTC, not local time. No `tzdata` package install is needed in the image: Node's bundled ICU has its own embedded timezone database, independent of the OS's.
+
 ## Known limitations
 
 These are deliberate scope boundaries or acknowledged gaps, not necessarily bugs:
