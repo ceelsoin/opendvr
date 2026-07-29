@@ -9,6 +9,8 @@ import { gridsRouter } from "./grids.routes.js";
 import { settingsRouter } from "./settings.routes.js";
 import { systemRouter } from "./system.routes.js";
 import { authRouter } from "./auth.routes.js";
+import { maintenanceRouter } from "./maintenance.routes.js";
+import { pushRouter } from "./push.routes.js";
 
 export const apiRouter = Router();
 
@@ -26,3 +28,5 @@ apiRouter.use("/events", eventsRouter);
 apiRouter.use("/grids", gridsRouter);
 apiRouter.use("/settings", settingsRouter);
 apiRouter.use("/system", systemRouter);
+apiRouter.use("/maintenance", maintenanceRouter);
+apiRouter.use("/push", pushRouter);

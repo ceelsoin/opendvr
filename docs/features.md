@@ -57,7 +57,7 @@
 - A JPEG **snapshot** is always attempted per event, served at `/snapshots/<cameraId>/<eventId>.jpg` - tries the camera's ONVIF snapshot first, falling back to grabbing a frame directly from MediaMTX via ffmpeg if that fails, so a snapshot is captured regardless of how broken a camera's ONVIF stack is.
 - **Real-time UI**: every event is broadcast over WebSocket (`camera:event`); the frontend shows a toast with a human-friendly translation of the event type (e.g. "Movimento detectado") and flashes a green border around the camera's tile in the grid.
 - **Events page**: filter by camera, day, and event type; mark events read/unread; delete individual events.
-- **External notifications** (optional, independently configurable from the Settings page or env vars): Discord, Telegram, a generic JSON webhook, and email (SMTP) - each with its own "attach snapshot" toggle. The snapshot is only actually attached when the camera **isn't** recording (`recordingMode: "off"`); when it is recording (`continuous` or `motion`), a link to the Timeline is sent instead of a static image, since the actual clip will be available there.
+- **External notifications** (optional, independently configurable from the Settings page or env vars): Discord, Telegram, a generic JSON webhook, email (SMTP), and **browser/PWA push notifications** - each with its own toggle. Discord/Telegram/webhook/email each have an "attach snapshot" toggle: the snapshot is only actually attached when the camera **isn't** recording (`recordingMode: "off"`); when it is recording (`continuous` or `motion`), a link to the Timeline is sent instead of a static image, since the actual clip will be available there. Push notifications include that same link/snapshot as the notification's click-through URL and icon.
 
 ## PTZ (Pan/Tilt/Zoom)
 
@@ -80,10 +80,18 @@
 
 ## Settings (notifications)
 
-- The **Configurações** page manages all four external notification channels (Discord, Telegram, generic webhook, email/SMTP) at runtime, persisted in the database — no restart needed, and these values take precedence over the env vars in [Configuration](./configuration.md) (which only serve as deploy-time/first-boot defaults).
+- The **Configurações** page manages all five external notification channels (Discord, Telegram, generic webhook, email/SMTP, and push) at runtime, persisted in the database — no restart needed, and these values take precedence over the env vars in [Configuration](./configuration.md) (which only serve as deploy-time/first-boot defaults).
 - Each channel shows a "Configurado"/"Não configurado" badge; secrets (webhook URLs, bot token, SMTP password) are never sent back to the client once saved — leaving a secret field blank on save means "keep the existing value", not "clear it" (clearing is a separate explicit action per channel).
 - A **"Testar"** button per channel sends a real test notification immediately using the currently saved configuration, surfacing success/failure inline.
 - Backed by `GET`/`PUT /api/settings/notifications` and `POST /api/settings/notifications/test` (see [API Reference](./api-reference.md)).
+
+## Push notifications (PWA)
+
+- OpenDVR can send **Web Push** notifications straight to a browser or an installed PWA (Chrome/Edge/Firefox on desktop and Android; Safari on iOS/iPadOS 16.4+ requires "Add to Home Screen" first) - the same motion/tamper alerts that already trigger Discord/Telegram/email/webhook, delivered as a native OS notification even with the tab/app closed.
+- Enabled per browser/device from the **Configurações** page, under "Notificações push (PWA)": clicking "Ativar neste dispositivo" requests notification permission and registers a subscription; "Desativar neste dispositivo" revokes it. No external account/service is required - unlike Discord/Telegram/email, this needs zero configuration to turn on.
+- Under the hood: `frontend/public/sw.js` is a minimal service worker (registered in `main.tsx`, no offline caching - this app has no use for that) that listens for `push` (shows the notification) and `notificationclick` (focuses an open tab or opens one at the event's Timeline link). The backend identifies itself to browsers' push services with a VAPID key pair, generated automatically on first use and persisted in the database (`backend/src/lib/webPush.ts`) - no manual key-generation step needed, though `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` env vars can pin a specific pair if you need one (see [Configuration](./configuration.md)).
+- Requires HTTPS in production (the Push API is unavailable on plain HTTP except on `localhost`) - see [Configuration](./configuration.md) for reverse-proxy/TLS notes.
+- Backed by `GET /api/push/vapid-public-key`, `POST /api/push/subscribe`, `POST /api/push/unsubscribe`, and the same `POST /api/settings/notifications/test` used by the other channels (`channel: "push"`) - see [API Reference](./api-reference.md).
 
 ## Dashboard & system stats
 

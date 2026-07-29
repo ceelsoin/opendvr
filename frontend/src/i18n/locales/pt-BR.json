@@ -7,6 +7,7 @@
     "cameras": "Câmeras",
     "onvifDebug": "Debug ONVIF",
     "settings": "Configurações",
+    "maintenance": "Manutenção",
     "logout": "Sair"
   },
   "auth": {
@@ -44,11 +45,21 @@
     "turnOff": "Desligar",
     "turnOn": "Ligar",
     "testConnection": "Testar conexão",
+    "testingConnection": "Testando...",
     "restart": "Reiniciar",
     "restarting": "Reiniciando...",
     "ptzButton": "PTZ",
     "edit": "Editar",
     "remove": "Remover",
+    "confirmCancel": "Cancelar",
+    "confirmDeleteTitle": "Remover câmera",
+    "confirmDeleteMessage": "Tem certeza que deseja remover a câmera \"{{name}}\"? Essa ação não pode ser desfeita.",
+    "confirmDisableTitle": "Desligar câmera",
+    "confirmDisableMessage": "Tem certeza que deseja desligar a câmera \"{{name}}\"? A gravação e o stream serão interrompidos até ela ser religada.",
+    "restartLogTitle": "Reiniciando {{name}}",
+    "testLogTitle": "Testando conexão: {{name}}",
+    "toastRemoved": "câmera removida.",
+    "toastRemoveFailed": "Falha ao remover a câmera.",
     "none": "Nenhuma câmera cadastrada.",
     "testConnectionFailed": "Falha ao testar a conexão com a câmera.",
     "toastConnected": "conectado — {{count}} stream(s) encontrado(s).",
@@ -69,6 +80,8 @@
     "motionRecordingBadge": "Gravação por movimento",
     "fullscreenTitle": "Tela cheia",
     "fullscreenFailedToast": "Não foi possível entrar em tela cheia.",
+    "refreshPlayer": "Atualizar vídeo",
+    "moreOptions": "Mais opções",
     "diagnosticToggle": "diagnóstico",
     "diagnosticConfiguredPath": "Path configurado no MediaMTX: {{value}}",
     "diagnosticReady": "Fonte RTSP conectada (ready): {{value}}",
@@ -106,7 +119,7 @@
     "namePlaceholder": "Nome (ex: Garagem)",
     "onvifUrlLabel": "URL do serviço ONVIF (opcional — preenche os campos abaixo)",
     "onvifUrlPlaceholder": "http://admin:senha@192.168.88.35:5000/onvif",
-    "onvifUrlPasswordHint": "A senha não é reexibida por segurança — adicione-a aqui (user:senha@...) ou preencha o campo \"Senha\" abaixo antes de clicar em \"Obter URLs de vídeo\".",
+    "onvifUrlPasswordHint": "Ao clicar em \"Obter URLs de vídeo\" sem digitar uma senha, reutilizamos a senha já salva desta câmera. Preencha aqui (user:senha@...) ou no campo \"Senha\" abaixo apenas se quiser usar uma senha diferente.",
     "hostPlaceholder": "IP/Host",
     "onvifPortPlaceholder": "Porta ONVIF",
     "onvifPathPlaceholder": "Caminho ONVIF (/onvif/device_service)",
@@ -300,7 +313,17 @@
     "toastS3Saved": "Armazenamento S3 salvo.",
     "toastS3SaveFailed": "Falha ao salvar o armazenamento S3.",
     "toastS3Removed": "Armazenamento S3 removido.",
-    "toastS3RemoveFailed": "Falha ao remover o armazenamento S3."
+    "toastS3RemoveFailed": "Falha ao remover o armazenamento S3.",
+    "pushTitle": "Notificações push (PWA)",
+    "pushDescription": "Receba uma notificação do navegador neste dispositivo quando ocorrer um evento de movimento/violação, mesmo com o app fechado (funciona melhor ao instalar como PWA). Requer HTTPS, ou localhost em desenvolvimento.",
+    "pushNotSupported": "Não suportado neste navegador.",
+    "pushEnable": "Ativar neste dispositivo",
+    "pushDisable": "Desativar neste dispositivo",
+    "toastPushEnabled": "Notificações push ativadas neste dispositivo.",
+    "toastPushEnableFailed": "Falha ao ativar as notificações push.",
+    "toastPushPermissionDenied": "A permissão de notificação foi negada no navegador.",
+    "toastPushDisabled": "Notificações push desativadas neste dispositivo.",
+    "toastPushDisableFailed": "Falha ao desativar as notificações push."
   },
   "timeline": {
     "cameraLabel": "Câmera",
@@ -387,5 +410,60 @@
     "madeBy": "Feito por {{author}}",
     "sourceCode": "Código-fonte",
     "license": "Licença MIT"
+  },
+  "maintenance": {
+    "title": "Manutenção",
+    "logModal": {
+      "running": "Em andamento...",
+      "finished": "Concluído",
+      "waiting": "Aguardando atividade..."
+    },
+    "changePassword": {
+      "title": "Alterar senha",
+      "currentPlaceholder": "Senha atual",
+      "newPlaceholder": "Nova senha",
+      "confirmPlaceholder": "Confirmar nova senha",
+      "submit": "Alterar senha",
+      "mismatch": "As senhas não coincidem.",
+      "success": "Senha alterada com sucesso.",
+      "failed": "Falha ao alterar a senha."
+    },
+    "logs": {
+      "title": "Logs do servidor",
+      "hint": "Visualize a atividade recente do servidor em tempo real - útil para diagnosticar problemas.",
+      "viewButton": "Ver logs"
+    },
+    "deleteRecordings": {
+      "title": "Excluir gravações",
+      "hint": "Remove os arquivos de vídeo gravados de uma câmera específica ou de todas. Essa ação não pode ser desfeita.",
+      "allCameras": "Todas as câmeras",
+      "submit": "Excluir gravações",
+      "confirmTitle": "Excluir gravações",
+      "confirmMessageCamera": "Tem certeza que deseja excluir todas as gravações da câmera \"{{name}}\"? Essa ação não pode ser desfeita.",
+      "confirmMessageAll": "Tem certeza que deseja excluir TODAS as gravações de TODAS as câmeras? Essa ação não pode ser desfeita.",
+      "success": "Gravações excluídas com sucesso.",
+      "failed": "Falha ao excluir as gravações."
+    },
+    "restartServer": {
+      "title": "Reiniciar servidor",
+      "hint": "Reinicia todo o processo do backend - útil se algo parecer travado. As câmeras voltam a se conectar automaticamente.",
+      "submit": "Reiniciar servidor",
+      "confirmTitle": "Reiniciar servidor",
+      "confirmMessage": "Tem certeza que deseja reiniciar o servidor? A conexão com todas as câmeras será interrompida por alguns instantes.",
+      "logTitle": "Reiniciando o servidor",
+      "success": "Servidor reiniciando...",
+      "failed": "Falha ao reiniciar o servidor."
+    },
+    "factoryReset": {
+      "title": "Restaurar padrões de fábrica",
+      "hint": "Apaga TODAS as câmeras, gravações, eventos, configurações e a conta de administrador - volta ao estado de uma instalação nova. Essa ação é IRREVERSÍVEL.",
+      "phrasePlaceholder": "Digite {{phrase}} para confirmar",
+      "passwordPlaceholder": "Sua senha atual",
+      "submit": "Restaurar padrões de fábrica",
+      "confirmTitle": "Restaurar padrões de fábrica",
+      "confirmMessage": "Isso vai apagar TODOS os dados permanentemente, incluindo câmeras, gravações, eventos e a conta de administrador. Essa ação NÃO PODE ser desfeita. Deseja continuar?",
+      "success": "Reset de fábrica concluído. Redirecionando...",
+      "failed": "Falha ao restaurar os padrões de fábrica."
+    }
   }
 }

@@ -24,7 +24,9 @@
     "discordNotConfigured": "未配置 Discord Webhook。",
     "telegramNotConfigured": "未配置 Telegram 机器人令牌/聊天 ID。",
     "webhookNotConfigured": "未配置通用 Webhook 网址。",
-    "smtpNotConfigured": "未配置 SMTP（主机、发件人和收件人为必填项）。"
+    "smtpNotConfigured": "未配置 SMTP（主机、发件人和收件人为必填项）。",
+    "pushNotConfigured": "尚未注册任何推送订阅。",
+    "pushSendFailed": "发送测试推送通知失败。"
   },
   "notifications": {
     "testMessage": "🔔 OpenDVR 测试通知",
@@ -35,6 +37,10 @@
     "intrusionDetected": "检测到区域入侵",
     "occupancyDetected": "检测到区域占用",
     "watchRecording": "观看录像：",
-    "eventMessage": "📷 {{camera}}：{{eventType}}，时间 {{time}}"
+    "eventMessage": "📷 {{camera}}：{{eventType}}，时间 {{time}}",
+    "cameraUnavailable": "⚠️ {{camera}} 已离线 {{duration}}（自 {{since}} 起）。",
+    "cameraUnavailableSubject": "摄像头离线",
+    "cameraRecovered": "✅ {{camera}} 已恢复在线（离线时长 {{duration}}）。",
+    "cameraRecoveredSubject": "摄像头已恢复"
   }
 }

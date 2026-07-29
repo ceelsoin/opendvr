@@ -24,7 +24,9 @@
     "discordNotConfigured": "Discord वेबहुक कॉन्फ़िगर नहीं है।",
     "telegramNotConfigured": "Telegram बॉट टोकन/चैट आईडी कॉन्फ़िगर नहीं है।",
     "webhookNotConfigured": "सामान्य वेबहुक URL कॉन्फ़िगर नहीं है।",
-    "smtpNotConfigured": "SMTP कॉन्फ़िगर नहीं है (होस्ट, भेजनेवाला और प्राप्तकर्ता आवश्यक हैं)।"
+    "smtpNotConfigured": "SMTP कॉन्फ़िगर नहीं है (होस्ट, भेजनेवाला और प्राप्तकर्ता आवश्यक हैं)।",
+    "pushNotConfigured": "अभी तक कोई पुश सब्सक्रिप्शन पंजीकृत नहीं है।",
+    "pushSendFailed": "परीक्षण पुश सूचना भेजने में विफल।"
   },
   "notifications": {
     "testMessage": "🔔 OpenDVR परीक्षण सूचना",
@@ -35,6 +37,10 @@
     "intrusionDetected": "क्षेत्र में घुसपैठ का पता चला",
     "occupancyDetected": "क्षेत्र में उपस्थिति का पता चला",
     "watchRecording": "रिकॉर्डिंग देखें:",
-    "eventMessage": "📷 {{camera}}: {{eventType}}, {{time}} बजे"
+    "eventMessage": "📷 {{camera}}: {{eventType}} {{time}} बजे",
+    "cameraUnavailable": "⚠️ {{camera}} {{duration}} से उपलब्ध नहीं है ({{since}} से)।",
+    "cameraUnavailableSubject": "कैमरा उपलब्ध नहीं",
+    "cameraRecovered": "✅ {{camera}} फिर से उपलब्ध हो गया है ({{duration}} तक अनुपलब्ध रहा)।",
+    "cameraRecoveredSubject": "कैमरा फिर से उपलब्ध"
   }
 }

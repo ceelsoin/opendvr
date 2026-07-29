@@ -16,6 +16,7 @@ import { stopAllWebpageBridges } from "./media/webpageBridge.js";
 import { stopAllRotationBridges } from "./media/rotationBridge.js";
 import { runRetentionCleanup } from "./jobs/retentionCleanup.js";
 import { warmPtzConnection, PTZ_CONNECTION_TTL_MS } from "./onvif/ptz.js";
+import { notifyCameraUnavailable, notifyCameraRecovered } from "./notifications/webhooks.js";
 import { logger } from "./lib/logger.js";
 
 runMigrations();
@@ -72,10 +73,25 @@ setInterval(() => {
 // "ready" for a while (its own readTimeout is a generous 120s, see
 // mediamtx.yml), which "ready" alone doesn't catch. Only a forced
 // reprovision (which kills and restarts the VLC relay) fixes either case.
-const RECONCILE_INTERVAL_MS = 30_000;
-const STUCK_THRESHOLD_MS = 90_000;
+// Checked/retried fairly aggressively (every 15s, forcing a reprovision
+// after only 45s stuck) so a flaky camera reconnects quickly instead of
+// staying dark for minutes.
+const RECONCILE_INTERVAL_MS = 15_000;
+const STUCK_THRESHOLD_MS = 45_000;
 const unhealthySince = new Map<string, number>();
 const lastBytesReceived = new Map<string, number>();
+
+// Separate, longer-horizon tracking for external notifications: how long a
+// camera has been continuously unavailable (independent of the forced
+// reprovision attempts above, which reset `unhealthySince` on every retry -
+// this map is only cleared once the camera is actually flowing again), and
+// when it was last notified about, so a prolonged outage gets a first
+// alert at the 10-minute mark and then a reminder every hour instead of
+// either silence or a flood of pings.
+const UNAVAILABLE_NOTIFY_THRESHOLD_MS = 10 * 60_000;
+const UNAVAILABLE_NOTIFY_REPEAT_MS = 60 * 60_000;
+const downSince = new Map<string, number>();
+const lastUnavailableNotifiedAt = new Map<string, number>();
 
 setInterval(() => {
   for (const camera of listCameras()) {
@@ -86,33 +102,60 @@ setInterval(() => {
         unhealthySince.delete(camera.id);
         lastBytesReceived.delete(camera.id);
         void provisionCamera(camera);
-        return;
-      }
+      } else {
+        // "Flowing" requires BOTH ready AND actual byte progress since the
+        // last check - not just ready, which a wedged VLC relay can keep
+        // reporting true for a while with no new frames ever arriving. On
+        // the very first check for a camera (no previous byte count yet),
+        // ready alone is treated as healthy to avoid a false positive.
+        const previousBytes = lastBytesReceived.get(camera.id);
+        const isFlowing = status.ready && (previousBytes === undefined || status.bytesReceived > previousBytes);
+        lastBytesReceived.set(camera.id, status.bytesReceived);
 
-      // "Flowing" requires BOTH ready AND actual byte progress since the
-      // last check (30s ago) - not just ready, which a wedged VLC relay can
-      // keep reporting true for a while with no new frames ever arriving.
-      // On the very first check for a camera (no previous byte count yet),
-      // ready alone is treated as healthy to avoid a false positive.
-      const previousBytes = lastBytesReceived.get(camera.id);
-      const isFlowing = status.ready && (previousBytes === undefined || status.bytesReceived > previousBytes);
-      lastBytesReceived.set(camera.id, status.bytesReceived);
+        if (isFlowing) {
+          unhealthySince.delete(camera.id);
+        } else {
+          const stuckSince = unhealthySince.get(camera.id) ?? Date.now();
+          unhealthySince.set(camera.id, stuckSince);
+          if (Date.now() - stuckSince >= STUCK_THRESHOLD_MS) {
+            logger.warn(
+              { cameraId: camera.id, stuckForMs: Date.now() - stuckSince, ready: status.ready, bytesReceived: status.bytesReceived },
+              "Camera stream stuck (not ready, or ready but no new bytes) for too long; forcing full reprovision"
+            );
+            unhealthySince.delete(camera.id);
+            lastBytesReceived.delete(camera.id);
+            void provisionCamera(camera, { forceRefresh: true });
+          }
+        }
 
-      if (isFlowing) {
-        unhealthySince.delete(camera.id);
-        return;
-      }
-
-      const stuckSince = unhealthySince.get(camera.id) ?? Date.now();
-      unhealthySince.set(camera.id, stuckSince);
-      if (Date.now() - stuckSince >= STUCK_THRESHOLD_MS) {
-        logger.warn(
-          { cameraId: camera.id, stuckForMs: Date.now() - stuckSince, ready: status.ready, bytesReceived: status.bytesReceived },
-          "Camera stream stuck (not ready, or ready but no new bytes) for too long; forcing full reprovision"
-        );
-        unhealthySince.delete(camera.id);
-        lastBytesReceived.delete(camera.id);
-        void provisionCamera(camera, { forceRefresh: true });
+        // Longer-horizon connectivity tracking, for external notifications
+        // (Discord/Telegram/webhook/email) - independent of the forced
+        // reprovision logic above.
+        if (isFlowing) {
+          const since = downSince.get(camera.id);
+          const wasNotified = lastUnavailableNotifiedAt.has(camera.id);
+          downSince.delete(camera.id);
+          lastUnavailableNotifiedAt.delete(camera.id);
+          if (since !== undefined && wasNotified) {
+            void notifyCameraRecovered(camera, Date.now() - since).catch((err) => {
+              logger.warn({ err, cameraId: camera.id }, "Failed to send camera-recovered notification");
+            });
+          }
+        } else {
+          const since = downSince.get(camera.id) ?? Date.now();
+          downSince.set(camera.id, since);
+          const downForMs = Date.now() - since;
+          const lastNotifiedAt = lastUnavailableNotifiedAt.get(camera.id);
+          if (
+            downForMs >= UNAVAILABLE_NOTIFY_THRESHOLD_MS &&
+            (lastNotifiedAt === undefined || Date.now() - lastNotifiedAt >= UNAVAILABLE_NOTIFY_REPEAT_MS)
+          ) {
+            lastUnavailableNotifiedAt.set(camera.id, Date.now());
+            void notifyCameraUnavailable(camera, since).catch((err) => {
+              logger.warn({ err, cameraId: camera.id }, "Failed to send camera-unavailable notification");
+            });
+          }
+        }
       }
     });
   }

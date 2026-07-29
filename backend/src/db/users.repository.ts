@@ -29,6 +29,11 @@ export function getUserByUsername(username: string): User | null {
   return row ? toUser(row) : null;
 }
 
+export function getUserById(id: string): User | null {
+  const row = db.prepare("SELECT * FROM users WHERE id = ?").get(id) as UserRow | undefined;
+  return row ? toUser(row) : null;
+}
+
 export function createUser(username: string, passwordHash: string): User {
   const id = randomUUID();
   db.prepare("INSERT INTO users (id, username, password_hash) VALUES (?, ?, ?)").run(id, username, passwordHash);
@@ -37,4 +42,9 @@ export function createUser(username: string, passwordHash: string): User {
     throw new Error("Failed to load user after creation");
   }
   return user;
+}
+
+/** Used by the Maintenance page's "change password" action - see api/routes/maintenance.routes.ts. */
+export function updateUserPassword(id: string, passwordHash: string): void {
+  db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(passwordHash, id);
 }

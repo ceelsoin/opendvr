@@ -24,7 +24,9 @@
     "discordNotConfigured": "Webhook Discord belum dikonfigurasi.",
     "telegramNotConfigured": "Token bot / ID obrolan Telegram belum dikonfigurasi.",
     "webhookNotConfigured": "URL webhook umum belum dikonfigurasi.",
-    "smtpNotConfigured": "SMTP belum dikonfigurasi (host, pengirim, dan penerima wajib diisi)."
+    "smtpNotConfigured": "SMTP belum dikonfigurasi (host, pengirim, dan penerima wajib diisi).",
+    "pushNotConfigured": "Belum ada langganan push yang terdaftar.",
+    "pushSendFailed": "Gagal mengirim notifikasi push uji coba."
   },
   "notifications": {
     "testMessage": "🔔 Notifikasi uji coba OpenDVR",
@@ -35,6 +37,10 @@
     "intrusionDetected": "Penyusupan area terdeteksi",
     "occupancyDetected": "Okupansi area terdeteksi",
     "watchRecording": "Tonton rekaman:",
-    "eventMessage": "📷 {{camera}}: {{eventType}} pukul {{time}}"
+    "eventMessage": "📷 {{camera}}: {{eventType}} pada {{time}}",
+    "cameraUnavailable": "⚠️ {{camera}} tidak tersedia selama {{duration}} (sejak {{since}}).",
+    "cameraUnavailableSubject": "kamera tidak tersedia",
+    "cameraRecovered": "✅ {{camera}} kembali online (tidak tersedia selama {{duration}}).",
+    "cameraRecoveredSubject": "kamera kembali online"
   }
 }

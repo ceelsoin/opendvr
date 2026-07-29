@@ -84,6 +84,18 @@ const MIGRATIONS: string[] = [
     password_hash TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
+  // Web Push subscriptions (browser/PWA push notifications, see
+  // lib/webPush.ts + db/pushSubscriptions.repository.ts). One row per
+  // browser/device that opted in from the Settings page - `endpoint` (the
+  // push service URL assigned by the browser) is unique per subscription
+  // and doubles as the primary key, so re-subscribing the same
+  // browser/device just updates its keys instead of duplicating rows.
+  `CREATE TABLE IF NOT EXISTS push_subscriptions (
+    endpoint TEXT PRIMARY KEY,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
 ];
 
 export function runMigrations(): void {

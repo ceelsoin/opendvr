@@ -2,7 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
 import type { Camera, CreateCameraInput, DiscoveredStream, UpdateCameraInput } from "../../api/types";
-import { useCreateCamera, useProbeOnvif, useUpdateCamera } from "../../api/cameras";
+import { useCreateCamera, useProbeCamera, useProbeOnvif, useUpdateCamera } from "../../api/cameras";
 
 interface CameraFormDialogProps {
   camera?: Camera;
@@ -88,6 +88,7 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
   const createCamera = useCreateCamera();
   const updateCamera = useUpdateCamera();
   const probeOnvif = useProbeOnvif();
+  const probeCamera = useProbeCamera();
 
   const [onvifUrl, setOnvifUrl] = useState(() => onvifUrlDisplay(camera));
   const [sourceType, setSourceType] = useState<Camera["sourceType"]>(camera?.sourceType ?? "onvif");
@@ -125,14 +126,27 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
   // password, if any).
   const onvifUrlHasCredentials = /:\/\/[^@/]+:[^@/]+@/.test(onvifUrl.trim());
 
+  // When editing and the user hasn't typed a (new) password anywhere, reuse
+  // this camera's already-saved password via the cameraId-scoped probe
+  // endpoint instead of forcing them to retype it just to re-discover
+  // streams - only falls back to the generic /onvif/probe (which requires an
+  // explicit password) when creating a camera, or when the user is
+  // deliberately overriding credentials.
+  const canProbeWithStoredPassword = isEdit && Boolean(camera) && !password && !onvifUrlHasCredentials;
+
   const handleProbe = async () => {
     setFormError(null);
     try {
-      const result = await probeOnvif.mutateAsync(
-        onvifUrlHasCredentials
-          ? { onvifUrl: onvifUrl.trim() }
-          : { host, port: Number(port) || undefined, onvifPath, username, password: password || undefined }
-      );
+      const result = canProbeWithStoredPassword
+        ? await probeCamera.mutateAsync({
+            id: camera!.id,
+            input: { host, port: Number(port) || undefined, onvifPath, username },
+          })
+        : await probeOnvif.mutateAsync(
+            onvifUrlHasCredentials
+              ? { onvifUrl: onvifUrl.trim() }
+              : { host, port: Number(port) || undefined, onvifPath, username, password: password || undefined }
+          );
       setHost(result.host);
       setPort(String(result.port));
       setOnvifPath(result.onvifPath);
@@ -313,10 +327,10 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
                 <button
                   type="button"
                   onClick={handleProbe}
-                  disabled={probeOnvif.isPending}
+                  disabled={probeOnvif.isPending || probeCamera.isPending}
                   className="flex-1 rounded-md bg-neutral-800 px-3 py-2 text-sm hover:bg-neutral-700 disabled:opacity-50"
                 >
-                  {probeOnvif.isPending ? t("cameraForm.connecting") : t("cameraForm.getStreamUrls")}
+                  {probeOnvif.isPending || probeCamera.isPending ? t("cameraForm.connecting") : t("cameraForm.getStreamUrls")}
                 </button>
               </div>
 

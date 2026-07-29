@@ -108,6 +108,52 @@ camerasRouter.get("/:id/stream-status", async (req, res) => {
   });
 });
 
+const probeExistingCameraSchema = z.object({
+  host: z.string().min(1).optional(),
+  port: z.number().int().positive().optional(),
+  onvifPath: z.string().optional(),
+  username: z.string().optional(),
+  password: z.string().optional(),
+});
+
+/**
+ * Same as `POST /api/onvif/probe`, but scoped to an already-registered
+ * camera: any field omitted from the body falls back to that camera's
+ * saved value (including its password, which is never sent back to the
+ * client for display - see toPublicCamera). Lets the edit dialog's
+ * "Obter URLs de vídeo" button re-probe using the already-saved password
+ * without asking the user to type it in again, as long as they're not
+ * explicitly trying to change credentials.
+ */
+camerasRouter.post("/:id/probe", async (req, res) => {
+  const camera = getCameraById(req.params.id);
+  if (!camera) {
+    res.status(404).json({ error: t("errors.cameraNotFound") });
+    return;
+  }
+
+  const parsed = probeExistingCameraSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: t("errors.invalidPayload"), details: parsed.error.flatten() });
+    return;
+  }
+
+  const host = parsed.data.host || camera.host;
+  const port = parsed.data.port ?? camera.port;
+  const onvifPath = parsed.data.onvifPath || camera.onvifPath;
+  const username = parsed.data.username || camera.username;
+  const password = parsed.data.password || camera.password;
+
+  try {
+    const streams = await discoverStreams({ host, port, onvifPath, username, password });
+    res.json({ host, port, onvifPath, username, streams });
+  } catch (err) {
+    const details = errorMessage(err);
+    logger.warn({ err, cameraId: camera.id, host, port }, "ONVIF re-probe (existing camera) failed");
+    res.status(502).json({ error: t("errors.onvifConnectionFailed"), details });
+  }
+});
+
 camerasRouter.post("/", async (req, res) => {
   const parsed = createCameraSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -177,11 +223,13 @@ camerasRouter.post("/:id/restart", async (req, res) => {
     return;
   }
 
+  logger.info({ cameraId: camera.id }, "Reiniciando câmera (solicitado pelo usuário)");
   const status = await provisionCamera(camera, { forceRefresh: true });
   if (shouldDetectMotion(camera)) {
     await restartMotionListening(camera);
   }
 
+  logger.info({ cameraId: camera.id, status }, "Reinício concluído");
   res.json({ ok: status === "online", status });
 });
 
@@ -254,7 +302,9 @@ camerasRouter.post("/:id/test-connection", async (req, res) => {
     return;
   }
   try {
+    logger.info({ cameraId: camera.id }, "Testando conexão ONVIF (solicitado pelo usuário)");
     const streams = await discoverStreams(camera);
+    logger.info({ cameraId: camera.id, streamCount: streams.length }, "Teste de conexão concluído com sucesso");
     res.json({ ok: true, streams });
   } catch (err) {
     const details = errorMessage(err);

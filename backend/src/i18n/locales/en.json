@@ -24,7 +24,9 @@
     "discordNotConfigured": "Discord webhook not configured.",
     "telegramNotConfigured": "Telegram bot token / chat ID not configured.",
     "webhookNotConfigured": "Generic webhook URL not configured.",
-    "smtpNotConfigured": "SMTP not configured (host, sender, and recipient are required)."
+    "smtpNotConfigured": "SMTP not configured (host, sender, and recipient are required).",
+    "pushNotConfigured": "No push subscriptions registered yet.",
+    "pushSendFailed": "Failed to send the test push notification."
   },
   "notifications": {
     "testMessage": "🔔 OpenDVR test notification",
@@ -35,6 +37,10 @@
     "intrusionDetected": "Area intrusion detected",
     "occupancyDetected": "Area occupancy detected",
     "watchRecording": "Watch recording:",
-    "eventMessage": "📷 {{camera}}: {{eventType}} at {{time}}"
+    "eventMessage": "📷 {{camera}}: {{eventType}} at {{time}}",
+    "cameraUnavailable": "⚠️ {{camera}} has been unavailable for {{duration}} (since {{since}}).",
+    "cameraUnavailableSubject": "camera unavailable",
+    "cameraRecovered": "✅ {{camera}} is back online (was unavailable for {{duration}}).",
+    "cameraRecoveredSubject": "camera back online"
   }
 }

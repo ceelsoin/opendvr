@@ -16,6 +16,7 @@ const navItems: Array<{ to: string; key: string; end?: boolean }> = [
   { to: "/cameras", key: "nav.cameras" },
   { to: "/onvif-debug", key: "nav.onvifDebug" },
   { to: "/settings", key: "nav.settings" },
+  { to: "/maintenance", key: "nav.maintenance" },
 ];
 
 export function AppLayout() {

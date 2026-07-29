@@ -24,7 +24,9 @@
     "discordNotConfigured": "Discord 웹훅이 설정되지 않았습니다.",
     "telegramNotConfigured": "Telegram 봇 토큰/채팅 ID가 설정되지 않았습니다.",
     "webhookNotConfigured": "일반 웹훅 URL이 설정되지 않았습니다.",
-    "smtpNotConfigured": "SMTP가 설정되지 않았습니다(호스트, 발신자, 수신자가 필요합니다)."
+    "smtpNotConfigured": "SMTP가 설정되지 않았습니다(호스트, 발신자, 수신자가 필요합니다).",
+    "pushNotConfigured": "아직 등록된 푸시 구독이 없습니다.",
+    "pushSendFailed": "테스트 푸시 알림 전송에 실패했습니다."
   },
   "notifications": {
     "testMessage": "🔔 OpenDVR 테스트 알림",
@@ -35,6 +37,10 @@
     "intrusionDetected": "구역 침입이 감지되었습니다",
     "occupancyDetected": "구역 점유가 감지되었습니다",
     "watchRecording": "녹화 보기:",
-    "eventMessage": "📷 {{camera}}: {{eventType}} ({{time}})"
+    "eventMessage": "📷 {{camera}}: {{eventType}} ({{time}})",
+    "cameraUnavailable": "⚠️ {{camera}}이(가) {{duration}} 동안 연결되지 않고 있습니다 ({{since}}부터).",
+    "cameraUnavailableSubject": "카메라 연결 끓김",
+    "cameraRecovered": "✅ {{camera}}이(가) 다시 연결되었습니다 (연결 끓김 시간: {{duration}}).",
+    "cameraRecoveredSubject": "카메라 연결 복구됨"
   }
 }

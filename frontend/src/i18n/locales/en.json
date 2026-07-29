@@ -7,6 +7,7 @@
     "cameras": "Cameras",
     "onvifDebug": "ONVIF Debug",
     "settings": "Settings",
+    "maintenance": "Maintenance",
     "logout": "Log out"
   },
   "auth": {
@@ -44,11 +45,21 @@
     "turnOff": "Turn off",
     "turnOn": "Turn on",
     "testConnection": "Test connection",
+    "testingConnection": "Testing...",
     "restart": "Restart",
     "restarting": "Restarting...",
     "ptzButton": "PTZ",
     "edit": "Edit",
     "remove": "Remove",
+    "confirmCancel": "Cancel",
+    "confirmDeleteTitle": "Remove camera",
+    "confirmDeleteMessage": "Are you sure you want to remove \"{{name}}\"? This cannot be undone.",
+    "confirmDisableTitle": "Turn off camera",
+    "confirmDisableMessage": "Are you sure you want to turn off \"{{name}}\"? Recording and streaming will stop until it's turned back on.",
+    "restartLogTitle": "Restarting {{name}}",
+    "testLogTitle": "Testing connection: {{name}}",
+    "toastRemoved": "camera removed.",
+    "toastRemoveFailed": "Failed to remove the camera.",
     "none": "No cameras registered.",
     "testConnectionFailed": "Failed to test the camera connection.",
     "toastConnected": "connected — {{count}} stream(s) found.",
@@ -69,6 +80,8 @@
     "motionRecordingBadge": "Motion recording",
     "fullscreenTitle": "Fullscreen",
     "fullscreenFailedToast": "Could not enter fullscreen.",
+    "refreshPlayer": "Refresh video",
+    "moreOptions": "More options",
     "diagnosticToggle": "diagnostics",
     "diagnosticConfiguredPath": "Path configured in MediaMTX: {{value}}",
     "diagnosticReady": "RTSP source connected (ready): {{value}}",
@@ -106,7 +119,7 @@
     "namePlaceholder": "Name (e.g. Garage)",
     "onvifUrlLabel": "ONVIF service URL (optional — fills the fields below)",
     "onvifUrlPlaceholder": "http://admin:password@192.168.88.35:5000/onvif",
-    "onvifUrlPasswordHint": "The password isn't shown again for security — add it here (user:password@...) or fill in the \"Password\" field below before clicking \"Get video URLs\".",
+    "onvifUrlPasswordHint": "Clicking \"Get video URLs\" without typing a password reuses this camera's already-saved password. Fill it in here (user:password@...) or in the \"Password\" field below only if you want to use a different one.",
     "hostPlaceholder": "IP/Host",
     "onvifPortPlaceholder": "ONVIF port",
     "onvifPathPlaceholder": "ONVIF path (/onvif/device_service)",
@@ -300,7 +313,17 @@
     "toastS3Saved": "S3 storage saved.",
     "toastS3SaveFailed": "Failed to save S3 storage.",
     "toastS3Removed": "S3 storage removed.",
-    "toastS3RemoveFailed": "Failed to remove S3 storage."
+    "toastS3RemoveFailed": "Failed to remove S3 storage.",
+    "pushTitle": "Push notifications (PWA)",
+    "pushDescription": "Get a browser notification on this device when a motion/tamper event happens, even with the app closed (works best when installed as a PWA). Requires HTTPS, or localhost during development.",
+    "pushNotSupported": "Not supported in this browser.",
+    "pushEnable": "Enable on this device",
+    "pushDisable": "Disable on this device",
+    "toastPushEnabled": "Push notifications enabled on this device.",
+    "toastPushEnableFailed": "Failed to enable push notifications.",
+    "toastPushPermissionDenied": "Notification permission was denied in the browser.",
+    "toastPushDisabled": "Push notifications disabled on this device.",
+    "toastPushDisableFailed": "Failed to disable push notifications."
   },
   "timeline": {
     "cameraLabel": "Camera",
@@ -387,5 +410,60 @@
     "madeBy": "Made by {{author}}",
     "sourceCode": "Source code",
     "license": "MIT License"
+  },
+  "maintenance": {
+    "title": "Maintenance",
+    "logModal": {
+      "running": "Running...",
+      "finished": "Finished",
+      "waiting": "Waiting for activity..."
+    },
+    "changePassword": {
+      "title": "Change password",
+      "currentPlaceholder": "Current password",
+      "newPlaceholder": "New password",
+      "confirmPlaceholder": "Confirm new password",
+      "submit": "Change password",
+      "mismatch": "Passwords don't match.",
+      "success": "Password changed successfully.",
+      "failed": "Failed to change the password."
+    },
+    "logs": {
+      "title": "Server logs",
+      "hint": "View recent server activity live - useful for troubleshooting.",
+      "viewButton": "View logs"
+    },
+    "deleteRecordings": {
+      "title": "Delete recordings",
+      "hint": "Removes recorded video files for a specific camera or all of them. This cannot be undone.",
+      "allCameras": "All cameras",
+      "submit": "Delete recordings",
+      "confirmTitle": "Delete recordings",
+      "confirmMessageCamera": "Are you sure you want to delete all recordings for \"{{name}}\"? This cannot be undone.",
+      "confirmMessageAll": "Are you sure you want to delete ALL recordings for ALL cameras? This cannot be undone.",
+      "success": "Recordings deleted successfully.",
+      "failed": "Failed to delete recordings."
+    },
+    "restartServer": {
+      "title": "Restart server",
+      "hint": "Restarts the entire backend process - useful if something seems stuck. Cameras reconnect automatically.",
+      "submit": "Restart server",
+      "confirmTitle": "Restart server",
+      "confirmMessage": "Are you sure you want to restart the server? All cameras will briefly disconnect.",
+      "logTitle": "Restarting the server",
+      "success": "Server restarting...",
+      "failed": "Failed to restart the server."
+    },
+    "factoryReset": {
+      "title": "Factory reset",
+      "hint": "Deletes ALL cameras, recordings, events, settings, and the administrator account - back to a brand new install. This action is IRREVERSIBLE.",
+      "phrasePlaceholder": "Type {{phrase}} to confirm",
+      "passwordPlaceholder": "Your current password",
+      "submit": "Factory reset",
+      "confirmTitle": "Factory reset",
+      "confirmMessage": "This will permanently delete ALL data, including cameras, recordings, events, and the administrator account. This action CANNOT be undone. Continue?",
+      "success": "Factory reset complete. Redirecting...",
+      "failed": "Failed to perform the factory reset."
+    }
   }
 }

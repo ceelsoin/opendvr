@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "./client";
 
 const NOTIFICATION_SETTINGS_KEY = ["settings", "notifications"] as const;
+export { NOTIFICATION_SETTINGS_KEY };
 
 export interface NotificationSettingsStatus {
   discordWebhookUrl: string | null;
@@ -27,6 +28,7 @@ export interface NotificationSettingsStatus {
   s3AccessKey: string | null;
   s3BucketName: string | null;
   s3Configured: boolean;
+  pushConfigured: boolean;
 }
 
 export function useNotificationSettings() {
@@ -77,7 +79,7 @@ export function useUpdateNotificationSettings() {
 
 export function useTestNotification() {
   return useMutation({
-    mutationFn: async (channel: "discord" | "telegram" | "webhook" | "email") => {
+    mutationFn: async (channel: "discord" | "telegram" | "webhook" | "email" | "push") => {
       const { data } = await apiClient.post<{ ok: boolean; error?: string }>("/settings/notifications/test", {
         channel,
       });

@@ -163,18 +163,18 @@ export function GridPage() {
           </p>
         </div>
       ) : fitAll ? (
-        <div
-          ref={fitGridRef}
-          className="gap-3 overflow-hidden"
-          style={{
-            display: "grid",
-            gridTemplateColumns: `repeat(${fitLayout?.cols ?? 1}, minmax(0, 1fr))`,
-            gridTemplateRows: `repeat(${fitLayout?.rows ?? cameras.length}, 1fr)`,
-            height: fitLayout ? `${fitLayout.heightPx}px` : undefined,
-          }}
-        >
+        <div ref={fitGridRef} className="flex flex-wrap gap-3 overflow-hidden">
           {cameras.map((camera) => (
-            <CameraTile key={camera.id} camera={camera} fillHeight />
+            <div
+              key={camera.id}
+              style={
+                fitLayout
+                  ? { width: `${fitLayout.cellWidthPx}px`, height: `${fitLayout.cellHeightPx}px` }
+                  : undefined
+              }
+            >
+              <CameraTile camera={camera} fillHeight />
+            </div>
           ))}
         </div>
       ) : (

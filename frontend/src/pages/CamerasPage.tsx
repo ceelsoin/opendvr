@@ -12,6 +12,8 @@ import {
 import type { Camera } from "../api/types";
 import { CameraFormDialog } from "../components/cameras/CameraFormDialog";
 import { OnvifScanModal } from "../components/cameras/OnvifScanModal";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { LogModal } from "../components/ui/LogModal";
 import { PtzControls } from "../components/ptz/PtzControls";
 import { useToastStore } from "../store/toastStore";
 
@@ -36,9 +38,13 @@ export function CamerasPage() {
   const [expandedPtz, setExpandedPtz] = useState<string | null>(null);
   const [testedCameraId, setTestedCameraId] = useState<string | null>(null);
   const [restartingCameraId, setRestartingCameraId] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ type: "delete" | "disable"; camera: Camera } | null>(null);
+  const [restartLogCamera, setRestartLogCamera] = useState<Camera | null>(null);
+  const [testLogCamera, setTestLogCamera] = useState<Camera | null>(null);
 
   const handleTestConnection = (camera: Camera) => {
     setTestedCameraId(camera.id);
+    setTestLogCamera(camera);
     testConnection.mutate(camera.id, {
       onSuccess: (data) => {
         addToast("success", `${camera.name}: ${t("cameras.toastConnected", { count: data.streams?.length ?? 0 })}`);
@@ -51,6 +57,7 @@ export function CamerasPage() {
 
   const handleRestart = (camera: Camera) => {
     setRestartingCameraId(camera.id);
+    setRestartLogCamera(camera);
     restartCamera.mutate(camera.id, {
       onSuccess: (data) => {
         setRestartingCameraId(null);
@@ -69,20 +76,31 @@ export function CamerasPage() {
 
   const handleToggleEnabled = (camera: Camera) => {
     if (camera.enabled) {
-      disableCamera.mutate(camera.id, {
-        onSuccess: () => addToast("success", `${camera.name}: ${t("cameras.toastDisabled")}`),
-        onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, t("cameras.toastDisableFailed"))}`),
-      });
-    } else {
-      enableCamera.mutate(camera.id, {
-        onSuccess: (data) =>
-          addToast(
-            data.status === "online" ? "success" : "error",
-            `${camera.name}: ${t("cameras.toastEnabled")}${data.status !== "online" ? t("cameras.toastEnabledOfflineSuffix") : ""}`
-          ),
-        onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, t("cameras.toastEnableFailed"))}`),
-      });
+      setConfirmAction({ type: "disable", camera });
+      return;
     }
+    enableCamera.mutate(camera.id, {
+      onSuccess: (data) =>
+        addToast(
+          data.status === "online" ? "success" : "error",
+          `${camera.name}: ${t("cameras.toastEnabled")}${data.status !== "online" ? t("cameras.toastEnabledOfflineSuffix") : ""}`
+        ),
+      onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, t("cameras.toastEnableFailed"))}`),
+    });
+  };
+
+  const handleConfirmedDisable = (camera: Camera) => {
+    disableCamera.mutate(camera.id, {
+      onSuccess: () => addToast("success", `${camera.name}: ${t("cameras.toastDisabled")}`),
+      onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, t("cameras.toastDisableFailed"))}`),
+    });
+  };
+
+  const handleConfirmedDelete = (camera: Camera) => {
+    deleteCamera.mutate(camera.id, {
+      onSuccess: () => addToast("success", `${camera.name}: ${t("cameras.toastRemoved")}`),
+      onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, t("cameras.toastRemoveFailed"))}`),
+    });
   };
 
   return (
@@ -111,11 +129,11 @@ export function CamerasPage() {
         <div className="flex flex-col gap-2">
           {cameras?.map((camera) => (
             <div key={camera.id} className="rounded-md border border-neutral-800 bg-neutral-900">
-              <div className="flex items-center justify-between px-4 py-2">
+              <div className="flex flex-col gap-2.5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2">
                   <span
                     title={!camera.enabled ? t("cameras.statusDisabledTitle") : undefined}
-                    className={`h-2 w-2 rounded-full ${
+                    className={`h-2 w-2 shrink-0 rounded-full ${
                       !camera.enabled
                         ? "bg-neutral-700"
                         : camera.status === "online"
@@ -136,11 +154,11 @@ export function CamerasPage() {
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-wrap justify-end gap-2">
+                <div className="flex flex-wrap gap-1.5 sm:justify-end">
                   <button
                     type="button"
                     onClick={() => handleToggleEnabled(camera)}
-                    className="rounded-md px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
+                    className="rounded-md border border-neutral-700 bg-neutral-800 px-2.5 py-1.5 text-xs font-medium text-neutral-300 transition-colors hover:border-neutral-600 hover:bg-neutral-700 active:bg-neutral-600"
                   >
                     {camera.enabled ? t("cameras.turnOff") : t("cameras.turnOn")}
                   </button>
@@ -148,36 +166,42 @@ export function CamerasPage() {
                     type="button"
                     onClick={() => handleTestConnection(camera)}
                     disabled={testConnection.isPending && testedCameraId === camera.id}
-                    className="rounded-md px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
+                    className="rounded-md border border-neutral-700 bg-neutral-800 px-2.5 py-1.5 text-xs font-medium text-neutral-300 transition-colors hover:border-neutral-600 hover:bg-neutral-700 active:bg-neutral-600 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    {t("cameras.testConnection")}
+                    {testConnection.isPending && testedCameraId === camera.id
+                      ? t("cameras.testingConnection")
+                      : t("cameras.testConnection")}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleRestart(camera)}
                     disabled={restartingCameraId === camera.id || !camera.enabled}
-                    className="rounded-md px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-md border border-neutral-700 bg-neutral-800 px-2.5 py-1.5 text-xs font-medium text-neutral-300 transition-colors hover:border-neutral-600 hover:bg-neutral-700 active:bg-neutral-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-neutral-700 disabled:hover:bg-neutral-800"
                   >
                     {restartingCameraId === camera.id ? t("cameras.restarting") : t("cameras.restart")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setExpandedPtz(expandedPtz === camera.id ? null : camera.id)}
-                    className="rounded-md px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
+                    className={`rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors active:bg-neutral-600 ${
+                      expandedPtz === camera.id
+                        ? "border-blue-700 bg-blue-950 text-blue-300 hover:border-blue-600 hover:bg-blue-900"
+                        : "border-neutral-700 bg-neutral-800 text-neutral-300 hover:border-neutral-600 hover:bg-neutral-700"
+                    }`}
                   >
                     {t("cameras.ptzButton")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setDialogState(camera)}
-                    className="rounded-md px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
+                    className="rounded-md border border-neutral-700 bg-neutral-800 px-2.5 py-1.5 text-xs font-medium text-neutral-300 transition-colors hover:border-neutral-600 hover:bg-neutral-700 active:bg-neutral-600"
                   >
                     {t("cameras.edit")}
                   </button>
                   <button
                     type="button"
-                    onClick={() => deleteCamera.mutate(camera.id)}
-                    className="rounded-md px-2 py-1 text-xs text-red-400 hover:bg-red-950"
+                    onClick={() => setConfirmAction({ type: "delete", camera })}
+                    className="rounded-md border border-red-900 bg-red-950 px-2.5 py-1.5 text-xs font-medium text-red-400 transition-colors hover:border-red-800 hover:bg-red-900 active:bg-red-800"
                   >
                     {t("cameras.remove")}
                   </button>
@@ -216,6 +240,48 @@ export function CamerasPage() {
       )}
 
       {scanModalOpen && <OnvifScanModal onClose={() => setScanModalOpen(false)} />}
+
+      {confirmAction && (
+        <ConfirmDialog
+          title={confirmAction.type === "delete" ? t("cameras.confirmDeleteTitle") : t("cameras.confirmDisableTitle")}
+          message={
+            confirmAction.type === "delete"
+              ? t("cameras.confirmDeleteMessage", { name: confirmAction.camera.name })
+              : t("cameras.confirmDisableMessage", { name: confirmAction.camera.name })
+          }
+          confirmLabel={confirmAction.type === "delete" ? t("cameras.remove") : t("cameras.turnOff")}
+          cancelLabel={t("cameras.confirmCancel")}
+          danger={confirmAction.type === "delete"}
+          isConfirming={confirmAction.type === "delete" ? deleteCamera.isPending : disableCamera.isPending}
+          onCancel={() => setConfirmAction(null)}
+          onConfirm={() => {
+            if (confirmAction.type === "delete") {
+              handleConfirmedDelete(confirmAction.camera);
+            } else {
+              handleConfirmedDisable(confirmAction.camera);
+            }
+            setConfirmAction(null);
+          }}
+        />
+      )}
+
+      {restartLogCamera && (
+        <LogModal
+          title={t("cameras.restartLogTitle", { name: restartLogCamera.name })}
+          cameraId={restartLogCamera.id}
+          isRunning={restartingCameraId === restartLogCamera.id}
+          onClose={() => setRestartLogCamera(null)}
+        />
+      )}
+
+      {testLogCamera && (
+        <LogModal
+          title={t("cameras.testLogTitle", { name: testLogCamera.name })}
+          cameraId={testLogCamera.id}
+          isRunning={testConnection.isPending && testedCameraId === testLogCamera.id}
+          onClose={() => setTestLogCamera(null)}
+        />
+      )}
     </div>
   );
 }

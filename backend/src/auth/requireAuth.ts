@@ -26,5 +26,6 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     return;
   }
 
+  req.user = payload;
   next();
 }

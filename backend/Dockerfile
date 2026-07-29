@@ -30,7 +30,11 @@ RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
 COPY backend/package.json backend/package-lock.json ./
-RUN npm ci
+# Uses `npm install` instead of `npm ci` for the same cross-platform reason
+# as the frontend stage above: devDependencies (vitest -> vite -> rolldown)
+# pull in optional native/WASM-fallback platform packages that aren't fully
+# pinned for musl/Alpine in a lockfile generated on macOS.
+RUN npm install
 COPY backend/tsconfig.json ./
 COPY backend/src ./src
 RUN npm run build:backend

@@ -24,7 +24,9 @@
     "discordNotConfigured": "Webhook Discord не настроен.",
     "telegramNotConfigured": "Токен бота / ID чата Telegram не настроены.",
     "webhookNotConfigured": "URL общего webhook не настроен.",
-    "smtpNotConfigured": "SMTP не настроен (требуются хост, отправитель и получатель)."
+    "smtpNotConfigured": "SMTP не настроен (требуются хост, отправитель и получатель).",
+    "pushNotConfigured": "Пока нет зарегистрированных push-подписок.",
+    "pushSendFailed": "Не удалось отправить тестовое push-уведомление."
   },
   "notifications": {
     "testMessage": "🔔 Тестовое уведомление OpenDVR",
@@ -35,6 +37,10 @@
     "intrusionDetected": "Обнаружено вторжение в зону",
     "occupancyDetected": "Обнаружено присутствие в зоне",
     "watchRecording": "Смотреть запись:",
-    "eventMessage": "📷 {{camera}}: {{eventType}} в {{time}}"
+    "eventMessage": "📷 {{camera}}: {{eventType}} в {{time}}",
+    "cameraUnavailable": "⚠️ {{camera}} недоступна уже {{duration}} (с {{since}}).",
+    "cameraUnavailableSubject": "камера недоступна",
+    "cameraRecovered": "✅ {{camera}} снова доступна (была недоступна {{duration}}).",
+    "cameraRecoveredSubject": "камера снова доступна"
   }
 }

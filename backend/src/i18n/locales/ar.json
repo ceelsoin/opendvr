@@ -24,7 +24,9 @@
     "discordNotConfigured": "لم يتم تكوين webhook الخاص بـ Discord.",
     "telegramNotConfigured": "لم يتم تكوين رمز بوت Telegram / معرّف الدردشة.",
     "webhookNotConfigured": "لم يتم تكوين عنوان URL لـ webhook العام.",
-    "smtpNotConfigured": "لم يتم تكوين SMTP (المضيف والمرسل والمستلم مطلوبون)."
+    "smtpNotConfigured": "لم يتم تكوين SMTP (المضيف والمرسل والمستلم مطلوبون).",
+    "pushNotConfigured": "لا توجد اشتراكات دفع مسجلة بعد.",
+    "pushSendFailed": "فشل إرسال إشعار الدفع التجريبي."
   },
   "notifications": {
     "testMessage": "🔔 إشعار اختبار من OpenDVR",
@@ -35,6 +37,10 @@
     "intrusionDetected": "تم اكتشاف تسلل إلى المنطقة",
     "occupancyDetected": "تم اكتشاف إشغال المنطقة",
     "watchRecording": "مشاهدة التسجيل:",
-    "eventMessage": "📷 {{camera}}: {{eventType}} في {{time}}"
+    "eventMessage": "📷 {{camera}}: {{eventType}} في {{time}}",
+    "cameraUnavailable": "⚠️ {{camera}} غير متاحة منذ {{duration}} (منذ {{since}}).",
+    "cameraUnavailableSubject": "الكاميرا غير متاحة",
+    "cameraRecovered": "✅ {{camera}} أصبحت متاحة مرة أخرى (كانت غير متاحة لمدة {{duration}}).",
+    "cameraRecoveredSubject": "الكاميرا متاحة مرة أخرى"
   }
 }

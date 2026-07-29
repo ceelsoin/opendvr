@@ -38,6 +38,7 @@ export async function provisionCamera(camera: Camera, options: { forceRefresh?: 
  * ONVIF-resolved cameras - not meaningful for rtmp/hls/srt sources.
  */
 async function provisionDirectSourceCamera(camera: Camera): Promise<Camera["status"]> {
+  logger.info({ cameraId: camera.id, sourceType: camera.sourceType }, "Provisionando câmera (fonte direta)");
   try {
     if (!camera.rtspMainUri) {
       throw new Error("URL do stream não configurada.");
@@ -95,6 +96,7 @@ async function provisionDirectSourceCamera(camera: Camera): Promise<Camera["stat
       recordDeleteAfter: `${camera.retentionDays}d`,
     });
     updateCameraConnection(camera.id, { status: "online" });
+    logger.info({ cameraId: camera.id }, "Câmera provisionada com sucesso");
     return "online";
   } catch (err) {
     logger.warn({ err, cameraId: camera.id }, "Failed to provision direct-source stream for camera");
@@ -104,6 +106,7 @@ async function provisionDirectSourceCamera(camera: Camera): Promise<Camera["stat
 }
 
 async function provisionOnvifCamera(camera: Camera, options: { forceRefresh?: boolean } = {}): Promise<Camera["status"]> {
+  logger.info({ cameraId: camera.id, forceRefresh: Boolean(options.forceRefresh) }, "Provisionando câmera (ONVIF)");
   try {
     let rtspUri = camera.rtspMainUri ?? undefined;
     let mainStreamMetadata: { width: number | null; height: number | null; encoding: string | null } | undefined;
@@ -116,6 +119,7 @@ async function provisionOnvifCamera(camera: Camera, options: { forceRefresh?: bo
       // probe (previously only the frontend probe populated this, which
       // silently kept it null forever if the user saved without re-probing).
       const streams = await discoverStreams(camera);
+      logger.info({ cameraId: camera.id, streamCount: streams.length }, "Descoberta ONVIF concluída");
       const mainProfile = streams.find((s) => s.profileToken === camera.onvifProfileToken) ?? streams[0];
       if (!mainProfile) {
         throw new Error("Câmera conectou, mas não retornou nenhum stream RTSP.");
@@ -202,6 +206,7 @@ async function provisionOnvifCamera(camera: Camera, options: { forceRefresh?: bo
       ...(mainStreamMetadata ? { mainStreamMetadata } : {}),
       ...(subStreamMetadata ? { subStreamMetadata } : {}),
     });
+    logger.info({ cameraId: camera.id }, "Câmera provisionada com sucesso");
     return "online";
   } catch (err) {
     logger.warn({ err, cameraId: camera.id }, "Failed to provision MediaMTX stream for camera");

@@ -17,7 +17,7 @@ services:
       - ./recordings:/recordings
 
   backend:
-    image: celsoenssure/opendvr:latest
+    # image: celsoenssure/opendvr:latest
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -74,6 +74,14 @@ services:
       SMTP_SECURE: ${SMTP_SECURE:-}
       EMAIL_FROM: ${EMAIL_FROM:-}
       EMAIL_TO: ${EMAIL_TO:-}
+      # Web Push (browser/PWA push notifications, see backend/src/lib/webPush.ts).
+      # Optional: leave unset and a VAPID key pair is generated automatically
+      # on first use and persisted in the database (./app-data volume) - no
+      # manual `web-push generate-vapid-keys` step needed. Only set these to
+      # pin a specific identity (e.g. restoring to a fresh app-data volume).
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
     volumes:
       - ./app-data:/data
       - ./recordings:/recordings

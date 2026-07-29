@@ -6,6 +6,8 @@ import {
   useTestNotification,
   useUpdateNotificationSettings,
 } from "../api/settings";
+import { useSubscribePush, useUnsubscribePush, useVapidPublicKey } from "../api/push";
+import { getExistingPushSubscription, isPushSupported, subscribeToPush, unsubscribeFromPush } from "../lib/push";
 import { useToastStore } from "../store/toastStore";
 
 export function SettingsPage() {
@@ -40,6 +42,20 @@ export function SettingsPage() {
   const [s3SecretKey, setS3SecretKey] = useState("");
   const [s3BucketName, setS3BucketName] = useState("");
 
+  const pushSupported = isPushSupported();
+  const [pushSubscription, setPushSubscription] = useState<PushSubscription | null>(null);
+  const [pushBusy, setPushBusy] = useState(false);
+  const vapidPublicKey = useVapidPublicKey();
+  const subscribePush = useSubscribePush();
+  const unsubscribePush = useUnsubscribePush();
+
+  useEffect(() => {
+    if (!pushSupported) return;
+    getExistingPushSubscription()
+      .then(setPushSubscription)
+      .catch(() => {});
+  }, [pushSupported]);
+
   useEffect(() => {
     if (!status) return;
     setDiscordWebhookUrl(status.discordWebhookUrl ?? "");
@@ -67,7 +83,7 @@ export function SettingsPage() {
     return data?.error ?? fallback;
   };
 
-  const handleTest = async (channel: "discord" | "telegram" | "webhook" | "email") => {
+  const handleTest = async (channel: "discord" | "telegram" | "webhook" | "email" | "push") => {
     try {
       const result = await testNotification.mutateAsync(channel);
       if (result.ok) {
@@ -214,6 +230,45 @@ export function SettingsPage() {
     }
   };
 
+  const handleEnablePush = async () => {
+    if (!vapidPublicKey.data) return;
+    setPushBusy(true);
+    try {
+      const subscription = await subscribeToPush(vapidPublicKey.data);
+      const json = subscription.toJSON() as { endpoint?: string; keys?: { p256dh: string; auth: string } };
+      if (!json.endpoint || !json.keys) {
+        throw new Error("missing-subscription-fields");
+      }
+      await subscribePush.mutateAsync({ endpoint: json.endpoint, keys: json.keys });
+      setPushSubscription(subscription);
+      addToast("success", t("settingsPage.toastPushEnabled"));
+    } catch (err) {
+      if (err instanceof Error && err.message === "permission-denied") {
+        addToast("error", t("settingsPage.toastPushPermissionDenied"));
+      } else {
+        addToast("error", t("settingsPage.toastPushEnableFailed"));
+      }
+    } finally {
+      setPushBusy(false);
+    }
+  };
+
+  const handleDisablePush = async () => {
+    if (!pushSubscription) return;
+    setPushBusy(true);
+    try {
+      const endpoint = pushSubscription.endpoint;
+      await unsubscribeFromPush(pushSubscription);
+      await unsubscribePush.mutateAsync(endpoint);
+      setPushSubscription(null);
+      addToast("success", t("settingsPage.toastPushDisabled"));
+    } catch {
+      addToast("error", t("settingsPage.toastPushDisableFailed"));
+    } finally {
+      setPushBusy(false);
+    }
+  };
+
   if (isLoading) {
     return <p className="text-neutral-400">{t("settingsPage.loadingSettings")}</p>;
   }
@@ -225,6 +280,45 @@ export function SettingsPage() {
         <p className="text-sm text-neutral-500">
           {t("settingsPage.description")}
         </p>
+      </div>
+
+      {/* Push (PWA) */}
+      <div className="flex flex-col gap-2 rounded-lg border border-neutral-800 p-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium">{t("settingsPage.pushTitle")}</h3>
+          <span
+            className={`rounded-full px-2 py-0.5 text-xs ${
+              status?.pushConfigured ? "bg-green-950 text-green-400" : "bg-neutral-800 text-neutral-500"
+            }`}
+          >
+            {status?.pushConfigured ? t("settingsPage.configured") : t("settingsPage.notConfigured")}
+          </span>
+        </div>
+        <p className="text-sm text-neutral-500">{t("settingsPage.pushDescription")}</p>
+        {!pushSupported ? (
+          <p className="text-[11px] text-amber-500">{t("settingsPage.pushNotSupported")}</p>
+        ) : (
+          <div className="flex justify-end gap-2">
+            {pushSubscription && (
+              <button
+                type="button"
+                onClick={() => handleTest("push")}
+                disabled={!status?.pushConfigured || testNotification.isPending}
+                className="rounded-md bg-neutral-800 px-3 py-2 text-sm hover:bg-neutral-700 disabled:opacity-50"
+              >
+                {t("settingsPage.test")}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={pushSubscription ? handleDisablePush : handleEnablePush}
+              disabled={pushBusy || (!pushSubscription && !vapidPublicKey.data)}
+              className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium hover:bg-blue-500 disabled:opacity-50"
+            >
+              {pushSubscription ? t("settingsPage.pushDisable") : t("settingsPage.pushEnable")}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Discord */}

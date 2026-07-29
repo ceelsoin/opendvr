@@ -243,8 +243,29 @@ Partial update. Body: any subset of `discordWebhookUrl`, `discordAttachSnapshot`
 ### `POST /api/settings/notifications/test`
 Sends a real test notification through one channel right now, using its currently saved configuration.
 
-Body: `{ "channel": "discord" | "telegram" | "webhook" | "email" }`.
-Success: `{ "ok": true }`. Failure: `502` with `{ "ok": false, "error": "..." }` (e.g. invalid webhook URL, SMTP auth failure).
+Body: `{ "channel": "discord" | "telegram" | "webhook" | "email" | "push" }`.
+Success: `{ "ok": true }`. Failure: `502` with `{ "ok": false, "error": "..." }` (e.g. invalid webhook URL, SMTP auth failure, or no push subscription registered yet).
+
+---
+
+## Push notifications (`/api/push`)
+
+Browser/PWA Web Push subscriptions - see [Features → Push notifications](./features.md#push-notifications-pwa). Backed by [backend/src/lib/webPush.ts](../backend/src/lib/webPush.ts) and the `push_subscriptions` table.
+
+### `GET /api/push/vapid-public-key`
+Returns `{ "publicKey": "..." }` - the VAPID public key the frontend needs to create a `PushSubscription` via `pushManager.subscribe()`. Generated automatically on first use and persisted in the `settings` table (or pinned via `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` env vars - see [Configuration](./configuration.md)); stable across restarts either way.
+
+### `POST /api/push/subscribe`
+Registers (or refreshes, if the same `endpoint` already exists) a browser/device subscription.
+
+Body: `{ "endpoint": "https://...", "keys": { "p256dh": "...", "auth": "..." } }` (the exact shape of `PushSubscription.toJSON()`).
+Response: `201 { "ok": true }`.
+
+### `POST /api/push/unsubscribe`
+Removes a subscription so it stops receiving pushes.
+
+Body: `{ "endpoint": "https://..." }`.
+Response: `{ "ok": true }`.
 
 ---
 

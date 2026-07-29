@@ -8,6 +8,7 @@ import { CamerasPage } from "./pages/CamerasPage";
 import { OnvifDebugPage } from "./pages/OnvifDebugPage";
 import { CustomGridViewPage } from "./pages/CustomGridViewPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { MaintenancePage } from "./pages/MaintenancePage";
 import { LoginPage } from "./pages/LoginPage";
 import { SetupPage } from "./pages/SetupPage";
 
@@ -28,6 +29,7 @@ function App() {
           <Route path="cameras" element={<CamerasPage />} />
           <Route path="onvif-debug" element={<OnvifDebugPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="maintenance" element={<MaintenancePage />} />
         </Route>
       </Routes>
     </AuthGate>

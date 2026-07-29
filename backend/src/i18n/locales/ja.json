@@ -24,7 +24,9 @@
     "discordNotConfigured": "Discordのウェブフックが設定されていません。",
     "telegramNotConfigured": "Telegramのボットトークン/チャットIDが設定されていません。",
     "webhookNotConfigured": "汎用ウェブフックのURLが設定されていません。",
-    "smtpNotConfigured": "SMTPが設定されていません（ホスト、送信者、受信者が必要です）。"
+    "smtpNotConfigured": "SMTPが設定されていません（ホスト、送信者、受信者が必要です）。",
+    "pushNotConfigured": "まだプッシュ購読が登録されていません。",
+    "pushSendFailed": "テストプッシュ通知の送信に失敗しました。"
   },
   "notifications": {
     "testMessage": "🔔 OpenDVRテスト通知",
@@ -35,6 +37,10 @@
     "intrusionDetected": "エリア侵入を検知しました",
     "occupancyDetected": "エリア占有を検知しました",
     "watchRecording": "録画を見る：",
-    "eventMessage": "📷 {{camera}}：{{eventType}}（{{time}}）"
+    "eventMessage": "📷 {{camera}}: {{eventType}}（{{time}}）",
+    "cameraUnavailable": "⚠️ {{camera}} が {{duration}} 前から利用できません（{{since}} から）。",
+    "cameraUnavailableSubject": "カメラ利用不可",
+    "cameraRecovered": "✅ {{camera}} が復旧しました（利用不可時間: {{duration}}）。",
+    "cameraRecoveredSubject": "カメラが復旧しました"
   }
 }

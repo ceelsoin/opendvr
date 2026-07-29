@@ -159,6 +159,30 @@ export function useProbeOnvif() {
   });
 }
 
+export interface ProbeCameraInput {
+  host?: string;
+  port?: number;
+  onvifPath?: string;
+  username?: string;
+  password?: string;
+}
+
+/**
+ * Same as `useProbeOnvif`, but scoped to an already-registered camera: any
+ * field left out falls back to that camera's saved value (including its
+ * password) - used by the edit dialog so re-discovering streams doesn't
+ * require retyping a password that's already stored.
+ */
+export function useProbeCamera() {
+  return useMutation({
+    mutationFn: async ({ id, input }: { id: string; input: ProbeCameraInput }) => {
+      const { data } = await apiClient.post<OnvifProbeResult>(`/cameras/${id}/probe`, input);
+      return data;
+    },
+  });
+}
+
+
 export interface SoapDiagnosticAttempt {
   label: string;
   ok: boolean;

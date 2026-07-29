@@ -88,4 +88,16 @@ export const env = {
   s3AccessKey: process.env.S3_ACCESS_KEY || null,
   s3SecretKey: process.env.S3_SECRET_KEY || null,
   s3BucketName: process.env.S3_BUCKET_NAME || null,
+
+  // Web Push (browser/PWA push notifications, see lib/webPush.ts). Both
+  // unset by default - a VAPID key pair is generated automatically on
+  // first use and persisted in the `settings` table, so no manual
+  // `web-push generate-vapid-keys` step is required. Setting these two env
+  // vars instead pins a specific key pair (e.g. to keep the same identity
+  // across a DB restore/migration to a fresh `app-data` volume).
+  vapidPublicKey: process.env.VAPID_PUBLIC_KEY || null,
+  vapidPrivateKey: process.env.VAPID_PRIVATE_KEY || null,
+  // Contact URI required by the Web Push protocol (sent to push services
+  // so they can reach the sender about issues) - a mailto: or https: URL.
+  vapidSubject: process.env.VAPID_SUBJECT || "mailto:admin@opendvr.local",
 };

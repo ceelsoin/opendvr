@@ -59,6 +59,11 @@ export function CameraTile({ camera, fillHeight = false }: { camera: Camera; fil
   const [showStatus, setShowStatus] = useState(false);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  // Bumped to force the HlsPlayer below to fully unmount/remount (via its
+  // `key`), tearing down and recreating the hls.js instance - the "refresh"
+  // action asked for by users when the player gets stuck without the whole
+  // page needing a reload.
+  const [reloadKey, setReloadKey] = useState(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   // Always polled (not just when the "diagnóstico" panel is open) so the
@@ -109,6 +114,18 @@ export function CameraTile({ camera, fillHeight = false }: { camera: Camera; fil
     containerRef.current?.requestFullscreen().catch(() => {
       addToast("error", t("cameras.fullscreenFailedToast"));
     });
+  };
+
+  const handleRefreshPlayer = () => {
+    setContextMenuPos(null);
+    setReloadKey((k) => k + 1);
+  };
+
+  /** Opens the same dropdown used by right-click, anchored under the tapped "⋮" button - the discoverable equivalent of the context menu on touch devices, which have no right-click/contextmenu gesture. */
+  const handleOpenContextMenuFromButton = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setContextMenuPos({ x: rect.left, y: rect.bottom + 4 });
   };
 
   const handleToggleEnabled = () => {
@@ -174,7 +191,7 @@ export function CameraTile({ camera, fillHeight = false }: { camera: Camera; fil
             {!camera.enabled ? t("cameras.statusDisabledTitle") : t("cameras.statusOfflineTitle")}
           </div>
         ) : (
-          <HlsPlayer src={`/hls/${camera.id}/index.m3u8`} className="h-full w-full" />
+          <HlsPlayer key={reloadKey} src={`/hls/${camera.id}/index.m3u8`} className="h-full w-full" />
         )}
         {!showOffline && camera.recordingMode === "continuous" && (
           <div className="absolute right-2 top-2 flex items-center gap-1.5 rounded bg-black/60 px-2 py-1 text-xs font-medium text-red-400">
@@ -188,19 +205,49 @@ export function CameraTile({ camera, fillHeight = false }: { camera: Camera; fil
             {t("cameras.motionRecordingBadge")}
           </div>
         )}
+        {/* Always visible (not hover-reveal) so it's discoverable on touch devices, which have no right-click/contextmenu gesture to fall back on. */}
+        <button
+          type="button"
+          onClick={handleOpenContextMenuFromButton}
+          title={t("cameras.moreOptions")}
+          className="absolute left-2 top-2 rounded bg-black/60 p-1 text-neutral-300 hover:text-white"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+            <circle cx="12" cy="5" r="1.8" />
+            <circle cx="12" cy="12" r="1.8" />
+            <circle cx="12" cy="19" r="1.8" />
+          </svg>
+        </button>
         {!showOffline && (
-          <button
-            type="button"
-            onClick={handleFullscreen}
-            title={t("cameras.fullscreenTitle")}
-            className="absolute bottom-2 right-2 rounded bg-black/60 p-1.5 text-neutral-300 opacity-0 transition-opacity hover:text-white group-hover:opacity-100"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 3H5a2 2 0 0 0-2 2v4m18 0V5a2 2 0 0 0-2-2h-4m0 18h4a2 2 0 0 0 2-2v-4M3 15v4a2 2 0 0 0 2 2h4" />
-            </svg>
-          </button>
+          <div className="absolute bottom-2 right-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+            <button
+              type="button"
+              onClick={handleRefreshPlayer}
+              title={t("cameras.refreshPlayer")}
+              className="rounded bg-black/60 p-1.5 text-neutral-300 hover:text-white"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+                />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={handleFullscreen}
+              title={t("cameras.fullscreenTitle")}
+              className="rounded bg-black/60 p-1.5 text-neutral-300 hover:text-white"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 3H5a2 2 0 0 0-2 2v4m18 0V5a2 2 0 0 0-2-2h-4m0 18h4a2 2 0 0 0 2-2v-4M3 15v4a2 2 0 0 0 2 2h4" />
+              </svg>
+            </button>
+          </div>
         )}
       </div>
+
       <div className="flex shrink-0 items-center justify-between p-3">
         <span className="text-sm font-medium">
           {camera.name} <span className="text-xs font-normal text-neutral-500">({camera.host})</span>
@@ -260,7 +307,7 @@ export function CameraTile({ camera, fillHeight = false }: { camera: Camera; fil
           <div
             style={{
               position: "fixed",
-              top: Math.min(contextMenuPos.y, window.innerHeight - 220),
+              top: Math.min(contextMenuPos.y, window.innerHeight - 260),
               left: Math.min(contextMenuPos.x, window.innerWidth - 200),
             }}
             className="z-50 w-48 rounded-md border border-neutral-700 bg-neutral-900 py-1 text-sm shadow-lg"
@@ -271,6 +318,13 @@ export function CameraTile({ camera, fillHeight = false }: { camera: Camera; fil
               className="block w-full px-3 py-1.5 text-left text-neutral-200 hover:bg-neutral-800"
             >
               {t("cameras.fullscreenTitle")}
+            </button>
+            <button
+              type="button"
+              onClick={handleRefreshPlayer}
+              className="block w-full px-3 py-1.5 text-left text-neutral-200 hover:bg-neutral-800"
+            >
+              {t("cameras.refreshPlayer")}
             </button>
             <button
               type="button"

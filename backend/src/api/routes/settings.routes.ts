@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { getNotificationSettings, updateNotificationSettings } from "../../notifications/notificationSettings.js";
 import { sendTestNotification } from "../../notifications/webhooks.js";
+import { hasPushSubscriptions } from "../../lib/webPush.js";
 import { getBackendLanguage, setBackendLanguage, SUPPORTED_BACKEND_LANGUAGES, t } from "../../i18n/index.js";
 import { errorMessage } from "../../lib/errors.js";
 import { logger } from "../../lib/logger.js";
@@ -43,6 +44,7 @@ function serializeSettings(settings: ReturnType<typeof getNotificationSettings>)
     s3AccessKey: settings.s3AccessKey,
     s3BucketName: settings.s3BucketName,
     s3Configured: Boolean(settings.s3Endpoint && settings.s3AccessKey && settings.s3SecretKey && settings.s3BucketName),
+    pushConfigured: hasPushSubscriptions(),
   };
 }
 
@@ -106,7 +108,7 @@ settingsRouter.put("/notifications", (req, res) => {
 });
 
 const testNotificationSchema = z.object({
-  channel: z.enum(["discord", "telegram", "webhook", "email"]),
+  channel: z.enum(["discord", "telegram", "webhook", "email", "push"]),
 });
 
 settingsRouter.post("/notifications/test", async (req, res) => {

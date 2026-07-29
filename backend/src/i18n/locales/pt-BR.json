@@ -24,7 +24,9 @@
     "discordNotConfigured": "Webhook do Discord não configurado.",
     "telegramNotConfigured": "Bot token / chat ID do Telegram não configurados.",
     "webhookNotConfigured": "URL do webhook genérico não configurada.",
-    "smtpNotConfigured": "SMTP não configurado (host, remetente e destinatário são obrigatórios)."
+    "smtpNotConfigured": "SMTP não configurado (host, remetente e destinatário são obrigatórios).",
+    "pushNotConfigured": "Nenhuma inscrição push registrada ainda.",
+    "pushSendFailed": "Falha ao enviar a notificação push de teste."
   },
   "notifications": {
     "testMessage": "🔔 Notificação de teste do OpenDVR",
@@ -35,6 +37,10 @@
     "intrusionDetected": "Intrusão em área detectada",
     "occupancyDetected": "Ocupação de área detectada",
     "watchRecording": "Assistir gravação:",
-    "eventMessage": "📷 {{camera}}: {{eventType}} às {{time}}"
+    "eventMessage": "📷 {{camera}}: {{eventType}} às {{time}}",
+    "cameraUnavailable": "⚠️ {{camera}} está indisponível há {{duration}} (desde {{since}}).",
+    "cameraUnavailableSubject": "câmera indisponível",
+    "cameraRecovered": "✅ {{camera}} voltou a ficar disponível (ficou indisponível por {{duration}}).",
+    "cameraRecoveredSubject": "câmera voltou a ficar disponível"
   }
 }

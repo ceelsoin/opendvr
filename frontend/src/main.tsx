@@ -15,6 +15,18 @@ const queryClient = new QueryClient({
   },
 })
 
+// Registers the service worker that enables Web Push notifications (see
+// public/sw.js + src/lib/push.ts) and makes the app installable as a PWA.
+// `BASE_URL` is "/" in dev and "/web/" in production (see vite.config.ts),
+// so the worker's scope always matches wherever the app is actually served.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch((err) => {
+      console.warn("Service worker registration failed", err);
+    });
+  });
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
