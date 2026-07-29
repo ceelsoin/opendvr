@@ -19,34 +19,48 @@
 
 ## Camera management
 
-- **LAN discovery** — WS-Discovery probe (`POST /api/discovery`) lists ONVIF devices announcing themselves on the network, with a "use this address" shortcut that pre-fills the add-camera form.
+- **LAN discovery** — WS-Discovery probe (`POST /api/discovery`) lists ONVIF devices announcing themselves on the network, with a "use this address" shortcut that pre-fills the add-camera form. For devices that don't announce themselves (WS-Discovery disabled/blocked), an **active network scan** (`POST /api/discovery/scan`) probes a given IP range/CIDR for open ONVIF/RTSP ports instead, streaming progress as a live terminal-style log (newline-delimited JSON) instead of waiting for the whole range to finish.
+- **Camera sources** — not just ONVIF. Each camera has a `sourceType`:
+  - `onvif` (default) — the full flow below (probe, PTZ, ONVIF motion events, ONVIF snapshot).
+  - `rtsp` / `rtmp` / `hls` / `srt` — a directly-entered stream URL of that protocol, pulled by MediaMTX natively with no transcoding bridge. Optionally still uses the ONVIF host/port/path/credentials fields purely for PTZ control if `hasPtz` is checked, even though the video itself bypasses ONVIF entirely.
+  - `mjpeg-http` — an MJPEG-over-HTTP camera (older/cheap webcams); bridged into an RTSP source MediaMTX can consume via an ffmpeg re-encode (`backend/src/media/mjpegBridge.ts`).
+  - `webpage` — an arbitrary web page rendered by a headless Chromium and captured as a video feed (`backend/src/media/webpageBridge.ts`) — useful for cameras that only expose a web viewer with no direct stream URL. By far the heaviest source type (runs a real browser engine per camera).
+  - For any non-`onvif` source, motion detection is always the local video-based analyzer (no ONVIF Events subscription exists for a directly-entered stream), and event snapshots always come from the ffmpeg/MediaMTX frame-grab fallback rather than ONVIF's `GetSnapshotUri`.
+- **Video rotation** — `rotation: 0 | 90 | 180 | 270` (clockwise), for cameras mounted sideways/upside down. `0` is a pure passthrough; any other value forces a small ffmpeg transcode bridge (`backend/src/media/rotationBridge.ts` for onvif/rtsp/rtmp/hls/srt sources, or the rotation filter added directly to the existing bridge for mjpeg-http/webpage) since MediaMTX itself has no video-filter capability.
 - **Add/edit camera** via a single dialog ([CameraFormDialog](../frontend/src/components/cameras/CameraFormDialog.tsx)):
-  - Paste a single ONVIF service URL (`http://user:pass@host:port/path`) **or** fill in host/port/path/credentials separately.
+  - Paste a single ONVIF service URL (`http://user:pass@host:port/path`) **or** fill in host/port/path/credentials separately — or pick a direct source type above and just paste the stream URL.
   - "Obter URLs de vídeo" probes the camera (`POST /api/onvif/probe`) and lists every discovered media profile (resolution + codec), letting you pick a **main** (live/record) and **sub** (lower-res) stream. The highest-resolution stream is pre-selected as main, the lowest as sub.
-  - Editing keeps the previously selected streams visible without re-probing; the password field is left blank ("leave blank to keep") and simply omitted from the update payload if untouched.
+  - **Editing reuses the already-saved password automatically**: since passwords are never sent back to the client, re-probing while editing (to see all available streams again, not just the main/sub picked last time) used to require retyping it. Now, if you leave the password field blank, "Obter URLs de vídeo" calls a camera-scoped endpoint (`POST /api/cameras/:id/probe`) that falls back to the stored password for any field you didn't change — only creating a new camera, or deliberately typing a different password, requires entering one explicitly.
   - Optional **"vlc-relay" compatibility mode** for cameras whose RTSP server doesn't work with MediaMTX's RTSP client (see [Troubleshooting](./troubleshooting.md)).
 - **Test connection** — re-probes ONVIF for an already-saved camera and shows the result (streams found, or a detailed connection error) inline.
 - **Restart/reprovision** — forces a fresh ONVIF reconnect and MediaMTX path re-registration for a camera, without needing to edit/re-save it.
-- **Enable/disable** (`POST /api/cameras/:id/enable` / `/disable`) — an administrative on/off switch distinct from the connectivity-based `status` field: disabling tears down the camera's MediaMTX path, motion listener/detector, motion-recording timer, and VLC relay, but keeps its row/config in the database so it can be re-enabled later without re-entering anything. Disabled cameras are skipped entirely on backend boot and by the periodic MediaMTX-path reconciliation loop, so they won't be silently re-provisioned. Available from the **Câmeras** page and from each camera tile's right-click context menu.
+- **Enable/disable** (`POST /api/cameras/:id/enable` / `/disable`) — an administrative on/off switch distinct from the connectivity-based `status` field: disabling tears down the camera's MediaMTX path, motion listener/detector, motion-recording timer, and VLC relay, but keeps its row/config in the database so it can be re-enabled later without re-entering anything. Disabled cameras are skipped entirely on backend boot and by the periodic MediaMTX-path reconciliation loop, so they won't be silently re-provisioned. Available from the **Câmeras** page and from each camera tile's context menu.
 - **Stream diagnostics** — a "diagnóstico" toggle on each camera tile polls `GET /api/cameras/:id/stream-status` every 3s and shows: whether the MediaMTX path is configured, whether the RTSP source is actually `ready` (connected), source type, reader/viewer count, bytes received, resolved ONVIF/RTSP URLs, and (if applicable) the VLC relay URL. This is the tool to tell apart "ONVIF connected fine but MediaMTX can't pull RTSP" from other failure modes.
 - **Delete** — stops any event listener/motion-recording timer/VLC relay, removes the MediaMTX path, then deletes the DB row.
 
 ## Live streaming
 
 - Live view over **HLS**, played with `hls.js` (native fallback for Safari), always via the backend's own reverse proxy at `/hls/<cameraId>/index.m3u8` — the browser never talks to MediaMTX directly (no extra CORS/ports to expose).
-- Cameras are pulled by MediaMTX with `rtspTransport: tcp` (forced, since UDP tends to fail silently with cheap cameras and containerized/NAT networking) and `sourceOnDemand: false` (always connected — required for continuous recording and for the stream to already be warm when someone opens the live view).
+- Cameras are pulled by MediaMTX with `rtspTransport: tcp` (forced, since UDP tends to fail silently with cheap cameras and containerized/NAT networking) and `sourceOnDemand: false` (always connected — required for continuous recording and for the stream to already be warm when someone opens the live view). Direct sources (`rtmp`/`hls`/`srt`) and the ffmpeg/Chromium bridges (`mjpeg-http`/`webpage`) use MediaMTX's `publisher` source mode instead — see [Camera management](#camera-management) and [Architecture](./architecture.md).
 - WebRTC is exposed by MediaMTX (port 8889) but not yet wired up in the frontend player.
-- **Fullscreen per camera** — a corner button (visible on hover) on each camera tile, and a "Tela cheia" item in the right-click context menu, requests fullscreen for just that camera's tile (`Element.requestFullscreen()`), independent of the browser's own fullscreen shortcut.
-- **Right-click context menu** on each camera tile ([CameraTile](../frontend/src/components/cameras/CameraTile.tsx)) — quick access to Tela cheia, Ligar/Desligar, Reiniciar, Testar conexão and Editar câmera directly from the live grid, without navigating to the **Câmeras** management page.
+- **Fullscreen per camera** — a corner button (visible on hover) on each camera tile, and a "Tela cheia" item in the context menu, requests fullscreen for just that camera's tile (`Element.requestFullscreen()`), independent of the browser's own fullscreen shortcut.
+- **Refresh video** — a refresh icon next to the fullscreen button (and a matching context-menu item) remounts just that tile's HLS player, tearing down and recreating the underlying `hls.js` instance. Useful when a single tile gets stuck (e.g. after a brief network blip) without needing to reload the entire page.
+- **Context menu on each camera tile** ([CameraTile](../frontend/src/components/cameras/CameraTile.tsx)) — right-click anywhere on a tile, or tap the always-visible "⋮" button in its top-left corner (the mobile-friendly equivalent, since touch devices have no right-click/contextmenu gesture): Tela cheia, Atualizar vídeo, Ligar/Desligar, Reiniciar, Testar conexão, and Editar câmera — all without navigating to the **Câmeras** management page.
+- **"Fit all cameras on screen" grid mode** — a toggle on the **Grid** page (persisted to `localStorage`) that lays out every camera tile so the entire grid fits within the viewport height with no scrolling, instead of a fixed column count with `aspect-video` tiles that can overflow off-screen once you have many cameras. `frontend/src/lib/useFitGrid.ts` brute-forces every possible column count (1..N), computes the resulting tile size for each (respecting the 16:9 aspect ratio, tile gaps, and the name/status footer height), and picks whichever column count yields the largest tiles that still fit the available height — recomputed on window/container resize.
 
 ## Recording & playback
 
 - Per-camera **recording mode**, one of:
   - `off` — no disk recording.
   - `continuous` — MediaMTX records the whole time (native fMP4 segment recording, no ffmpeg involved).
-  - `motion` — recording is toggled on/off reactively based on ONVIF motion events, with a 60s cooldown after the last event before it stops (so brief pauses in activity don't fragment one event into many tiny clips).
-- **Timeline page**: pick a camera and a day, see a scrubbable timeline of recorded segments (`RecordingTimeline` component) fetched from MediaMTX's own Playback API (`GET /api/recordings/:cameraId?start=...&end=...`) — there's no separate recordings database to keep in sync, MediaMTX is the source of truth.
-- Events that occurred on the selected day are also fetched and can be clicked to jump straight to the matching recorded segment.
+  - `motion` — recording is toggled on/off reactively based on motion events (ONVIF or video-based, see below), with a 60s cooldown after the last event before it stops (so brief pauses in activity don't fragment one event into many tiny clips).
+- **Multi-camera Timeline**: pick a day and add as many cameras as you want (a dropdown lists the ones not already shown; the last-viewed set is remembered per browser). Each camera gets its own **player tile** in a grid at the top, and its own scrubbable **timeline row** stacked below, all sharing the same time axis so you can compare footage across cameras side by side.
+  - Segments come straight from MediaMTX's own Playback API (`GET /api/recordings/:cameraId?start=...&end=...`) — there's no separate recordings database to keep in sync.
+  - **Live playback marker**: each timeline row shows a vertical marker that tracks that camera's current playback position in real time as its clip plays.
+  - **Hover time badge**: moving the pointer over a timeline row shows the exact clock time under the cursor.
+  - **Continuous playback across gaps**: when a clip finishes, the player automatically advances to the next recorded segment for that camera (even across a gap with no recording) instead of just stopping — playback only actually stops when there's genuinely nothing left to play for the rest of the day.
+  - Events that occurred on the selected day are also fetched and can be clicked to jump straight to the matching recorded segment.
+  - **Export/download a clip**: after selecting a range (click-drag on a timeline row), set a pre-roll and duration, and each camera's tile offers a direct download link for that exact clip (served as a single non-fragmented MP4 via MediaMTX's Playback API, not the fMP4 segments used for live scrubbing). A **"download all"** button downloads every visible camera's clip for the current selection, staggering the requests slightly so the browser doesn't choke on several simultaneous downloads.
 - Playback video is served through the backend's `/recordings` reverse proxy to MediaMTX's Playback server — same "browser only talks to the backend" principle as live HLS.
 - A `retentionDays` field exists per-camera and is fully enforced: MediaMTX deletes recordings past that age itself (`recordDeleteAfter`, set per-camera on every provision - see [Architecture](./architecture.md)), and a daily backend job deletes event rows + snapshot files past that age too (`backend/src/jobs/retentionCleanup.ts`, runs once at 03:00 and once ~1 minute after boot).
 
@@ -58,12 +72,14 @@
 - **Real-time UI**: every event is broadcast over WebSocket (`camera:event`); the frontend shows a toast with a human-friendly translation of the event type (e.g. "Movimento detectado") and flashes a green border around the camera's tile in the grid.
 - **Events page**: filter by camera, day, and event type; mark events read/unread; delete individual events.
 - **External notifications** (optional, independently configurable from the Settings page or env vars): Discord, Telegram, a generic JSON webhook, email (SMTP), and **browser/PWA push notifications** - each with its own toggle. Discord/Telegram/webhook/email each have an "attach snapshot" toggle: the snapshot is only actually attached when the camera **isn't** recording (`recordingMode: "off"`); when it is recording (`continuous` or `motion`), a link to the Timeline is sent instead of a static image, since the actual clip will be available there. Push notifications include that same link/snapshot as the notification's click-through URL and icon.
+- **Camera connectivity notifications**: separate from motion/tamper alerts, a camera that stays unavailable (MediaMTX path not `ready`, or `ready` but with no new bytes flowing - e.g. a wedged VLC relay) for **10 minutes straight** triggers an "unavailable" notification through the same channels above, repeated every **hour** for as long as it stays down, so a prolonged outage doesn't go unnoticed after the first alert. A matching "back online" notification (with total downtime) fires once it recovers - but only if an "unavailable" notification was actually sent first, so brief blips under the 10-minute threshold don't also spam a "recovered" message. This is independent of, and on top of, the background reconciliation loop that's already trying to fix the camera automatically (see [Architecture](./architecture.md#self-healing-reconciliation-loop)).
 
 ## PTZ (Pan/Tilt/Zoom)
 
 - Directional continuous-move controls (8-way + stop) via `POST /api/ptz/:id/move` / `/stop`, driven by mouse-down/mouse-up in the UI.
 - Presets: list, save (`POST /api/ptz/:id/presets`), and go-to (`POST /api/ptz/:id/presets/:token/goto`).
 - Inline expandable panel per camera on the Cameras page, no separate route.
+- Available even for non-ONVIF direct sources (`rtsp`/`rtmp`/`hls`/`srt`) if `hasPtz` is checked on the camera - PTZ commands still go over ONVIF using that camera's host/port/path/credentials fields, independent of where the video itself comes from.
 
 ## Custom camera grids (shareable/kiosk URLs)
 
@@ -95,9 +111,21 @@
 
 ## Dashboard & system stats
 
-- The **Dashboard** page (`/dashboard`) shows the host's current CPU usage (%, core count, 1/5/15-minute load average), memory usage, and disk usage for both the recordings volume and the app's data volume — each as a color-coded bar (green/amber/red at 70%/90% thresholds), polled every 5s.
-- A compact version of the same three metrics is always visible in a slim status bar at the top of every screen (`TopStatusBar`, part of `AppLayout`) — not just the Dashboard page itself — with a hover tooltip for detail and a click-through to the full Dashboard. The kiosk custom-grid view (`/g/:id`) intentionally excludes it, same as the sidebar nav.
+- A compact CPU/memory/disk summary is always visible in a slim status bar at the top of every screen (`TopStatusBar`, part of `AppLayout`) — current CPU usage (%, core count, 1/5/15-minute load average), memory usage, and disk usage for both the recordings volume and the app's data volume, each color-coded (green/amber/red at 70%/90% thresholds), polled every 5s, with a hover tooltip for detail. The kiosk custom-grid view (`/g/:id`) intentionally excludes it, same as the sidebar nav.
+- A dedicated **Dashboard** page (`frontend/src/pages/DashboardPage.tsx`) with the same three metrics as full-size cards exists in the codebase but its route (`/dashboard`) is currently commented out in `App.tsx`/left out of the sidebar nav, since the always-visible `TopStatusBar` above covers the same information on every screen already — re-enable the route if you want the larger dedicated view back.
 - Backed entirely by `GET /api/system/stats` (see [API Reference](./api-reference.md)); no external dependency or configuration needed — CPU/memory come from Node's `os` module, disk usage from `fs.statfs`.
+
+## Maintenance
+
+The **Maintenance** page (`/maintenance`) groups administrative actions that don't fit the per-camera pages:
+
+- **Change password** — requires the current password (defense in depth beyond the session cookie) plus a new one (8+ characters), confirmed twice in the form. `POST /api/maintenance/change-password`.
+- **View logs** — a live-tailing log viewer (`GET /api/maintenance/logs`, polled with an increasing `afterSeq` cursor) reading from an in-memory ring buffer of recent backend log entries, optionally filtered by camera. The same endpoint also backs the per-camera log modals shown from the Cameras page while restarting/testing a connection.
+- **Delete recordings** — wipes recorded video files from disk for one specific camera or every camera at once (`POST /api/maintenance/recordings/delete`); confirmed with a dialog first. This only touches files on disk (MediaMTX manages recordings natively, there's no separate DB table to clean up).
+- **Restart server** — restarts the whole backend process (`POST /api/maintenance/restart-server`), relying on Docker's `restart: unless-stopped` policy to bring it back up; useful to clear any wedged in-process state (stuck bridge/relay processes, leaked handles) short of a full redeploy.
+- **Factory reset** — wipes *everything*: all cameras, recordings, events, grids, notification settings, and the admin account itself, back to a blank install (the next load shows **Setup** again). Requires typing a confirmation phrase ("RESETAR") **and** the current admin password before the request is even sent, given how destructive and irreversible this is (`POST /api/maintenance/factory-reset`).
+
+All five actions are only reachable with an active admin session, same as the rest of the app - see [API Reference → Maintenance](./api-reference.md#maintenance-apimaintenance) for exact request/response shapes.
 
 ## Known limitations
 

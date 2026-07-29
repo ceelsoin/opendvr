@@ -64,14 +64,17 @@ Body:
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `name` | string | yes | |
-| `host` | string | yes | |
+| `sourceType` | `"onvif"` \| `"rtsp"` \| `"rtmp"` \| `"hls"` \| `"srt"` \| `"mjpeg-http"` \| `"webpage"` | no | default `"onvif"`. For any non-`"onvif"` value, `host`/`username`/`password` aren't required and `rtspMainUri` becomes the directly-entered stream/page URL instead - see [Features → Camera management](./features.md#camera-management). |
+| `host` | string | required for `sourceType: "onvif"` | |
 | `port` | number | no | default `80` |
 | `onvifPath` | string | no | default `/onvif/device_service` |
-| `username` | string | yes | |
-| `password` | string | yes | |
+| `username` | string | required for `sourceType: "onvif"` | |
+| `password` | string | required for `sourceType: "onvif"` | |
 | `mainProfileToken` / `subProfileToken` | string | no | from `/onvif/probe` |
-| `rtspMainUri` / `rtspSubUri` | string | no | pre-resolved, from `/onvif/probe` |
+| `rtspMainUri` / `rtspSubUri` | string | no | pre-resolved main/sub stream, from `/onvif/probe` - or the directly-entered URL, for non-`"onvif"` source types (required in that case) |
 | `rtspCompatMode` | `"vlc-relay"` \| `null` | no | enable the VLC RTSP compatibility relay |
+| `rotation` | `0` \| `90` \| `180` \| `270` | no | default `0`. Clockwise rotation applied via an ffmpeg transcode bridge before the stream reaches MediaMTX. |
+| `hasPtz` | boolean | no | default `false`. Can be `true` even for a non-`"onvif"` `sourceType`, as long as `host`/`username`/`password` are also set - PTZ still goes over ONVIF independent of where the video comes from. |
 | `mainStreamMetadata` / `subStreamMetadata` | `{ width, height, encoding }` | no | display-only, from probe |
 | `recordingMode` | `"off"` \| `"continuous"` \| `"motion"` | no | default `"off"` |
 | `motionRecording` | boolean | no | enables the ONVIF motion/tamper **alert** listener (independent of `recordingMode`) |
@@ -84,6 +87,11 @@ Partial update (same shape as `POST`, all fields optional). If any connection fi
 
 ### `POST /api/cameras/:id/restart`
 Forces a full reconnect: re-resolves the RTSP URI via ONVIF and re-registers the MediaMTX path. Returns `{ ok: boolean, status: "online" | "offline" | "unknown" }`.
+
+### `POST /api/cameras/:id/probe`
+Same as `POST /api/onvif/probe` below, but scoped to this already-saved camera: any field omitted from the body (`host`, `port`, `onvifPath`, `username`, `password`) falls back to that camera's stored value - in particular, the password, which is never sent back to the client for display. Lets the edit dialog's "Obter URLs de vídeo" button re-probe and re-list every available stream without forcing the user to retype a password that's already saved, as long as they're not deliberately changing credentials.
+
+Body: `{ "host"?, "port"?, "onvifPath"?, "username"?, "password"? }` (all optional). Response/failure shape identical to `POST /api/onvif/probe`.
 
 ### `POST /api/cameras/:id/disable`
 Administrative on/off switch, distinct from the connectivity-based `status` field. Stops the motion listener/detector, motion-recording cooldown, and VLC relay (if any); deletes the MediaMTX path; sets `enabled: false` on the camera row (config is kept, nothing is deleted). Disabled cameras are skipped on backend boot and by the periodic MediaMTX-path reconciliation loop. Returns the updated camera.
@@ -113,6 +121,19 @@ Response: array of
 ```jsonc
 { "hostname": "192.168.1.50", "port": 80, "urn": "urn:uuid:...", "xaddrs": ["http://192.168.1.50/onvif/device_service"] }
 ```
+
+### `POST /api/discovery/scan`
+Active TCP range scan for ONVIF/RTSP cameras that don't announce themselves over WS-Discovery (or when it's blocked/disabled on the network). Unlike every other endpoint, the response is **streamed** as newline-delimited JSON (`application/x-ndjson`) instead of a single JSON body at the end, so the frontend can show live progress for ranges that take a while to fully scan.
+
+Body: `{ "range": "192.168.1.0/24", "username"?: string, "password"?: string }` (`range` also accepts a plain start-end form, see `backend/src/lib/ipRange.ts`; `username`/`password` are optional and only used to also attempt an authenticated ONVIF handshake against any responsive host).
+
+Each streamed line is one JSON object, one of:
+```jsonc
+{ "type": "start", "totalHosts": 254 }
+{ "type": "error", "message": "..." }
+{ "type": "done" }
+```
+(plus per-host progress/result events - see `backend/src/onvif/networkScan.ts` for the full event shape).
 
 ---
 
@@ -246,6 +267,12 @@ Sends a real test notification through one channel right now, using its currentl
 Body: `{ "channel": "discord" | "telegram" | "webhook" | "email" | "push" }`.
 Success: `{ "ok": true }`. Failure: `502` with `{ "ok": false, "error": "..." }` (e.g. invalid webhook URL, SMTP auth failure, or no push subscription registered yet).
 
+### `GET /api/settings/language`
+Returns `{ "language": "pt-BR" }` - the backend's own UI language, used for server-generated text (notification messages, etc.).
+
+### `PUT /api/settings/language`
+Body: `{ "language": string }` (one of the 12 supported language codes). Kept in sync automatically with the frontend's language switcher, so notifications are worded in whatever language the UI is actually shown in, not necessarily the server's OS locale. Returns `{ "language": "..." }`.
+
 ---
 
 ## Push notifications (`/api/push`)
@@ -272,7 +299,7 @@ Response: `{ "ok": true }`.
 ## System (`/api/system`)
 
 ### `GET /api/system/stats`
-Current CPU/memory/disk usage of the host the backend is running on - backs the **Dashboard** page and the compact status bar shown in the sidebar layout on every screen. No configuration needed; computed from Node's built-in `os`/`fs` modules (see [Architecture](./architecture.md)).
+Current CPU/memory/disk usage of the host the backend is running on - backs the always-visible status bar (and the standalone Dashboard page, if its route is re-enabled - see [Features → Dashboard](./features.md#dashboard--system-stats)). No configuration needed; computed from Node's built-in `os`/`fs` modules (see [Architecture](./architecture.md)).
 
 Response:
 ```jsonc
@@ -287,6 +314,31 @@ Response:
 }
 ```
 `disks` always reports both `RECORDINGS_DIR` and `DATA_DIR` (see [Configuration](./configuration.md)) - if they resolve to the same filesystem, both entries simply show identical numbers.
+
+---
+
+## Maintenance (`/api/maintenance`)
+
+Administrative actions backing the **Maintenance** page - see [Features → Maintenance](./features.md#maintenance). All require an active session, same as everything else in the app.
+
+### `GET /api/maintenance/logs?cameraId=&afterSeq=&limit=`
+Tails recent backend log entries from an in-memory ring buffer. All query params optional: `cameraId` scopes to one camera's logs, `afterSeq` returns only entries newer than a given sequence number (for polling a live tail without re-fetching everything), `limit` caps the count.
+
+Response: `{ "entries": [{ "seq": number, "level": string, "time": string, "cameraId"?: string, "msg": string, ... }], "lastSeq": number }`.
+
+### `POST /api/maintenance/change-password`
+Body: `{ "currentPassword": string, "newPassword": string (8+ chars) }`. Requires the current password to match (defense in depth beyond the session cookie itself). `400` with `{ error }` if it doesn't match or the payload is invalid. Success: `{ "ok": true }`.
+
+### `POST /api/maintenance/restart-server`
+No body. Responds `202 { "ok": true }` **before** exiting the process 300ms later - relies entirely on the container's `restart: unless-stopped` policy (or an equivalent process manager) to bring it back up; there's no in-process "reload".
+
+### `POST /api/maintenance/factory-reset`
+Body: `{ "password": string }` - the current admin password, required as confirmation given how destructive this is (the frontend additionally requires typing a confirmation phrase before even calling this). `400` with `{ error }` if the password doesn't match.
+
+Wipes every camera (tearing down MediaMTX paths, motion listeners, VLC relays, and ffmpeg/Chromium bridges first), all recording files on disk, all events, all grids, all notification settings, and the admin account itself - the next page load shows **Setup** again, as if freshly installed. Responds `{ "ok": true }` then exits the process 500ms later (same restart-policy assumption as above).
+
+### `POST /api/maintenance/recordings/delete`
+Body: `{ "cameraId"?: string }`. Deletes recorded video files from disk for one camera, or for every camera if `cameraId` is omitted. Only touches the filesystem - MediaMTX manages recordings natively, so there's no DB table to also clean up. Success: `{ "ok": true }`.
 
 ---
 
