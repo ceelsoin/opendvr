@@ -2,11 +2,18 @@ import nodemailer from "nodemailer";
 import { getNotificationSettings } from "./notificationSettings.js";
 
 /**
- * Sends a notification email via SMTP. Attaches the snapshot when one was
- * captured and includes a link to view the recording in the body when the
- * camera is actively recording - both can be present at once.
+ * Sends a notification email via SMTP. Attaches the 8-second event clip
+ * (see media/eventClip.ts) when one was fetched, falling back to the
+ * snapshot when no clip is available, and includes a link to view the
+ * recording in the body when the camera is actively recording.
  */
-export async function notifyEmail(subject: string, text: string, snapshot?: Buffer, recordingLink?: string): Promise<void> {
+export async function notifyEmail(
+  subject: string,
+  text: string,
+  snapshot?: Buffer,
+  recordingLink?: string,
+  clip?: Buffer
+): Promise<void> {
   const settings = getNotificationSettings();
   if (!settings.emailSmtpHost || !settings.emailFrom || !settings.emailTo) return;
 
@@ -19,12 +26,18 @@ export async function notifyEmail(subject: string, text: string, snapshot?: Buff
 
   const body = recordingLink ? `${text}\n\nAssistir gravação: ${recordingLink}` : text;
 
+  let attachments: { filename: string; content: Buffer }[] | undefined;
+  if (clip && settings.emailAttachSnapshot) {
+    attachments = [{ filename: "clip.mp4", content: clip }];
+  } else if (snapshot && settings.emailAttachSnapshot) {
+    attachments = [{ filename: "snapshot.jpg", content: snapshot }];
+  }
+
   await transporter.sendMail({
     from: settings.emailFrom,
     to: settings.emailTo,
     subject,
     text: body,
-    attachments:
-      snapshot && settings.emailAttachSnapshot ? [{ filename: "snapshot.jpg", content: snapshot }] : undefined,
+    attachments,
   });
 }

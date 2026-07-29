@@ -154,3 +154,27 @@ export async function listRecordingSegments(
   const data = (await res.json()) as Array<{ start: string; duration: number }>;
   return data.map((segment) => ({ start: segment.start, duration: segment.duration }));
 }
+
+/**
+ * Fetches an actual recorded clip (as an MP4 buffer) via MediaMTX's
+ * Playback server `/get` endpoint - same endpoint the Timeline's player
+ * proxies through (see recordings.routes.ts) - for use as an attachment
+ * in event notifications (see media/eventClip.ts). Returns `null` (instead
+ * of throwing) for the expected "not there (yet)" cases - 404 (no
+ * recording covers this range at all) and 400 (range not fully written
+ * yet) - so callers can fall back to a snapshot without treating it as an
+ * unexpected error.
+ */
+export async function getRecordingClip(pathName: string, start: string, durationSeconds: number): Promise<Buffer | null> {
+  const params = new URLSearchParams({ path: pathName, start, duration: String(durationSeconds) });
+  const url = `${env.mediamtxPlaybackUrl}/get?${params.toString()}`;
+  const res = await fetch(url);
+  if (res.status === 404 || res.status === 400) {
+    return null;
+  }
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`MediaMTX playback API GET /get failed: ${res.status} ${body}`);
+  }
+  return Buffer.from(await res.arrayBuffer());
+}

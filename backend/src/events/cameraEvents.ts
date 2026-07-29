@@ -3,6 +3,7 @@ import { insertEvent, updateEventSnapshot } from "../db/events.repository.js";
 import { emitEvent } from "../ws/index.js";
 import { captureSnapshot } from "../onvif/snapshot.js";
 import { captureFrameSnapshot } from "../media/frameSnapshot.js";
+import { captureEventClip } from "../media/eventClip.js";
 import { uploadSnapshotToS3 } from "../lib/s3Storage.js";
 import { saveEventSnapshot } from "../lib/snapshotStorage.js";
 import { notifyEvent } from "../notifications/webhooks.js";
@@ -86,7 +87,8 @@ export function recordCameraEvent(camera: Camera, topic: string, message: unknow
     }
   }
 
-  const eventId = insertEvent({ cameraId: camera.id, type: topic, metadata: message });
+  const occurredAt = new Date();
+  const eventId = insertEvent({ cameraId: camera.id, type: topic, occurredAt: occurredAt.toISOString(), metadata: message });
   emitEvent(camera.id, topic, { metadata: message, eventId });
 
   if (!notable) {
@@ -136,7 +138,17 @@ export function recordCameraEvent(camera: Camera, topic: string, message: unknow
         ? `${env.publicBaseUrl}/web/timeline?camera=${camera.id}`
         : undefined;
 
-    await notifyEvent(camera, topic, snapshot ?? undefined, recordingLink, snapshotUrl ?? undefined);
+    // Real footage of the event, straight from MediaMTX's own recording,
+    // when the camera is recording at all - preferred over the snapshot as
+    // the notification's attachment; the snapshot stays as the fallback
+    // for channels/cases where no clip could be fetched (see
+    // media/eventClip.ts and notifyEvent below).
+    const clip = await captureEventClip(camera, occurredAt).catch((err) => {
+      logger.warn({ err, cameraId: camera.id, eventId }, "Failed to fetch event clip");
+      return null;
+    });
+
+    await notifyEvent(camera, topic, snapshot ?? undefined, recordingLink, snapshotUrl ?? undefined, clip ?? undefined);
   })().catch((err) => {
     logger.warn({ err, cameraId: camera.id }, "Failed to process event snapshot/notification");
   });

@@ -15,16 +15,21 @@ export interface GenericWebhookPayload {
 /**
  * POSTs a plain JSON payload to a user-configured URL, for integrating with
  * generic automation tools (n8n, Home Assistant, Zapier-style webhooks,
- * custom scripts, etc). The snapshot (when attached) is embedded as base64
- * in the JSON body rather than sent as a multipart file - most generic
- * webhook consumers expect a single JSON payload, not multipart parsing.
+ * custom scripts, etc). The 8-second event clip (see media/eventClip.ts,
+ * when fetched) or the snapshot (fallback, when no clip is available) is
+ * embedded as base64 in the JSON body rather than sent as a multipart file
+ * - most generic webhook consumers expect a single JSON payload, not
+ * multipart parsing.
  */
-export async function notifyGenericWebhook(payload: GenericWebhookPayload, snapshot?: Buffer): Promise<void> {
+export async function notifyGenericWebhook(payload: GenericWebhookPayload, snapshot?: Buffer, clip?: Buffer): Promise<void> {
   const { webhookUrl, webhookAttachSnapshot } = getNotificationSettings();
   if (!webhookUrl) return;
 
   const body: Record<string, unknown> = { ...payload };
-  if (snapshot && webhookAttachSnapshot) {
+  if (clip && webhookAttachSnapshot) {
+    body.clipContentType = "video/mp4";
+    body.clipBase64 = clip.toString("base64");
+  } else if (snapshot && webhookAttachSnapshot) {
     body.snapshotContentType = "image/jpeg";
     body.snapshotBase64 = snapshot.toString("base64");
   }

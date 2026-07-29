@@ -38,19 +38,21 @@ export async function notifyEvent(
   topic: string,
   snapshot?: Buffer,
   recordingLink?: string,
-  snapshotUrl?: string
+  snapshotUrl?: string,
+  clip?: Buffer
 ): Promise<void> {
   const message = buildMessage(camera, topic, new Date());
   const occurredAt = new Date().toISOString();
 
   const results = await Promise.allSettled([
-    notifyDiscord(message, snapshot, recordingLink, snapshotUrl),
-    notifyTelegram(message, snapshot, recordingLink, snapshotUrl),
+    notifyDiscord(message, snapshot, recordingLink, snapshotUrl, clip),
+    notifyTelegram(message, snapshot, recordingLink, snapshotUrl, clip),
     notifyGenericWebhook(
       { cameraId: camera.id, cameraName: camera.name, topic, message, occurredAt, recordingLink, snapshotUrl },
-      snapshot
+      snapshot,
+      clip
     ),
-    notifyEmail(`OpenDVR: ${friendlyEventType(topic)} (${camera.name})`, message, snapshot, recordingLink),
+    notifyEmail(`OpenDVR: ${friendlyEventType(topic)} (${camera.name})`, message, snapshot, recordingLink, clip),
     sendPushToAllSubscriptions({
       title: `OpenDVR: ${friendlyEventType(topic)}`,
       body: `${camera.name} - ${new Date(occurredAt).toLocaleString(getBackendLanguage(), { timeZone: env.timezone })}`,
