@@ -1,0 +1,105 @@
+name: CI/CD
+
+# Runs the full test suite (backend + frontend) on every push/PR, and only
+# builds + pushes the multi-arch Docker image (mirroring `make release` -
+# see the root Makefile) once tests pass on master/main or a version tag.
+# Never pushes an image for pull requests - only tests run there.
+on:
+  push:
+    branches: [master, main]
+    tags: ["v*"]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Run tests
+        working-directory: backend
+        run: npm test
+
+      - name: Typecheck + build
+        working-directory: backend
+        run: npm run build:backend
+
+  test-frontend:
+    name: Frontend tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run tests
+        working-directory: frontend
+        run: npm test
+
+      - name: Typecheck + build
+        working-directory: frontend
+        run: npm run build
+
+  release:
+    name: Build & push Docker image
+    needs: [test-backend, test-frontend]
+    runs-on: ubuntu-latest
+    # Only push a real image once tests pass on master/main or a version
+    # tag (e.g. v1.2.0) - pull requests only get the test jobs above.
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    steps:
+      - uses: actions/checkout@v4
+
+      # Needed for the linux/arm64 half of the multi-arch build - the
+      # runner itself is amd64, QEMU emulates the other architecture.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Pushing a tag like "v1.2.0" also publishes that version number
+      # alongside :latest (matches `make release VERSION=1.2.0`'s usage
+      # documented in the Makefile). A plain push to master/main only
+      # updates :latest.
+      - name: Resolve version tag (if pushing a version tag)
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "value=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and push multi-arch image (make release)
+        run: make release VERSION=${{ steps.version.outputs.value }}
