@@ -1,0 +1,40 @@
+{
+  "errors": {
+    "cameraNotFound": "Câmera não encontrada",
+    "gridNotFound": "Grid não encontrado",
+    "eventNotFound": "Evento não encontrado",
+    "invalidPayload": "Dados inválidos",
+    "onvifConnectionFailed": "Não foi possível conectar à câmera via ONVIF. Verifique host, porta, caminho ONVIF e credenciais.",
+    "hostRequired": "Host é obrigatório.",
+    "usernameRequired": "Usuário é obrigatório.",
+    "passwordRequired": "Senha é obrigatória.",
+    "streamUrlRequired": "URL do stream é obrigatória.",
+    "onvifUrlInvalid": "URL ONVIF inválida",
+    "onvifCredentialsRequired": "Informe host, usuário e senha (ou a URL ONVIF)",
+    "onvifHostRequired": "Informe o host (ou a URL ONVIF)",
+    "ptzMoveFailed": "Falha ao mover o PTZ",
+    "ptzStopFailed": "Falha ao parar o PTZ",
+    "ptzPresetsListFailed": "Falha ao listar os presets",
+    "ptzPresetSetFailed": "Falha ao salvar o preset",
+    "ptzPresetGotoFailed": "Falha ao ir para o preset",
+    "recordingsListFailed": "Não foi possível listar as gravações.",
+    "discoveryFailed": "Falha na descoberta",
+    "invalidCredentials": "Usuário ou senha inválidos",
+    "accountAlreadyExists": "Já existe uma conta configurada. Use a tela de login.",
+    "discordNotConfigured": "Webhook do Discord não configurado.",
+    "telegramNotConfigured": "Bot token / chat ID do Telegram não configurados.",
+    "webhookNotConfigured": "URL do webhook genérico não configurada.",
+    "smtpNotConfigured": "SMTP não configurado (host, remetente e destinatário são obrigatórios)."
+  },
+  "notifications": {
+    "testMessage": "🔔 Notificação de teste do OpenDVR",
+    "testCameraName": "Teste",
+    "motionDetected": "Movimento detectado",
+    "tamperDetected": "Violação/adulteração detectada",
+    "lineCrossingDetected": "Cruzamento de linha detectado",
+    "intrusionDetected": "Intrusão em área detectada",
+    "occupancyDetected": "Ocupação de área detectada",
+    "watchRecording": "Assistir gravação:",
+    "eventMessage": "📷 {{camera}}: {{eventType}} às {{time}}"
+  }
+}

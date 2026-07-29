@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 import {
   useCameraStreamStatus,
   useDisableCamera,
@@ -26,8 +27,8 @@ function onvifUrlDisplay(camera: Camera): string {
   return `http://${camera.username}@${camera.host}:${camera.port}${camera.onvifPath}`;
 }
 
-function resolutionDisplay(camera: Camera): string {
-  if (!camera.mainStreamWidth || !camera.mainStreamHeight) return "desconhecida";
+function resolutionDisplay(camera: Camera, t: (key: string) => string): string {
+  if (!camera.mainStreamWidth || !camera.mainStreamHeight) return t("cameras.unknownResolution");
   return `${camera.mainStreamWidth}x${camera.mainStreamHeight}${camera.mainStreamEncoding ? ` (${camera.mainStreamEncoding})` : ""}`;
 }
 
@@ -46,14 +47,15 @@ function statusDotColor(camera: Camera, ready: boolean | undefined): string {
   return ready ? "bg-green-500" : "bg-amber-500";
 }
 
-function statusDotTitle(camera: Camera, ready: boolean | undefined): string {
-  if (!camera.enabled) return "Câmera desativada";
-  if (camera.status === "offline") return "Câmera offline";
-  if (camera.status === "unknown" || ready === undefined) return "Status desconhecido";
-  return ready ? "Fonte RTSP conectada" : "ONVIF ok, mas a fonte RTSP ainda não conectou";
+function statusDotTitle(camera: Camera, ready: boolean | undefined, t: (key: string) => string): string {
+  if (!camera.enabled) return t("cameras.statusDisabledTitle");
+  if (camera.status === "offline") return t("cameras.statusOfflineTitle");
+  if (camera.status === "unknown" || ready === undefined) return t("cameras.statusUnknownTitle");
+  return ready ? t("cameras.statusReadyTitle") : t("cameras.statusNotReadyTitle");
 }
 
-export function CameraTile({ camera }: { camera: Camera }) {
+export function CameraTile({ camera, fillHeight = false }: { camera: Camera; fillHeight?: boolean }) {
+  const { t } = useTranslation();
   const [showStatus, setShowStatus] = useState(false);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -105,7 +107,7 @@ export function CameraTile({ camera }: { camera: Camera }) {
   const handleFullscreen = () => {
     setContextMenuPos(null);
     containerRef.current?.requestFullscreen().catch(() => {
-      addToast("error", "Não foi possível entrar em tela cheia.");
+      addToast("error", t("cameras.fullscreenFailedToast"));
     });
   };
 
@@ -113,18 +115,18 @@ export function CameraTile({ camera }: { camera: Camera }) {
     setContextMenuPos(null);
     if (camera.enabled) {
       disableCamera.mutate(camera.id, {
-        onSuccess: () => addToast("success", `${camera.name}: câmera desligada.`),
-        onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, "Falha ao desligar a câmera.")}`),
+        onSuccess: () => addToast("success", `${camera.name}: ${t("cameras.toastDisabled")}`),
+        onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, t("cameras.toastDisableFailed"))}`),
       });
     } else {
       enableCamera.mutate(camera.id, {
         onSuccess: (data) => {
           addToast(
             data.status === "online" ? "success" : "error",
-            `${camera.name}: câmera ligada${data.status !== "online" ? ", mas ficou offline (verifique host/credenciais)" : ""}.`
+            `${camera.name}: ${t("cameras.toastEnabled")}${data.status !== "online" ? t("cameras.toastEnabledOfflineSuffix") : ""}`
           );
         },
-        onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, "Falha ao ligar a câmera.")}`),
+        onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, t("cameras.toastEnableFailed"))}`),
       });
     }
   };
@@ -135,18 +137,18 @@ export function CameraTile({ camera }: { camera: Camera }) {
       onSuccess: (data) => {
         addToast(
           data.ok ? "success" : "error",
-          `${camera.name}: ${data.ok ? "reiniciada com sucesso" : `reiniciou mas ficou offline (status: ${data.status})`}.`
+          `${camera.name}: ${data.ok ? t("cameras.toastRestarted", { status: data.status }) : t("cameras.toastRestartedOffline", { status: data.status })}`
         );
       },
-      onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, "Falha ao reiniciar a câmera.")}`),
+      onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, t("cameras.toastRestartFailed"))}`),
     });
   };
 
   const handleTestConnection = () => {
     setContextMenuPos(null);
     testConnection.mutate(camera.id, {
-      onSuccess: (data) => addToast("success", `${camera.name}: conectado — ${data.streams?.length ?? 0} stream(s) encontrado(s).`),
-      onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, "Falha ao testar a conexão com a câmera.")}`),
+      onSuccess: (data) => addToast("success", `${camera.name}: ${t("cameras.toastConnected", { count: data.streams?.length ?? 0 })}`),
+      onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, t("cameras.testConnectionFailed"))}`),
     });
   };
 
@@ -155,7 +157,7 @@ export function CameraTile({ camera }: { camera: Camera }) {
   return (
     <div
       ref={containerRef}
-      className={`overflow-hidden rounded-lg border bg-neutral-900 transition-shadow ${
+      className={`overflow-hidden rounded-lg border bg-neutral-900 transition-shadow ${fillHeight ? "flex h-full flex-col" : ""} ${
         isPtzTarget
           ? "border-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.5)]"
           : isFlashing
@@ -164,12 +166,12 @@ export function CameraTile({ camera }: { camera: Camera }) {
       }`}
     >
       <div
-        className="group relative aspect-video bg-black text-neutral-600"
+        className={`group relative bg-black text-neutral-600 ${fillHeight ? "min-h-0 flex-1" : "aspect-video"}`}
         onContextMenu={handleOpenContextMenu}
       >
         {showOffline ? (
           <div className="flex h-full w-full items-center justify-center text-sm">
-            {!camera.enabled ? "Câmera desativada" : "Câmera offline"}
+            {!camera.enabled ? t("cameras.statusDisabledTitle") : t("cameras.statusOfflineTitle")}
           </div>
         ) : (
           <HlsPlayer src={`/hls/${camera.id}/index.m3u8`} className="h-full w-full" />
@@ -177,20 +179,20 @@ export function CameraTile({ camera }: { camera: Camera }) {
         {!showOffline && camera.recordingMode === "continuous" && (
           <div className="absolute right-2 top-2 flex items-center gap-1.5 rounded bg-black/60 px-2 py-1 text-xs font-medium text-red-400">
             <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
-            Gravando
+            {t("cameras.recordingBadge")}
           </div>
         )}
         {!showOffline && camera.recordingMode === "motion" && (
           <div className="absolute right-2 top-2 flex items-center gap-1.5 rounded bg-black/60 px-2 py-1 text-xs font-medium text-amber-400">
             <span className="h-2 w-2 rounded-full bg-amber-500" />
-            Gravação por movimento
+            {t("cameras.motionRecordingBadge")}
           </div>
         )}
         {!showOffline && (
           <button
             type="button"
             onClick={handleFullscreen}
-            title="Tela cheia"
+            title={t("cameras.fullscreenTitle")}
             className="absolute bottom-2 right-2 rounded bg-black/60 p-1.5 text-neutral-300 opacity-0 transition-opacity hover:text-white group-hover:opacity-100"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
@@ -199,7 +201,7 @@ export function CameraTile({ camera }: { camera: Camera }) {
           </button>
         )}
       </div>
-      <div className="flex items-center justify-between p-3">
+      <div className="flex shrink-0 items-center justify-between p-3">
         <span className="text-sm font-medium">
           {camera.name} <span className="text-xs font-normal text-neutral-500">({camera.host})</span>
         </span>
@@ -208,14 +210,14 @@ export function CameraTile({ camera }: { camera: Camera }) {
             <button
               type="button"
               onClick={() => togglePtzTarget({ id: camera.id, name: camera.name })}
-              title={isPtzTarget ? "Parar de controlar esta câmera (PTZ)" : "Controlar esta câmera (PTZ)"}
+              title={isPtzTarget ? t("cameras.ptzControlTitleOn") : t("cameras.ptzControlTitleOff")}
               className={`rounded px-1.5 py-0.5 text-xs transition-colors ${
                 isPtzTarget
                   ? "bg-blue-600 text-white"
                   : "text-neutral-500 hover:bg-neutral-800 hover:text-neutral-300"
               }`}
             >
-              PTZ
+              {t("cameras.ptzButton")}
             </button>
           )}
           <button
@@ -223,10 +225,10 @@ export function CameraTile({ camera }: { camera: Camera }) {
             onClick={() => setShowStatus((v) => !v)}
             className="text-xs text-neutral-500 hover:text-neutral-300"
           >
-            diagnóstico
+            {t("cameras.diagnosticToggle")}
           </button>
           <span
-            title={statusDotTitle(camera, streamStatus.data?.ready)}
+            title={statusDotTitle(camera, streamStatus.data?.ready, t)}
             className={`h-2 w-2 rounded-full ${statusDotColor(camera, streamStatus.data?.ready)}`}
           />
         </div>
@@ -235,20 +237,20 @@ export function CameraTile({ camera }: { camera: Camera }) {
         <div className="border-t border-neutral-800 p-3 text-xs text-neutral-400">
           {streamStatus.data ? (
             <ul className="flex flex-col gap-0.5">
-              <li>Path configurado no MediaMTX: {streamStatus.data.configured ? "sim" : "não"}</li>
-              <li>Fonte RTSP conectada (ready): {streamStatus.data.ready ? "sim" : "não"}</li>
-              <li>Tipo de fonte: {streamStatus.data.sourceType ?? "-"}</li>
-              <li>Leitores conectados: {streamStatus.data.readerCount}</li>
-              <li>Bytes recebidos: {streamStatus.data.bytesReceived}</li>
-              <li className="mt-1 break-all font-mono">URL ONVIF: {onvifUrlDisplay(camera)}</li>
-              <li className="break-all font-mono">URL RTSP (fonte): {camera.rtspMainUri ?? "-"}</li>
-              <li>Resolução: {resolutionDisplay(camera)}</li>
+              <li>{t("cameras.diagnosticConfiguredPath", { value: streamStatus.data.configured ? t("cameras.yes") : t("cameras.no") })}</li>
+              <li>{t("cameras.diagnosticReady", { value: streamStatus.data.ready ? t("cameras.yes") : t("cameras.no") })}</li>
+              <li>{t("cameras.diagnosticSourceType", { value: streamStatus.data.sourceType ?? "-" })}</li>
+              <li>{t("cameras.diagnosticReaders", { value: streamStatus.data.readerCount })}</li>
+              <li>{t("cameras.diagnosticBytes", { value: streamStatus.data.bytesReceived })}</li>
+              <li className="mt-1 break-all font-mono">{t("cameras.diagnosticOnvifUrl", { value: onvifUrlDisplay(camera) })}</li>
+              <li className="break-all font-mono">{t("cameras.diagnosticRtspUrl", { value: camera.rtspMainUri ?? "-" })}</li>
+              <li>{t("cameras.diagnosticResolution", { value: resolutionDisplay(camera, t) })}</li>
               {camera.rtspCompatMode === "vlc-relay" && (
-                <li className="break-all font-mono">URL do relay VLC: {streamStatus.data.relayUrl ?? "não está rodando"}</li>
+                <li className="break-all font-mono">{t("cameras.diagnosticRelayUrl", { value: streamStatus.data.relayUrl ?? t("cameras.diagnosticRelayNotRunning") })}</li>
               )}
             </ul>
           ) : (
-            <p>Carregando status...</p>
+            <p>{t("cameras.diagnosticLoading")}</p>
           )}
         </div>
       )}
@@ -268,14 +270,14 @@ export function CameraTile({ camera }: { camera: Camera }) {
               onClick={handleFullscreen}
               className="block w-full px-3 py-1.5 text-left text-neutral-200 hover:bg-neutral-800"
             >
-              Tela cheia
+              {t("cameras.fullscreenTitle")}
             </button>
             <button
               type="button"
               onClick={handleToggleEnabled}
               className="block w-full px-3 py-1.5 text-left text-neutral-200 hover:bg-neutral-800"
             >
-              {camera.enabled ? "Desligar câmera" : "Ligar câmera"}
+              {camera.enabled ? t("cameras.contextTurnOff") : t("cameras.contextTurnOn")}
             </button>
             <button
               type="button"
@@ -283,14 +285,14 @@ export function CameraTile({ camera }: { camera: Camera }) {
               disabled={!camera.enabled}
               className="block w-full px-3 py-1.5 text-left text-neutral-200 hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Reiniciar
+              {t("cameras.restart")}
             </button>
             <button
               type="button"
               onClick={handleTestConnection}
               className="block w-full px-3 py-1.5 text-left text-neutral-200 hover:bg-neutral-800"
             >
-              Testar conexão
+              {t("cameras.testConnection")}
             </button>
             <div className="my-1 border-t border-neutral-800" />
             <button
@@ -301,7 +303,7 @@ export function CameraTile({ camera }: { camera: Camera }) {
               }}
               className="block w-full px-3 py-1.5 text-left text-neutral-200 hover:bg-neutral-800"
             >
-              Editar câmera
+              {t("cameras.contextEdit")}
             </button>
           </div>,
           document.body

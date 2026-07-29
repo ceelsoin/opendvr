@@ -1,0 +1,40 @@
+{
+  "errors": {
+    "cameraNotFound": "未找到摄像头",
+    "gridNotFound": "未找到宫格布局",
+    "eventNotFound": "未找到事件",
+    "invalidPayload": "数据无效",
+    "onvifConnectionFailed": "无法通过 ONVIF 连接摄像头。请检查主机、端口、ONVIF 路径和凭据。",
+    "hostRequired": "主机为必填项。",
+    "usernameRequired": "用户名为必填项。",
+    "passwordRequired": "密码为必填项。",
+    "streamUrlRequired": "流媒体网址为必填项。",
+    "onvifUrlInvalid": "ONVIF 网址无效",
+    "onvifCredentialsRequired": "请提供主机、用户名和密码（或 ONVIF 网址）",
+    "onvifHostRequired": "请提供主机（或 ONVIF 网址）",
+    "ptzMoveFailed": "云台移动失败",
+    "ptzStopFailed": "云台停止失败",
+    "ptzPresetsListFailed": "获取预置位列表失败",
+    "ptzPresetSetFailed": "保存预置位失败",
+    "ptzPresetGotoFailed": "移动到预置位失败",
+    "recordingsListFailed": "无法列出录像。",
+    "discoveryFailed": "发现失败",
+    "invalidCredentials": "用户名或密码无效",
+    "accountAlreadyExists": "账户已配置，请使用登录页面。",
+    "discordNotConfigured": "未配置 Discord Webhook。",
+    "telegramNotConfigured": "未配置 Telegram 机器人令牌/聊天 ID。",
+    "webhookNotConfigured": "未配置通用 Webhook 网址。",
+    "smtpNotConfigured": "未配置 SMTP（主机、发件人和收件人为必填项）。"
+  },
+  "notifications": {
+    "testMessage": "🔔 OpenDVR 测试通知",
+    "testCameraName": "测试",
+    "motionDetected": "检测到移动",
+    "tamperDetected": "检测到设备被破坏/干扰",
+    "lineCrossingDetected": "检测到越界",
+    "intrusionDetected": "检测到区域入侵",
+    "occupancyDetected": "检测到区域占用",
+    "watchRecording": "观看录像：",
+    "eventMessage": "📷 {{camera}}：{{eventType}}，时间 {{time}}"
+  }
+}

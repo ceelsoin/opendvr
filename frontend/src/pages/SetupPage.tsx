@@ -3,9 +3,10 @@ import axios from "axios";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useSetup } from "../api/auth";
+import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES } from "../i18n";
 
 export function SetupPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const setup = useSetup();
 
@@ -39,9 +40,23 @@ export function SetupPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-950 p-4 text-neutral-100">
       <div className="w-full max-w-sm rounded-lg border border-neutral-800 bg-neutral-900 p-6">
-        <div className="mb-6 flex items-center gap-2">
-          <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="h-8 w-8" />
-          <h1 className="text-lg font-semibold tracking-tight">OpenDVR</h1>
+        <div className="mb-6 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="h-8 w-8" />
+            <h1 className="text-lg font-semibold tracking-tight">OpenDVR</h1>
+          </div>
+          <select
+            value={i18n.language}
+            onChange={(e) => void i18n.changeLanguage(e.target.value)}
+            aria-label={t("language.label")}
+            className="rounded-md border border-neutral-700 bg-neutral-950 px-2 py-1 text-xs text-neutral-300"
+          >
+            {SUPPORTED_LANGUAGES.map((lng) => (
+              <option key={lng} value={lng}>
+                {LANGUAGE_LABELS[lng]}
+              </option>
+            ))}
+          </select>
         </div>
         <h2 className="mb-1 text-base font-semibold">{t("auth.setupTitle")}</h2>
         <p className="mb-4 text-sm text-neutral-500">{t("auth.setupSubtitle")}</p>

@@ -5,22 +5,23 @@ import { notifyDiscord } from "./discord.js";
 import { notifyTelegram } from "./telegram.js";
 import { notifyGenericWebhook } from "./genericWebhook.js";
 import { notifyEmail } from "./email.js";
+import { t, getBackendLanguage } from "../i18n/index.js";
 import { logger } from "../lib/logger.js";
 
-/** Human-friendly translation for common ONVIF event topic suffixes. */
+/** Human-friendly translation for common ONVIF event topic suffixes, in the admin's configured language (see backend/src/i18n/). */
 function friendlyEventType(topic: string): string {
   const lower = topic.toLowerCase();
-  if (lower.includes("tamper")) return "Violação/adulteração detectada";
-  if (lower.includes("motion")) return "Movimento detectado";
-  if (lower.includes("linedetector")) return "Cruzamento de linha detectado";
-  if (lower.includes("fielddetector") || lower.includes("intrusion")) return "Intrusão em área detectada";
-  if (lower.includes("occupancy")) return "Ocupação de área detectada";
+  if (lower.includes("tamper")) return t("notifications.tamperDetected");
+  if (lower.includes("motion")) return t("notifications.motionDetected");
+  if (lower.includes("linedetector")) return t("notifications.lineCrossingDetected");
+  if (lower.includes("fielddetector") || lower.includes("intrusion")) return t("notifications.intrusionDetected");
+  if (lower.includes("occupancy")) return t("notifications.occupancyDetected");
   return topic;
 }
 
 function buildMessage(camera: Pick<Camera, "name">, topic: string, occurredAt: Date): string {
-  const time = occurredAt.toLocaleString("pt-BR", { timeZone: env.timezone });
-  return `📷 ${camera.name}: ${friendlyEventType(topic)} às ${time}`;
+  const time = occurredAt.toLocaleString(getBackendLanguage(), { timeZone: env.timezone });
+  return t("notifications.eventMessage", { camera: camera.name, eventType: friendlyEventType(topic), time });
 }
 
 /**
@@ -61,29 +62,29 @@ export type NotificationChannel = "discord" | "telegram" | "webhook" | "email";
 
 /** Sends a one-off test message on the given channel, for the Settings page's "Testar" button. Throws on failure (caller reports it to the user). */
 export async function sendTestNotification(channel: NotificationChannel): Promise<void> {
-  const message = "🔔 Notificação de teste do OpenDVR";
+  const message = t("notifications.testMessage");
   const settings = getNotificationSettings();
 
   switch (channel) {
     case "discord":
       if (!settings.discordWebhookUrl) {
-        throw new Error("Webhook do Discord não configurado.");
+        throw new Error(t("errors.discordNotConfigured"));
       }
       await notifyDiscord(message);
       return;
     case "telegram":
       if (!settings.telegramBotToken || !settings.telegramChatId) {
-        throw new Error("Bot token / chat ID do Telegram não configurados.");
+        throw new Error(t("errors.telegramNotConfigured"));
       }
       await notifyTelegram(message);
       return;
     case "webhook":
       if (!settings.webhookUrl) {
-        throw new Error("URL do webhook genérico não configurada.");
+        throw new Error(t("errors.webhookNotConfigured"));
       }
       await notifyGenericWebhook({
         cameraId: "test",
-        cameraName: "Teste",
+        cameraName: t("notifications.testCameraName"),
         topic: "test",
         message,
         occurredAt: new Date().toISOString(),
@@ -91,9 +92,9 @@ export async function sendTestNotification(channel: NotificationChannel): Promis
       return;
     case "email":
       if (!settings.emailSmtpHost || !settings.emailFrom || !settings.emailTo) {
-        throw new Error("SMTP não configurado (host, remetente e destinatário são obrigatórios).");
+        throw new Error(t("errors.smtpNotConfigured"));
       }
-      await notifyEmail("OpenDVR: notificação de teste", message);
+      await notifyEmail(`OpenDVR: ${t("notifications.testMessage")}`, message);
       return;
   }
 }

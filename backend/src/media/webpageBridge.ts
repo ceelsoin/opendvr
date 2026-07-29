@@ -2,6 +2,8 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { chromium, type Browser, type Page } from "playwright-core";
 import { env } from "../config/env.js";
 import { logger } from "../lib/logger.js";
+import { rotationFilter } from "./rotationBridge.js";
+import type { CameraRotation } from "../types/camera.js";
 
 /**
  * Bridges an arbitrary web page (rendered by a headless Chromium, see
@@ -35,6 +37,7 @@ interface BridgeHandle {
   page: Page;
   ffmpeg: ChildProcess;
   captureTimer: NodeJS.Timeout;
+  rotation: CameraRotation;
   stopping: boolean;
 }
 
@@ -68,7 +71,7 @@ async function getSharedBrowser(): Promise<Browser> {
  * to `pageUrl` and publishing the capture to `rtsp://<mediamtx>/<cameraId>`.
  * Reuses an already-running bridge as-is if present.
  */
-export async function ensureWebpageBridge(cameraId: string, pageUrl: string): Promise<void> {
+export async function ensureWebpageBridge(cameraId: string, pageUrl: string, rotation: CameraRotation = 0): Promise<void> {
   const existing = activeBridges.get(cameraId);
   if (existing && existing.ffmpeg.exitCode === null && !existing.ffmpeg.killed) {
     return;
@@ -84,6 +87,7 @@ export async function ensureWebpageBridge(cameraId: string, pageUrl: string): Pr
     page,
     ffmpeg: null as unknown as ChildProcess,
     captureTimer: null as unknown as NodeJS.Timeout,
+    rotation,
     stopping: false,
   };
   activeBridges.set(cameraId, handle);
@@ -91,7 +95,7 @@ export async function ensureWebpageBridge(cameraId: string, pageUrl: string): Pr
   spawnBridge(cameraId, handle);
 }
 
-function spawnFfmpeg(cameraId: string): ChildProcess {
+function spawnFfmpeg(cameraId: string, rotation: CameraRotation): ChildProcess {
   logger.info({ cameraId }, "Starting webpage-capture bridge (Chromium + ffmpeg, publishing to MediaMTX)");
   return spawn(
     env.ffmpegPath,
@@ -104,6 +108,7 @@ function spawnFfmpeg(cameraId: string): ChildProcess {
       "mjpeg",
       "-i",
       "-",
+      ...(rotation !== 0 ? ["-vf", rotationFilter(rotation)] : []),
       "-c:v",
       "libx264",
       "-preset",
@@ -124,7 +129,7 @@ function spawnFfmpeg(cameraId: string): ChildProcess {
 }
 
 function spawnBridge(cameraId: string, handle: BridgeHandle): void {
-  const ffmpeg = spawnFfmpeg(cameraId);
+  const ffmpeg = spawnFfmpeg(cameraId, handle.rotation);
   handle.ffmpeg = ffmpeg;
 
   ffmpeg.stderr?.on("data", (chunk: Buffer) => {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import Hls from "hls.js";
 
 interface HlsPlayerProps {
@@ -14,6 +15,7 @@ type PlayerState = "loading" | "playing" | "error";
  * the browser's native HLS support (Safari).
  */
 export function HlsPlayer({ src, className }: HlsPlayerProps) {
+  const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [state, setState] = useState<PlayerState>("loading");
 
@@ -60,7 +62,7 @@ export function HlsPlayer({ src, className }: HlsPlayerProps) {
       <video ref={videoRef} className="h-full w-full object-contain" autoPlay muted playsInline />
       {state !== "playing" && (
         <div className="absolute inset-0 flex items-center justify-center bg-black text-sm text-neutral-500">
-          {state === "loading" ? "Conectando..." : "Stream indisponível"}
+          {state === "loading" ? t("player.connecting") : t("player.unavailable")}
         </div>
       )}
     </div>

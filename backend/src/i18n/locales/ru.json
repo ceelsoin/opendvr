@@ -1,0 +1,40 @@
+{
+  "errors": {
+    "cameraNotFound": "Камера не найдена",
+    "gridNotFound": "Сетка не найдена",
+    "eventNotFound": "Событие не найдено",
+    "invalidPayload": "Недопустимые данные",
+    "onvifConnectionFailed": "Не удалось подключиться к камере через ONVIF. Проверьте хост, порт, путь ONVIF и учётные данные.",
+    "hostRequired": "Хост обязателен.",
+    "usernameRequired": "Имя пользователя обязательно.",
+    "passwordRequired": "Пароль обязателен.",
+    "streamUrlRequired": "URL потока обязателен.",
+    "onvifUrlInvalid": "Недопустимый URL ONVIF",
+    "onvifCredentialsRequired": "Укажите хост, имя пользователя и пароль (или URL ONVIF)",
+    "onvifHostRequired": "Укажите хост (или URL ONVIF)",
+    "ptzMoveFailed": "Ошибка перемещения PTZ",
+    "ptzStopFailed": "Ошибка остановки PTZ",
+    "ptzPresetsListFailed": "Не удалось получить список пресетов",
+    "ptzPresetSetFailed": "Не удалось сохранить пресет",
+    "ptzPresetGotoFailed": "Не удалось перейти к пресету",
+    "recordingsListFailed": "Не удалось получить список записей.",
+    "discoveryFailed": "Ошибка обнаружения",
+    "invalidCredentials": "Неверное имя пользователя или пароль",
+    "accountAlreadyExists": "Учётная запись уже настроена. Используйте экран входа.",
+    "discordNotConfigured": "Webhook Discord не настроен.",
+    "telegramNotConfigured": "Токен бота / ID чата Telegram не настроены.",
+    "webhookNotConfigured": "URL общего webhook не настроен.",
+    "smtpNotConfigured": "SMTP не настроен (требуются хост, отправитель и получатель)."
+  },
+  "notifications": {
+    "testMessage": "🔔 Тестовое уведомление OpenDVR",
+    "testCameraName": "Тест",
+    "motionDetected": "Обнаружено движение",
+    "tamperDetected": "Обнаружено вмешательство/повреждение",
+    "lineCrossingDetected": "Обнаружено пересечение линии",
+    "intrusionDetected": "Обнаружено вторжение в зону",
+    "occupancyDetected": "Обнаружено присутствие в зоне",
+    "watchRecording": "Смотреть запись:",
+    "eventMessage": "📷 {{camera}}: {{eventType}} в {{time}}"
+  }
+}

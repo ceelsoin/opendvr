@@ -6,6 +6,7 @@ import { listOnvifDebugCommands, runOnvifDebugCommand } from "../../onvif/debugC
 import { getCameraById } from "../../db/cameras.repository.js";
 import { parseOnvifUri } from "../../lib/onvifUri.js";
 import { errorMessage } from "../../lib/errors.js";
+import { t } from "../../i18n/index.js";
 import { logger } from "../../lib/logger.js";
 
 export const onvifRouter = Router();
@@ -29,7 +30,7 @@ const probeSchema = z.object({
 onvifRouter.post("/probe", async (req, res) => {
   const parsed = probeSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+    res.status(400).json({ error: t("errors.invalidPayload"), details: parsed.error.flatten() });
     return;
   }
 
@@ -44,13 +45,13 @@ onvifRouter.post("/probe", async (req, res) => {
       username = fromUrl.username || username;
       password = fromUrl.password || password;
     } catch {
-      res.status(400).json({ error: "URL ONVIF inválida" });
+      res.status(400).json({ error: t("errors.onvifUrlInvalid") });
       return;
     }
   }
 
   if (!host || !username || !password) {
-    res.status(400).json({ error: "Informe host, username e password (ou onvifUrl)" });
+    res.status(400).json({ error: t("errors.onvifCredentialsRequired") });
     return;
   }
 
@@ -71,7 +72,7 @@ onvifRouter.post("/probe", async (req, res) => {
     const details = errorMessage(err);
     logger.warn({ err, host, port: resolvedPort }, "ONVIF probe failed");
     res.status(502).json({
-      error: "Não foi possível conectar à câmera via ONVIF. Verifique host, porta, caminho e credenciais.",
+      error: t("errors.onvifConnectionFailed"),
       details,
     });
   }
@@ -96,7 +97,7 @@ const diagnoseSchema = z.object({
 onvifRouter.post("/diagnose", async (req, res) => {
   const parsed = diagnoseSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+    res.status(400).json({ error: t("errors.invalidPayload"), details: parsed.error.flatten() });
     return;
   }
 
@@ -110,13 +111,13 @@ onvifRouter.post("/diagnose", async (req, res) => {
       username = fromUrl.username || username;
       password = fromUrl.password || password;
     } catch {
-      res.status(400).json({ error: "URL ONVIF inválida" });
+      res.status(400).json({ error: t("errors.onvifUrlInvalid") });
       return;
     }
   }
 
   if (!host) {
-    res.status(400).json({ error: "Informe host (ou onvifUrl)" });
+    res.status(400).json({ error: t("errors.onvifHostRequired") });
     return;
   }
 
@@ -150,13 +151,13 @@ const debugExecuteSchema = z.object({
 onvifRouter.post("/debug/:cameraId", async (req, res) => {
   const camera = getCameraById(req.params.cameraId);
   if (!camera) {
-    res.status(404).json({ error: "Camera not found" });
+    res.status(404).json({ error: t("errors.cameraNotFound") });
     return;
   }
 
   const parsed = debugExecuteSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+    res.status(400).json({ error: t("errors.invalidPayload"), details: parsed.error.flatten() });
     return;
   }
 

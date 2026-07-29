@@ -53,6 +53,18 @@ export type MotionDetectionSource = "onvif" | "video";
  */
 export type CameraSourceType = "onvif" | "rtsp" | "rtmp" | "hls" | "srt" | "mjpeg-http" | "webpage";
 
+/**
+ * Clockwise video rotation applied before the stream reaches MediaMTX, for
+ * cameras physically mounted in a non-upright orientation. 0 (the default)
+ * means no rotation - MediaMTX pulls/relays the stream as-is, no
+ * transcoding involved. Any other value forces a transcode bridge (see
+ * media/rotationBridge.ts for "onvif"/"rtsp"/"rtmp"/"hls"/"srt", or the
+ * rotation filter added directly to the existing ffmpeg bridge for
+ * "mjpeg-http"/"webpage") since rotating pixels requires a real decode +
+ * re-encode - MediaMTX itself has no video-filter capability.
+ */
+export type CameraRotation = 0 | 90 | 180 | 270;
+
 /** ONVIF-discovered resolution/codec info for a stream, saved so the edit form can show it again without re-probing. */
 export interface StreamMetadata {
   width: number | null;
@@ -83,6 +95,7 @@ export interface Camera {
   subStreamHeight: number | null;
   subStreamEncoding: string | null;
   hasPtz: boolean;
+  rotation: CameraRotation;
   recordingMode: RecordingMode;
   motionRecording: boolean;
   motionDetectionSource: MotionDetectionSource;
@@ -113,6 +126,7 @@ export interface CreateCameraInput {
   mainStreamMetadata?: StreamMetadata;
   subStreamMetadata?: StreamMetadata;
   hasPtz?: boolean;
+  rotation?: CameraRotation;
   recordingMode?: RecordingMode;
   motionRecording?: boolean;
   motionDetectionSource?: MotionDetectionSource;
@@ -135,6 +149,7 @@ export interface UpdateCameraInput {
   mainStreamMetadata?: StreamMetadata;
   subStreamMetadata?: StreamMetadata;
   hasPtz?: boolean;
+  rotation?: CameraRotation;
   recordingMode?: RecordingMode;
   motionRecording?: boolean;
   motionDetectionSource?: MotionDetectionSource;

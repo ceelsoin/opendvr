@@ -1,0 +1,40 @@
+{
+  "errors": {
+    "cameraNotFound": "Camera not found",
+    "gridNotFound": "Grid not found",
+    "eventNotFound": "Event not found",
+    "invalidPayload": "Invalid payload",
+    "onvifConnectionFailed": "Could not connect to the camera via ONVIF. Check host, port, ONVIF path, and credentials.",
+    "hostRequired": "Host is required.",
+    "usernameRequired": "Username is required.",
+    "passwordRequired": "Password is required.",
+    "streamUrlRequired": "Stream URL is required.",
+    "onvifUrlInvalid": "Invalid ONVIF URL",
+    "onvifCredentialsRequired": "Provide host, username, and password (or an ONVIF URL)",
+    "onvifHostRequired": "Provide a host (or an ONVIF URL)",
+    "ptzMoveFailed": "PTZ move failed",
+    "ptzStopFailed": "PTZ stop failed",
+    "ptzPresetsListFailed": "Failed to list presets",
+    "ptzPresetSetFailed": "Failed to save preset",
+    "ptzPresetGotoFailed": "Failed to go to preset",
+    "recordingsListFailed": "Could not list recordings.",
+    "discoveryFailed": "Discovery failed",
+    "invalidCredentials": "Invalid username or password",
+    "accountAlreadyExists": "An account is already configured. Use the login screen.",
+    "discordNotConfigured": "Discord webhook not configured.",
+    "telegramNotConfigured": "Telegram bot token / chat ID not configured.",
+    "webhookNotConfigured": "Generic webhook URL not configured.",
+    "smtpNotConfigured": "SMTP not configured (host, sender, and recipient are required)."
+  },
+  "notifications": {
+    "testMessage": "🔔 OpenDVR test notification",
+    "testCameraName": "Test",
+    "motionDetected": "Motion detected",
+    "tamperDetected": "Tamper/violation detected",
+    "lineCrossingDetected": "Line crossing detected",
+    "intrusionDetected": "Area intrusion detected",
+    "occupancyDetected": "Area occupancy detected",
+    "watchRecording": "Watch recording:",
+    "eventMessage": "📷 {{camera}}: {{eventType}} at {{time}}"
+  }
+}

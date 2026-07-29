@@ -32,6 +32,9 @@ export type MotionDetectionSource = "onvif" | "video";
  */
 export type CameraSourceType = "onvif" | "rtsp" | "rtmp" | "hls" | "srt" | "mjpeg-http" | "webpage";
 
+/** Clockwise video rotation applied before the stream reaches MediaMTX (0 = no rotation, no transcoding). */
+export type CameraRotation = 0 | 90 | 180 | 270;
+
 /** ONVIF-discovered resolution/codec info for a stream, saved so the edit form can show it again without re-probing. */
 export interface StreamMetadata {
   width: number | null;
@@ -59,6 +62,7 @@ export interface Camera {
   subStreamHeight: number | null;
   subStreamEncoding: string | null;
   hasPtz: boolean;
+  rotation: CameraRotation;
   recordingMode: RecordingMode;
   motionRecording: boolean;
   motionDetectionSource: MotionDetectionSource;
@@ -86,6 +90,7 @@ export interface CreateCameraInput {
   mainStreamMetadata?: StreamMetadata;
   subStreamMetadata?: StreamMetadata;
   hasPtz?: boolean;
+  rotation?: CameraRotation;
   recordingMode?: RecordingMode;
   motionRecording?: boolean;
   motionDetectionSource?: MotionDetectionSource;

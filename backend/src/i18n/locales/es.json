@@ -1,0 +1,40 @@
+{
+  "errors": {
+    "cameraNotFound": "Cámara no encontrada",
+    "gridNotFound": "Grid no encontrado",
+    "eventNotFound": "Evento no encontrado",
+    "invalidPayload": "Datos inválidos",
+    "onvifConnectionFailed": "No se pudo conectar a la cámara vía ONVIF. Verifique host, puerto, ruta ONVIF y credenciales.",
+    "hostRequired": "El host es obligatorio.",
+    "usernameRequired": "El usuario es obligatorio.",
+    "passwordRequired": "La contraseña es obligatoria.",
+    "streamUrlRequired": "La URL del stream es obligatoria.",
+    "onvifUrlInvalid": "URL ONVIF inválida",
+    "onvifCredentialsRequired": "Indique host, usuario y contraseña (o una URL ONVIF)",
+    "onvifHostRequired": "Indique un host (o una URL ONVIF)",
+    "ptzMoveFailed": "Fallo al mover el PTZ",
+    "ptzStopFailed": "Fallo al detener el PTZ",
+    "ptzPresetsListFailed": "Fallo al listar los preajustes",
+    "ptzPresetSetFailed": "Fallo al guardar el preajuste",
+    "ptzPresetGotoFailed": "Fallo al ir al preajuste",
+    "recordingsListFailed": "No se pudieron listar las grabaciones.",
+    "discoveryFailed": "Fallo en el descubrimiento",
+    "invalidCredentials": "Usuario o contraseña inválidos",
+    "accountAlreadyExists": "Ya existe una cuenta configurada. Use la pantalla de inicio de sesión.",
+    "discordNotConfigured": "Webhook de Discord no configurado.",
+    "telegramNotConfigured": "Token del bot / ID de chat de Telegram no configurados.",
+    "webhookNotConfigured": "URL del webhook genérico no configurada.",
+    "smtpNotConfigured": "SMTP no configurado (host, remitente y destinatario son obligatorios)."
+  },
+  "notifications": {
+    "testMessage": "🔔 Notificación de prueba de OpenDVR",
+    "testCameraName": "Prueba",
+    "motionDetected": "Movimiento detectado",
+    "tamperDetected": "Manipulación/violación detectada",
+    "lineCrossingDetected": "Cruce de línea detectado",
+    "intrusionDetected": "Intrusión en área detectada",
+    "occupancyDetected": "Ocupación de área detectada",
+    "watchRecording": "Ver grabación:",
+    "eventMessage": "📷 {{camera}}: {{eventType}} a las {{time}}"
+  }
+}

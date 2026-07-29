@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 import {
   useCameras,
   useDeleteCamera,
@@ -21,6 +22,7 @@ function extractErrorMessage(err: unknown, fallback: string): string {
 }
 
 export function CamerasPage() {
+  const { t } = useTranslation();
   const { data: cameras } = useCameras();
   const deleteCamera = useDeleteCamera();
   const testConnection = useTestCameraConnection();
@@ -39,10 +41,10 @@ export function CamerasPage() {
     setTestedCameraId(camera.id);
     testConnection.mutate(camera.id, {
       onSuccess: (data) => {
-        addToast("success", `${camera.name}: conectado — ${data.streams?.length ?? 0} stream(s) encontrado(s).`);
+        addToast("success", `${camera.name}: ${t("cameras.toastConnected", { count: data.streams?.length ?? 0 })}`);
       },
       onError: (err) => {
-        addToast("error", `${camera.name}: ${extractErrorMessage(err, "Falha ao testar a conexão com a câmera.")}`);
+        addToast("error", `${camera.name}: ${extractErrorMessage(err, t("cameras.testConnectionFailed"))}`);
       },
     });
   };
@@ -53,14 +55,14 @@ export function CamerasPage() {
       onSuccess: (data) => {
         setRestartingCameraId(null);
         if (data.ok) {
-          addToast("success", `${camera.name}: reiniciada com sucesso (status: ${data.status}).`);
+          addToast("success", `${camera.name}: ${t("cameras.toastRestarted", { status: data.status })}`);
         } else {
-          addToast("error", `${camera.name}: reiniciou mas ficou offline (status: ${data.status}). Verifique host/credenciais.`);
+          addToast("error", `${camera.name}: ${t("cameras.toastRestartedOffline", { status: data.status })}`);
         }
       },
       onError: (err) => {
         setRestartingCameraId(null);
-        addToast("error", `${camera.name}: ${extractErrorMessage(err, "Falha ao reiniciar a câmera.")}`);
+        addToast("error", `${camera.name}: ${extractErrorMessage(err, t("cameras.toastRestartFailed"))}`);
       },
     });
   };
@@ -68,17 +70,17 @@ export function CamerasPage() {
   const handleToggleEnabled = (camera: Camera) => {
     if (camera.enabled) {
       disableCamera.mutate(camera.id, {
-        onSuccess: () => addToast("success", `${camera.name}: câmera desligada.`),
-        onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, "Falha ao desligar a câmera.")}`),
+        onSuccess: () => addToast("success", `${camera.name}: ${t("cameras.toastDisabled")}`),
+        onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, t("cameras.toastDisableFailed"))}`),
       });
     } else {
       enableCamera.mutate(camera.id, {
         onSuccess: (data) =>
           addToast(
             data.status === "online" ? "success" : "error",
-            `${camera.name}: câmera ligada${data.status !== "online" ? ", mas ficou offline (verifique host/credenciais)" : ""}.`
+            `${camera.name}: ${t("cameras.toastEnabled")}${data.status !== "online" ? t("cameras.toastEnabledOfflineSuffix") : ""}`
           ),
-        onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, "Falha ao ligar a câmera.")}`),
+        onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, t("cameras.toastEnableFailed"))}`),
       });
     }
   };
@@ -87,21 +89,21 @@ export function CamerasPage() {
     <div className="flex flex-col gap-8">
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-semibold">Câmeras cadastradas</h2>
+          <h2 className="text-base font-semibold">{t("cameras.title")}</h2>
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => setScanModalOpen(true)}
               className="rounded-md bg-neutral-800 px-3 py-1.5 text-sm hover:bg-neutral-700"
             >
-              Descobrir câmeras (varredura de rede)
+              {t("cameras.discoverButton")}
             </button>
             <button
               type="button"
               onClick={() => setDialogState("create")}
               className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium hover:bg-blue-500"
             >
-              Adicionar câmera
+              {t("cameras.addButton")}
             </button>
           </div>
         </div>
@@ -112,7 +114,7 @@ export function CamerasPage() {
               <div className="flex items-center justify-between px-4 py-2">
                 <div className="flex items-center gap-2">
                   <span
-                    title={!camera.enabled ? "Câmera desativada" : undefined}
+                    title={!camera.enabled ? t("cameras.statusDisabledTitle") : undefined}
                     className={`h-2 w-2 rounded-full ${
                       !camera.enabled
                         ? "bg-neutral-700"
@@ -126,7 +128,7 @@ export function CamerasPage() {
                   <div>
                     <p className="text-sm font-medium">
                       {camera.name}
-                      {!camera.enabled && <span className="ml-2 text-xs font-normal text-neutral-500">(desativada)</span>}
+                      {!camera.enabled && <span className="ml-2 text-xs font-normal text-neutral-500">{t("cameras.disabledSuffix")}</span>}
                     </p>
                     <p className="text-xs text-neutral-500">
                       {camera.host}:{camera.port}
@@ -140,7 +142,7 @@ export function CamerasPage() {
                     onClick={() => handleToggleEnabled(camera)}
                     className="rounded-md px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
                   >
-                    {camera.enabled ? "Desligar" : "Ligar"}
+                    {camera.enabled ? t("cameras.turnOff") : t("cameras.turnOn")}
                   </button>
                   <button
                     type="button"
@@ -148,7 +150,7 @@ export function CamerasPage() {
                     disabled={testConnection.isPending && testedCameraId === camera.id}
                     className="rounded-md px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
                   >
-                    Testar conexão
+                    {t("cameras.testConnection")}
                   </button>
                   <button
                     type="button"
@@ -156,28 +158,28 @@ export function CamerasPage() {
                     disabled={restartingCameraId === camera.id || !camera.enabled}
                     className="rounded-md px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    {restartingCameraId === camera.id ? "Reiniciando..." : "Reiniciar"}
+                    {restartingCameraId === camera.id ? t("cameras.restarting") : t("cameras.restart")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setExpandedPtz(expandedPtz === camera.id ? null : camera.id)}
                     className="rounded-md px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
                   >
-                    PTZ
+                    {t("cameras.ptzButton")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setDialogState(camera)}
                     className="rounded-md px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
                   >
-                    Editar
+                    {t("cameras.edit")}
                   </button>
                   <button
                     type="button"
                     onClick={() => deleteCamera.mutate(camera.id)}
                     className="rounded-md px-2 py-1 text-xs text-red-400 hover:bg-red-950"
                   >
-                    Remover
+                    {t("cameras.remove")}
                   </button>
                 </div>
               </div>
@@ -185,13 +187,13 @@ export function CamerasPage() {
               {testedCameraId === camera.id && testConnection.data?.ok && (
                 <div className="border-t border-neutral-800 px-4 py-2 text-xs">
                   <p className="text-green-400">
-                    Conectado — {testConnection.data.streams?.length ?? 0} stream(s) encontrado(s).
+                    {t("cameras.connectedStreams", { count: testConnection.data.streams?.length ?? 0 })}
                   </p>
                 </div>
               )}
               {testedCameraId === camera.id && testConnection.isError && (
                 <div className="border-t border-neutral-800 px-4 py-2 text-xs text-red-400">
-                  {extractErrorMessage(testConnection.error, "Falha ao testar a conexão com a câmera.")}
+                  {extractErrorMessage(testConnection.error, t("cameras.testConnectionFailed"))}
                 </div>
               )}
 
@@ -202,7 +204,7 @@ export function CamerasPage() {
               )}
             </div>
           ))}
-          {!cameras?.length && <p className="text-sm text-neutral-500">Nenhuma câmera cadastrada.</p>}
+          {!cameras?.length && <p className="text-sm text-neutral-500">{t("cameras.none")}</p>}
         </div>
       </section>
 

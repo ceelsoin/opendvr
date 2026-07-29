@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { getNotificationSettings, updateNotificationSettings } from "../../notifications/notificationSettings.js";
 import { sendTestNotification } from "../../notifications/webhooks.js";
+import { getBackendLanguage, setBackendLanguage, SUPPORTED_BACKEND_LANGUAGES, t } from "../../i18n/index.js";
 import { errorMessage } from "../../lib/errors.js";
 import { logger } from "../../lib/logger.js";
 
@@ -49,6 +50,28 @@ settingsRouter.get("/notifications", (_req, res) => {
   res.json(serializeSettings(getNotificationSettings()));
 });
 
+/**
+ * The single admin's UI language - kept in sync with the frontend's
+ * language switcher (see frontend/src/i18n/index.ts) so backend-generated
+ * text (API error messages, Discord/Telegram/email notifications) matches
+ * whatever language the UI is actually shown in. See backend/src/i18n/.
+ */
+settingsRouter.get("/language", (_req, res) => {
+  res.json({ language: getBackendLanguage() });
+});
+
+const languageSchema = z.object({ language: z.enum(SUPPORTED_BACKEND_LANGUAGES as [string, ...string[]]) });
+
+settingsRouter.put("/language", (req, res) => {
+  const parsed = languageSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: t("errors.invalidPayload"), details: parsed.error.flatten() });
+    return;
+  }
+  setBackendLanguage(parsed.data.language);
+  res.json({ language: getBackendLanguage() });
+});
+
 const updateNotificationSettingsSchema = z.object({
   discordWebhookUrl: z.string().nullable().optional(),
   discordAttachSnapshot: z.boolean().optional(),
@@ -75,7 +98,7 @@ const updateNotificationSettingsSchema = z.object({
 settingsRouter.put("/notifications", (req, res) => {
   const parsed = updateNotificationSettingsSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+    res.status(400).json({ error: t("errors.invalidPayload"), details: parsed.error.flatten() });
     return;
   }
   const updated = updateNotificationSettings(parsed.data);
@@ -89,7 +112,7 @@ const testNotificationSchema = z.object({
 settingsRouter.post("/notifications/test", async (req, res) => {
   const parsed = testNotificationSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+    res.status(400).json({ error: t("errors.invalidPayload"), details: parsed.error.flatten() });
     return;
   }
   try {

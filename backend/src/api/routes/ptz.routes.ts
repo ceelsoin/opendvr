@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getCameraById } from "../../db/cameras.repository.js";
 import { ptzGotoPreset, ptzListPresets, ptzMove, ptzMoveVector, ptzSetPreset, ptzStop } from "../../onvif/ptz.js";
 import { errorMessage } from "../../lib/errors.js";
+import { t } from "../../i18n/index.js";
 import { logger } from "../../lib/logger.js";
 
 export const ptzRouter = Router();
@@ -22,7 +23,7 @@ const moveBodySchema = z.union([
 function loadCameraOr404(id: string, res: import("express").Response) {
   const camera = getCameraById(id);
   if (!camera) {
-    res.status(404).json({ error: "Camera not found" });
+    res.status(404).json({ error: t("errors.cameraNotFound") });
     return null;
   }
   return camera;
@@ -34,7 +35,7 @@ ptzRouter.post("/:id/move", async (req, res) => {
 
   const parsed = moveBodySchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Invalid payload" });
+    res.status(400).json({ error: t("errors.invalidPayload") });
     return;
   }
   try {
@@ -46,7 +47,7 @@ ptzRouter.post("/:id/move", async (req, res) => {
     res.status(204).send();
   } catch (err) {
     logger.warn({ err, cameraId: camera.id }, "PTZ move failed");
-    res.status(502).json({ error: "PTZ move failed", details: errorMessage(err) });
+    res.status(502).json({ error: t("errors.ptzMoveFailed"), details: errorMessage(err) });
   }
 });
 
@@ -58,7 +59,7 @@ ptzRouter.post("/:id/stop", async (req, res) => {
     res.status(204).send();
   } catch (err) {
     logger.warn({ err, cameraId: camera.id }, "PTZ stop failed");
-    res.status(502).json({ error: "PTZ stop failed", details: errorMessage(err) });
+    res.status(502).json({ error: t("errors.ptzStopFailed"), details: errorMessage(err) });
   }
 });
 
@@ -70,7 +71,7 @@ ptzRouter.get("/:id/presets", async (req, res) => {
     res.json(presets);
   } catch (err) {
     logger.warn({ err, cameraId: camera.id }, "Failed to list PTZ presets");
-    res.status(502).json({ error: "Failed to list presets", details: errorMessage(err) });
+    res.status(502).json({ error: t("errors.ptzPresetsListFailed"), details: errorMessage(err) });
   }
 });
 
@@ -79,7 +80,7 @@ ptzRouter.post("/:id/presets", async (req, res) => {
   if (!camera) return;
   const parsed = z.object({ name: z.string().min(1) }).safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Invalid payload" });
+    res.status(400).json({ error: t("errors.invalidPayload") });
     return;
   }
   try {
@@ -87,7 +88,7 @@ ptzRouter.post("/:id/presets", async (req, res) => {
     res.status(201).json(result);
   } catch (err) {
     logger.warn({ err, cameraId: camera.id }, "Failed to set PTZ preset");
-    res.status(502).json({ error: "Failed to set preset", details: errorMessage(err) });
+    res.status(502).json({ error: t("errors.ptzPresetSetFailed"), details: errorMessage(err) });
   }
 });
 
@@ -99,6 +100,6 @@ ptzRouter.post("/:id/presets/:token/goto", async (req, res) => {
     res.status(204).send();
   } catch (err) {
     logger.warn({ err, cameraId: camera.id }, "Failed to go to PTZ preset");
-    res.status(502).json({ error: "Failed to go to preset", details: errorMessage(err) });
+    res.status(502).json({ error: t("errors.ptzPresetGotoFailed"), details: errorMessage(err) });
   }
 });

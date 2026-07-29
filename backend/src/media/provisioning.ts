@@ -5,6 +5,7 @@ import { withRtspCredentials } from "../lib/rtsp.js";
 import { ensureVlcRelay, stopVlcRelay } from "./vlcRelay.js";
 import { ensureMjpegBridge } from "./mjpegBridge.js";
 import { ensureWebpageBridge } from "./webpageBridge.js";
+import { ensureRotationBridge, stopRotationBridge } from "./rotationBridge.js";
 import { updateCameraConnection } from "../db/cameras.repository.js";
 import { logger } from "../lib/logger.js";
 
@@ -50,9 +51,9 @@ async function provisionDirectSourceCamera(camera: Camera): Promise<Camera["stat
         recordDeleteAfter: `${camera.retentionDays}d`,
       });
       if (camera.sourceType === "mjpeg-http") {
-        ensureMjpegBridge(camera.id, camera.rtspMainUri);
+        ensureMjpegBridge(camera.id, camera.rtspMainUri, camera.rotation);
       } else {
-        await ensureWebpageBridge(camera.id, camera.rtspMainUri);
+        await ensureWebpageBridge(camera.id, camera.rtspMainUri, camera.rotation);
       }
       updateCameraConnection(camera.id, { status: "online" });
       return "online";
@@ -67,6 +68,24 @@ async function provisionDirectSourceCamera(camera: Camera): Promise<Camera["stat
         : camera.sourceType === "rtsp" && camera.username
           ? withRtspCredentials(camera.rtspMainUri, camera.username, camera.password)
           : camera.rtspMainUri;
+
+    if (camera.rotation !== 0) {
+      await upsertCameraPath(camera.id, {
+        source: "publisher",
+        sourceOnDemand: false,
+        record: camera.recordingMode === "continuous",
+        recordDeleteAfter: `${camera.retentionDays}d`,
+      });
+      await ensureRotationBridge(
+        camera.id,
+        sourceUri,
+        camera.rotation,
+        camera.sourceType === "rtsp" && camera.rtspCompatMode === "vlc-relay" ? "udp" : "tcp"
+      );
+      updateCameraConnection(camera.id, { status: "online" });
+      return "online";
+    }
+    await stopRotationBridge(camera.id);
 
     await upsertCameraPath(camera.id, {
       source: sourceUri,
@@ -128,6 +147,29 @@ async function provisionOnvifCamera(camera: Camera, options: { forceRefresh?: bo
       camera.rtspCompatMode === "vlc-relay"
         ? await ensureVlcRelay(camera, rtspUri)
         : withRtspCredentials(rtspUri, camera.username, camera.password);
+
+    if (camera.rotation !== 0) {
+      await upsertCameraPath(camera.id, {
+        source: "publisher",
+        sourceOnDemand: false,
+        record: camera.recordingMode === "continuous",
+        recordDeleteAfter: `${camera.retentionDays}d`,
+      });
+      await ensureRotationBridge(
+        camera.id,
+        sourceUri,
+        camera.rotation,
+        camera.rtspCompatMode === "vlc-relay" ? "udp" : "tcp"
+      );
+      updateCameraConnection(camera.id, {
+        rtspMainUri: rtspUri,
+        status: "online",
+        ...(mainStreamMetadata ? { mainStreamMetadata } : {}),
+        ...(subStreamMetadata ? { subStreamMetadata } : {}),
+      });
+      return "online";
+    }
+    await stopRotationBridge(camera.id);
 
     await upsertCameraPath(camera.id, {
       source: sourceUri,

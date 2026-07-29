@@ -1,5 +1,6 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
+import { apiClient } from "../api/client";
 import ptBR from "./locales/pt-BR.json";
 import en from "./locales/en.json";
 import es from "./locales/es.json";
@@ -32,6 +33,25 @@ export const SUPPORTED_LANGUAGES = [
   "id",
 ] as const;
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
+
+// Each language's own native name/script (standard UX convention - a
+// visitor should recognize their language even if the current UI language
+// is one they don't read). Shared by LanguageSwitcher (sidebar) and
+// SetupPage (initial account creation, before there's a sidebar).
+export const LANGUAGE_LABELS: Record<SupportedLanguage, string> = {
+  "pt-BR": "Português (BR)",
+  en: "English",
+  es: "Español",
+  fr: "Français",
+  de: "Deutsch",
+  "zh-CN": "中文（简体）",
+  ja: "日本語",
+  ko: "한국어",
+  ru: "Русский",
+  ar: "العربية",
+  hi: "हिन्दी",
+  id: "Bahasa Indonesia",
+};
 
 /** Languages that read right-to-left - used to set `<html dir>` so at least text alignment/reading order is correct (full RTL-mirrored layout is a larger, separate effort not attempted here). */
 export const RTL_LANGUAGES: readonly SupportedLanguage[] = ["ar"];
@@ -89,9 +109,24 @@ void i18n
 
 applyTextDirection(i18n.language);
 
+// Keeps the backend's notification language (Discord/Telegram/email/webhook
+// text, see backend/src/notifications/webhooks.ts) in sync with whatever
+// language the user actually reads the UI in. Skipped on /login and /setup
+// since there's no authenticated session yet at that point - the request
+// would just 401 and (per apiClient's interceptor) bounce the page to
+// /login for no reason. The setup page itself only affects local i18next
+// state until an account is created; the backend keeps its own default
+// (pt-BR) until the first authenticated sync happens after login.
 i18n.on("languageChanged", (lng) => {
   localStorage.setItem(STORAGE_KEY, lng);
   applyTextDirection(lng);
+
+  const path = window.location.pathname;
+  if (path.endsWith("/login") || path.endsWith("/setup")) return;
+  void apiClient.put("/settings/language", { language: lng }).catch(() => {
+    // Non-fatal: the backend just keeps using its previously stored
+    // language for notifications until the next successful sync.
+  });
 });
 
 export default i18n;

@@ -152,6 +152,11 @@ const COLUMN_MIGRATIONS: Record<string, string[]> = {
     // types/camera.ts's CameraSourceType doc comment). Existing rows
     // default to 'onvif' to preserve current behavior exactly.
     "ALTER TABLE cameras ADD COLUMN source_type TEXT NOT NULL DEFAULT 'onvif'",
+    // Clockwise video rotation (0/90/180/270) applied via an ffmpeg
+    // transcode bridge before MediaMTX, for cameras mounted sideways/upside
+    // down. 0 = no rotation, no transcoding (unchanged direct pull/relay
+    // behavior) - see media/rotationBridge.ts.
+    "ALTER TABLE cameras ADD COLUMN rotation INTEGER NOT NULL DEFAULT 0",
   ],
   events: [
     "ALTER TABLE events ADD COLUMN read INTEGER NOT NULL DEFAULT 0",

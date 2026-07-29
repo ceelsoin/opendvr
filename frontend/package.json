@@ -2,6 +2,12 @@
   "name": "frontend",
   "private": true,
   "version": "0.0.0",
+  "author": "Celso Inacio (https://github.com/ceelsoin)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ceelsoin/opendvr.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",

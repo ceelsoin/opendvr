@@ -6,6 +6,7 @@ import { EventSocketListener } from "../realtime/EventSocketListener";
 import { TopStatusBar } from "./TopStatusBar";
 import { LanguageSwitcher } from "../ui/LanguageSwitcher";
 import { useLogout } from "../../api/auth";
+import { Footer } from "./Footer";
 
 const navItems: Array<{ to: string; key: string; end?: boolean }> = [
   { to: "/", key: "nav.grid", end: true },
@@ -81,6 +82,7 @@ export function AppLayout() {
         </aside>
         <main className="min-w-0 flex-1 overflow-auto p-4 sm:p-6">
           <Outlet />
+          <Footer />
         </main>
       </div>
     </div>

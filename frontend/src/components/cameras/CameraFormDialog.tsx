@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
+import { useTranslation } from "react-i18next";
 import type { Camera, CreateCameraInput, DiscoveredStream, UpdateCameraInput } from "../../api/types";
 import { useCreateCamera, useProbeOnvif, useUpdateCamera } from "../../api/cameras";
 
@@ -8,20 +9,22 @@ interface CameraFormDialogProps {
   onClose: () => void;
 }
 
-const DIRECT_SOURCE_INFO: Record<Exclude<Camera["sourceType"], "onvif">, { label: string; placeholder: string }> = {
-  rtsp: {
-    label: "RTSP",
-    placeholder: "rtsp://192.168.1.10:554/canal1 (ou rtsp://usuario:senha@192.168.1.10:554/canal1)",
-  },
-  rtmp: { label: "RTMP", placeholder: "rtmp://192.168.1.10/live/stream" },
-  hls: { label: "HLS", placeholder: "https://192.168.1.10/stream.m3u8" },
-  srt: { label: "SRT", placeholder: "srt://192.168.1.10:9000?streamid=..." },
-  "mjpeg-http": { label: "MJPEG (HTTP)", placeholder: "http://usuario:senha@192.168.1.10/video.mjpg" },
-  webpage: { label: "página web", placeholder: "https://exemplo.com/pagina-com-video-ao-vivo" },
-};
+function directSourceInfo(t: (key: string) => string): Record<Exclude<Camera["sourceType"], "onvif">, { label: string; placeholder: string }> {
+  return {
+    rtsp: {
+      label: "RTSP",
+      placeholder: "rtsp://192.168.1.10:554/canal1 (ou rtsp://usuario:senha@192.168.1.10:554/canal1)",
+    },
+    rtmp: { label: "RTMP", placeholder: "rtmp://192.168.1.10/live/stream" },
+    hls: { label: "HLS", placeholder: "https://192.168.1.10/stream.m3u8" },
+    srt: { label: "SRT", placeholder: "srt://192.168.1.10:9000?streamid=..." },
+    "mjpeg-http": { label: t("cameraForm.sourceTypeMjpeg"), placeholder: "http://usuario:senha@192.168.1.10/video.mjpg" },
+    webpage: { label: t("cameraForm.sourceTypeWebpage"), placeholder: "https://exemplo.com/pagina-com-video-ao-vivo" },
+  };
+}
 
-function streamLabel(stream: DiscoveredStream): string {
-  const resolution = stream.width && stream.height ? `${stream.width}x${stream.height}` : "resolução desconhecida";
+function streamLabel(stream: DiscoveredStream, t: (key: string) => string): string {
+  const resolution = stream.width && stream.height ? `${stream.width}x${stream.height}` : t("cameras.unknownResolution");
   return `${resolution}${stream.encoding ? ` (${stream.encoding})` : ""}: ${stream.rtspUri}`;
 }
 
@@ -41,13 +44,13 @@ function pickDefaultTokens(streams: DiscoveredStream[]): { main?: string; sub?: 
  * the current selection immediately, instead of appearing empty until the
  * user clicks "Obter URLs de vídeo" again.
  */
-function initialStreamsFromCamera(camera?: Camera): DiscoveredStream[] {
+function initialStreamsFromCamera(camera: Camera | undefined, t: (key: string) => string): DiscoveredStream[] {
   if (!camera) return [];
   const byToken = new Map<string, DiscoveredStream>();
   if (camera.onvifProfileToken && camera.rtspMainUri) {
     byToken.set(camera.onvifProfileToken, {
       profileToken: camera.onvifProfileToken,
-      name: "Selecionado anteriormente",
+      name: t("cameraForm.previouslySelected"),
       encoding: camera.mainStreamEncoding,
       width: camera.mainStreamWidth,
       height: camera.mainStreamHeight,
@@ -57,7 +60,7 @@ function initialStreamsFromCamera(camera?: Camera): DiscoveredStream[] {
   if (camera.onvifSubProfileToken && camera.rtspSubUri && !byToken.has(camera.onvifSubProfileToken)) {
     byToken.set(camera.onvifSubProfileToken, {
       profileToken: camera.onvifSubProfileToken,
-      name: "Selecionado anteriormente",
+      name: t("cameraForm.previouslySelected"),
       encoding: camera.subStreamEncoding,
       width: camera.subStreamWidth,
       height: camera.subStreamHeight,
@@ -79,6 +82,8 @@ function onvifUrlDisplay(camera?: Camera): string {
 }
 
 export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
+  const { t } = useTranslation();
+  const DIRECT_SOURCE_INFO = directSourceInfo(t);
   const isEdit = Boolean(camera);
   const createCamera = useCreateCamera();
   const updateCamera = useUpdateCamera();
@@ -103,8 +108,9 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
   const [retentionDays, setRetentionDays] = useState(String(camera?.retentionDays ?? 7));
   const [useVlcRelay, setUseVlcRelay] = useState(camera?.rtspCompatMode === "vlc-relay");
   const [hasPtz, setHasPtz] = useState(camera?.hasPtz ?? false);
+  const [rotation, setRotation] = useState<Camera["rotation"]>(camera?.rotation ?? 0);
 
-  const [streams, setStreams] = useState<DiscoveredStream[]>(() => initialStreamsFromCamera(camera));
+  const [streams, setStreams] = useState<DiscoveredStream[]>(() => initialStreamsFromCamera(camera, t));
   const [mainToken, setMainToken] = useState<string>(camera?.onvifProfileToken ?? "");
   const [subToken, setSubToken] = useState<string>(camera?.onvifSubProfileToken ?? "");
   const [formError, setFormError] = useState<string | null>(null);
@@ -137,7 +143,7 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
       if (defaults.sub) setSubToken(defaults.sub);
     } catch (err) {
       const data = axios.isAxiosError(err) ? (err.response?.data as { error?: string; details?: string }) : undefined;
-      const base = data?.error ?? "Não foi possível conectar à câmera via ONVIF.";
+      const base = data?.error ?? t("cameraForm.onvifConnectionFailed");
       setFormError(data?.details ? `${base} (${data.details})` : base);
     }
   };
@@ -148,11 +154,11 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
 
     if (sourceType === "onvif") {
       if (!isEdit && !password) {
-        setFormError("Senha é obrigatória");
+        setFormError(t("cameraForm.passwordRequired"));
         return;
       }
     } else if (!directUrl.trim()) {
-      setFormError("URL do stream é obrigatória");
+      setFormError(t("cameraForm.streamUrlRequired"));
       return;
     }
 
@@ -185,6 +191,7 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
         : {}),
       rtspCompatMode: useVlcRelay ? "vlc-relay" : null,
       hasPtz,
+      rotation,
       recordingMode,
       motionRecording,
       // Non-ONVIF sources have no PullPoint events for the video connection
@@ -202,7 +209,7 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
       }
       onClose();
     } catch {
-      setFormError("Falha ao salvar a câmera. Verifique os dados e tente novamente.");
+      setFormError(t("cameraForm.saveFailed"));
     }
   };
 
@@ -212,7 +219,7 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
       <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-neutral-800 bg-neutral-950 p-5">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold">{isEdit ? "Editar câmera" : "Adicionar câmera"}</h2>
+          <h2 className="text-base font-semibold">{isEdit ? t("cameraForm.editTitle") : t("cameraForm.addTitle")}</h2>
           <button type="button" onClick={onClose} className="text-neutral-500 hover:text-neutral-300">
             ✕
           </button>
@@ -220,26 +227,26 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div>
-            <label className="mb-1 block text-xs text-neutral-500">Tipo de fonte</label>
+            <label className="mb-1 block text-xs text-neutral-500">{t("cameraForm.sourceTypeLabel")}</label>
             <select
               value={sourceType}
               onChange={(e) => setSourceType(e.target.value as Camera["sourceType"])}
               className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
             >
-              <option value="onvif">ONVIF (descoberta automática, PTZ, eventos)</option>
-              <option value="rtsp">RTSP direto (URL manual, sem ONVIF)</option>
-              <option value="rtmp">RTMP direto (URL manual)</option>
-              <option value="hls">HLS direto (URL .m3u8)</option>
-              <option value="srt">SRT direto (URL manual)</option>
-              <option value="mjpeg-http">MJPEG por HTTP (webcams antigas)</option>
-              <option value="webpage">Página web (renderiza uma URL como câmera)</option>
+              <option value="onvif">{t("cameraForm.sourceTypeOnvif")}</option>
+              <option value="rtsp">{t("cameraForm.sourceTypeRtsp")}</option>
+              <option value="rtmp">{t("cameraForm.sourceTypeRtmp")}</option>
+              <option value="hls">{t("cameraForm.sourceTypeHls")}</option>
+              <option value="srt">{t("cameraForm.sourceTypeSrt")}</option>
+              <option value="mjpeg-http">{t("cameraForm.sourceTypeMjpeg")}</option>
+              <option value="webpage">{t("cameraForm.sourceTypeWebpage")}</option>
             </select>
           </div>
 
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Nome (ex: Garagem)"
+            placeholder={t("cameraForm.namePlaceholder")}
             required
             className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
           />
@@ -248,20 +255,19 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
             <>
               <div>
                 <label className="mb-1 block text-xs text-neutral-500">
-                  URL do serviço ONVIF (opcional — preenche os campos abaixo)
+                  {t("cameraForm.onvifUrlLabel")}
                 </label>
                 <div className="flex gap-2">
                   <input
                     value={onvifUrl}
                     onChange={(e) => setOnvifUrl(e.target.value)}
-                    placeholder="http://admin:senha@192.168.88.35:5000/onvif"
+                    placeholder={t("cameraForm.onvifUrlPlaceholder")}
                     className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
                   />
                 </div>
                 {isEdit && !onvifUrlHasCredentials && (
                   <p className="mt-1 text-[11px] text-neutral-500">
-                    A senha não é reexibida por segurança — adicione-a aqui (user:senha@...) ou preencha o campo
-                    "Senha" abaixo antes de clicar em "Obter URLs de vídeo".
+                    {t("cameraForm.onvifUrlPasswordHint")}
                   </p>
                 )}
               </div>
@@ -270,34 +276,34 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
                 <input
                   value={host}
                   onChange={(e) => setHost(e.target.value)}
-                  placeholder="IP/Host"
+                  placeholder={t("cameraForm.hostPlaceholder")}
                   required
                   className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
                 />
                 <input
                   value={port}
                   onChange={(e) => setPort(e.target.value)}
-                  placeholder="Porta ONVIF"
+                  placeholder={t("cameraForm.onvifPortPlaceholder")}
                   type="number"
                   className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
                 />
                 <input
                   value={onvifPath}
                   onChange={(e) => setOnvifPath(e.target.value)}
-                  placeholder="Caminho ONVIF (/onvif/device_service)"
+                  placeholder={t("cameraForm.onvifPathPlaceholder")}
                   className="col-span-2 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
                 />
                 <input
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Usuário"
+                  placeholder={t("cameraForm.usernamePlaceholder")}
                   required
                   className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
                 />
                 <input
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={isEdit ? "Senha (deixe em branco para manter)" : "Senha"}
+                  placeholder={isEdit ? t("cameraForm.passwordKeepPlaceholder") : t("cameraForm.passwordPlaceholder")}
                   type="password"
                   className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
                 />
@@ -310,14 +316,14 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
                   disabled={probeOnvif.isPending}
                   className="flex-1 rounded-md bg-neutral-800 px-3 py-2 text-sm hover:bg-neutral-700 disabled:opacity-50"
                 >
-                  {probeOnvif.isPending ? "Conectando..." : "Obter URLs de vídeo"}
+                  {probeOnvif.isPending ? t("cameraForm.connecting") : t("cameraForm.getStreamUrls")}
                 </button>
               </div>
 
               {streams.length > 0 && (
                 <div className="flex flex-col gap-2 rounded-md border border-neutral-800 p-3">
                   <div>
-                    <label className="mb-1 block text-xs text-neutral-500">URL ao vivo (stream principal)</label>
+                    <label className="mb-1 block text-xs text-neutral-500">{t("cameraForm.mainStreamLabel")}</label>
                     <select
                       value={mainToken}
                       onChange={(e) => setMainToken(e.target.value)}
@@ -325,7 +331,7 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
                     >
                       {streams.map((s) => (
                         <option key={s.profileToken} value={s.profileToken}>
-                          {streamLabel(s)}
+                          {streamLabel(s, t)}
                         </option>
                       ))}
                     </select>
@@ -335,7 +341,7 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
                   </div>
                   <div>
                     <label className="mb-1 block text-xs text-neutral-500">
-                      URL de gravação (stream sub, opcional)
+                      {t("cameraForm.subStreamLabel")}
                     </label>
                     <select
                       value={subToken}
@@ -344,7 +350,7 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
                     >
                       {streams.map((s) => (
                         <option key={s.profileToken} value={s.profileToken}>
-                          {streamLabel(s)}
+                          {streamLabel(s, t)}
                         </option>
                       ))}
                     </select>
@@ -359,7 +365,7 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
             </>
           ) : (
             <div className="flex flex-col gap-2 rounded-md border border-neutral-800 p-3">
-              <label className="text-xs text-neutral-500">URL do stream {DIRECT_SOURCE_INFO[sourceType].label}</label>
+              <label className="text-xs text-neutral-500">{t("cameraForm.directUrlLabel", { type: DIRECT_SOURCE_INFO[sourceType].label })}</label>
               <input
                 value={directUrl}
                 onChange={(e) => setDirectUrl(e.target.value)}
@@ -369,42 +375,37 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
               />
               {sourceType === "webpage" && (
                 <p className="text-[11px] text-amber-500">
-                  Renderiza a página com um navegador headless (Chromium) e captura como vídeo (~2 fps) — de longe a
-                  fonte mais pesada em CPU/RAM do app. Use só quando realmente precisar (ex: espelhar um dashboard ou
-                  uma câmera pública sem RTSP).
+                  {t("cameraForm.webpageWarning")}
                 </p>
               )}
               {sourceType === "mjpeg-http" && (
                 <p className="text-[11px] text-neutral-500">
-                  Para webcams/câmeras antigas que só falam MJPEG sobre HTTP (sem RTSP). Credenciais podem ir direto
-                  na URL (usuário:senha@host).
+                  {t("cameraForm.mjpegHint")}
                 </p>
               )}
               {sourceType === "rtsp" && (
                 <>
                   <p className="text-[11px] text-neutral-500">
-                    Câmeras DVR/NVR: cada canal costuma ter sua própria URL (ex:
-                    .../cam/realmonitor?channel=1&amp;subtype=0). Credenciais podem ir na própria URL, ou nos campos
-                    abaixo (mais seguro se a senha tiver caracteres especiais).
+                    {t("cameraForm.rtspHint")}
                   </p>
                   <div className="grid grid-cols-2 gap-3">
                     <input
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Usuário (opcional)"
+                      placeholder={t("cameraForm.usernameOptionalPlaceholder")}
                       className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
                     />
                     <input
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder={isEdit ? "Senha (deixe em branco para manter)" : "Senha (opcional)"}
+                      placeholder={isEdit ? t("cameraForm.passwordKeepPlaceholder") : t("cameraForm.passwordOptionalPlaceholder")}
                       type="password"
                       className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
                     />
                   </div>
                   <label className="flex items-center gap-2 text-sm">
                     <input type="checkbox" checked={useVlcRelay} onChange={(e) => setUseVlcRelay(e.target.checked)} />
-                    RTSP incompatível (usar relay VLC)
+                    {t("cameraForm.incompatibleRtspCheckbox")}
                   </label>
                 </>
               )}
@@ -414,26 +415,26 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
           {hasPtz && sourceType !== "onvif" && (
             <div className="flex flex-col gap-2 rounded-md border border-neutral-800 p-3">
               <span className="text-xs text-neutral-500">
-                Conexão ONVIF (opcional, só para os controles de PTZ - não afeta o vídeo/gravação acima)
+                {t("cameraForm.ptzOnvifConnectionHint")}
               </span>
               <div className="grid grid-cols-2 gap-3">
                 <input
                   value={host}
                   onChange={(e) => setHost(e.target.value)}
-                  placeholder="IP/Host ONVIF"
+                  placeholder={t("cameraForm.ptzHostPlaceholder")}
                   className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
                 />
                 <input
                   value={port}
                   onChange={(e) => setPort(e.target.value)}
-                  placeholder="Porta ONVIF"
+                  placeholder={t("cameraForm.onvifPortPlaceholder")}
                   type="number"
                   className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
                 />
                 <input
                   value={onvifPath}
                   onChange={(e) => setOnvifPath(e.target.value)}
-                  placeholder="Caminho ONVIF (/onvif/device_service)"
+                  placeholder={t("cameraForm.onvifPathPlaceholder")}
                   className="col-span-2 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
                 />
                 {sourceType !== "rtsp" && (
@@ -441,13 +442,13 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
                     <input
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Usuário ONVIF"
+                      placeholder={t("cameraForm.ptzUsernamePlaceholder")}
                       className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
                     />
                     <input
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder={isEdit ? "Senha (deixe em branco para manter)" : "Senha ONVIF"}
+                      placeholder={isEdit ? t("cameraForm.passwordKeepPlaceholder") : t("cameraForm.ptzPasswordPlaceholder")}
                       type="password"
                       className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
                     />
@@ -458,7 +459,22 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
           )}
 
           <div className="flex flex-col gap-2 rounded-md border border-neutral-800 p-3 text-sm">
-            <span className="text-xs text-neutral-500">Modo de gravação</span>
+            <span className="text-xs text-neutral-500">{t("cameraForm.rotationLabel")}</span>
+            <select
+              value={rotation}
+              onChange={(e) => setRotation(Number(e.target.value) as Camera["rotation"])}
+              className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+            >
+              <option value={0}>{t("cameraForm.rotationNone")}</option>
+              <option value={90}>{t("cameraForm.rotation90")}</option>
+              <option value={180}>{t("cameraForm.rotation180")}</option>
+              <option value={270}>{t("cameraForm.rotation270")}</option>
+            </select>
+            {rotation !== 0 && <span className="text-xs text-neutral-500">{t("cameraForm.rotationHint")}</span>}
+          </div>
+
+          <div className="flex flex-col gap-2 rounded-md border border-neutral-800 p-3 text-sm">
+            <span className="text-xs text-neutral-500">{t("cameraForm.recordingModeLabel")}</span>
             <label className="flex items-center gap-2">
               <input
                 type="radio"
@@ -466,7 +482,7 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
                 checked={recordingMode === "off"}
                 onChange={() => setRecordingMode("off")}
               />
-              Sem gravação
+              {t("cameraForm.recordingModeOff")}
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -475,7 +491,7 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
                 checked={recordingMode === "continuous"}
                 onChange={() => setRecordingMode("continuous")}
               />
-              Gravação contínua
+              {t("cameraForm.recordingModeContinuous")}
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -484,19 +500,18 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
                 checked={recordingMode === "motion"}
                 onChange={() => setRecordingMode("motion")}
               />
-              Gravação por movimento
+              {t("cameraForm.recordingModeMotion")}
             </label>
             {recordingMode === "motion" && (
               <p className="text-[11px] text-neutral-500">
-                A gravação começa quando um movimento é detectado (veja "Detecção de movimento" abaixo) e continua
-                por 1 minuto após o último evento. Precisa de uma origem de detecção ativa para funcionar.
+                {t("cameraForm.recordingModeMotionHint")}
               </p>
             )}
           </div>
 
           <div className="flex flex-col gap-2 rounded-md border border-neutral-800 p-3 text-sm">
             <span className="text-xs text-neutral-500">
-              Detecção de movimento (independente do modo de gravação acima)
+              {t("cameraForm.motionDetectionLabel")}
             </span>
             <label className="flex items-center gap-2">
               <input
@@ -504,31 +519,30 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
                 checked={motionRecording}
                 onChange={(e) => setMotionRecording(e.target.checked)}
               />
-              Detectar movimento nesta câmera (alertas: flash/toast/snapshot/notificações)
+              {t("cameraForm.motionDetectionCheckbox")}
             </label>
             {recordingMode === "motion" && !motionRecording && (
               <p className="text-[11px] text-amber-500">
-                A gravação por movimento precisa de uma detecção ativa pra saber quando gravar — mesmo com este
-                checkbox desmarcado, a origem abaixo continuará rodando só pra acionar a gravação.
+                {t("cameraForm.motionDetectionNeedsSourceHint")}
               </p>
             )}
             {(recordingMode === "motion" || motionRecording) && (
               <>
                 <label className="flex items-center gap-2">
-                  Origem da detecção
+                  {t("cameraForm.detectionSourceLabel")}
                   <select
                     value={motionDetectionSource}
                     onChange={(e) => setMotionDetectionSource(e.target.value as Camera["motionDetectionSource"])}
                     className="rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1"
                   >
-                    <option value="video">Vídeo (análise local, OpenCV) — recomendado</option>
-                    {sourceType === "onvif" && <option value="onvif">ONVIF (evento da câmera)</option>}
+                    <option value="video">{t("cameraForm.detectionSourceVideo")}</option>
+                    {sourceType === "onvif" && <option value="onvif">{t("cameraForm.detectionSourceOnvif")}</option>}
                   </select>
                 </label>
                 <p className="text-[11px] text-neutral-500">
                   {motionDetectionSource === "video"
-                    ? "Roda no servidor, analisando o próprio vídeo (OpenCV) — funciona mesmo quando a câmera anuncia suporte a eventos ONVIF mas na prática não funciona (comum em modelos baratos)."
-                    : "Usa a assinatura de eventos ONVIF da própria câmera — mais leve, mas depende do firmware suportar de verdade."}
+                    ? t("cameraForm.detectionSourceVideoHint")
+                    : t("cameraForm.detectionSourceOnvifHint")}
                 </p>
               </>
             )}
@@ -536,7 +550,7 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
 
           <div className="flex flex-col gap-2 rounded-md border border-neutral-800 p-3 text-sm">
             <label className="flex items-center gap-2">
-              Retenção (dias)
+              {t("cameraForm.retentionLabel")}
               <input
                 type="number"
                 value={retentionDays}
@@ -552,24 +566,22 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
                     checked={useVlcRelay}
                     onChange={(e) => setUseVlcRelay(e.target.checked)}
                   />
-                  Câmera com RTSP incompatível (usar relay VLC)
+                  {t("cameraForm.vlcRelayCheckbox")}
                 </label>
                 {useVlcRelay && (
                   <p className="text-[11px] text-neutral-500">
-                    Use quando o stream aparece "indisponível" mesmo com a câmera online. Um processo VLC interno se
-                    conecta à câmera e reexpõe o vídeo em um formato compatível para o MediaMTX consumir.
+                    {t("cameraForm.vlcRelayHint")}
                   </p>
                 )}
               </>
             )}
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={hasPtz} onChange={(e) => setHasPtz(e.target.checked)} />
-              Câmera com PTZ (motorizada)
+              {t("cameraForm.ptzCheckbox")}
             </label>
             {hasPtz && (
               <p className="text-[11px] text-neutral-500">
-                Habilita o botão "PTZ" nesta câmera no Grid, com um controle de joystick para mover a câmera e
-                gerenciar presets.
+                {t("cameraForm.ptzHint")}
               </p>
             )}
           </div>
@@ -578,14 +590,14 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
 
           <div className="flex justify-end gap-2">
             <button type="button" onClick={onClose} className="rounded-md px-3 py-2 text-sm hover:bg-neutral-800">
-              Cancelar
+              {t("cameraForm.cancel")}
             </button>
             <button
               type="submit"
               disabled={isSaving}
               className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium hover:bg-blue-500 disabled:opacity-50"
             >
-              {isSaving ? "Salvando..." : isEdit ? "Salvar alterações" : "Adicionar câmera"}
+              {isSaving ? t("cameraForm.saving") : isEdit ? t("cameraForm.saveChanges") : t("cameraForm.addCamera")}
             </button>
           </div>
         </form>

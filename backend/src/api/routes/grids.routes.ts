@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { createGrid, deleteGrid, getGridById, listGrids, updateGrid } from "../../db/grids.repository.js";
+import { t } from "../../i18n/index.js";
 
 export const gridsRouter = Router();
 
@@ -22,7 +23,7 @@ gridsRouter.get("/", (_req, res) => {
 gridsRouter.get("/:id", (req, res) => {
   const grid = getGridById(req.params.id);
   if (!grid) {
-    res.status(404).json({ error: "Grid not found" });
+    res.status(404).json({ error: t("errors.gridNotFound") });
     return;
   }
   res.json(grid);
@@ -31,7 +32,7 @@ gridsRouter.get("/:id", (req, res) => {
 gridsRouter.post("/", (req, res) => {
   const parsed = createGridSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+    res.status(400).json({ error: t("errors.invalidPayload"), details: parsed.error.flatten() });
     return;
   }
   const grid = createGrid(parsed.data);
@@ -41,12 +42,12 @@ gridsRouter.post("/", (req, res) => {
 gridsRouter.patch("/:id", (req, res) => {
   const existing = getGridById(req.params.id);
   if (!existing) {
-    res.status(404).json({ error: "Grid not found" });
+    res.status(404).json({ error: t("errors.gridNotFound") });
     return;
   }
   const parsed = updateGridSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+    res.status(400).json({ error: t("errors.invalidPayload"), details: parsed.error.flatten() });
     return;
   }
   const updated = updateGrid(req.params.id, parsed.data);
@@ -56,7 +57,7 @@ gridsRouter.patch("/:id", (req, res) => {
 gridsRouter.delete("/:id", (req, res) => {
   const deleted = deleteGrid(req.params.id);
   if (!deleted) {
-    res.status(404).json({ error: "Grid not found" });
+    res.status(404).json({ error: t("errors.gridNotFound") });
     return;
   }
   res.status(204).send();

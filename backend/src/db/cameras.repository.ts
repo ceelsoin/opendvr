@@ -23,6 +23,7 @@ interface CameraRow {
   sub_stream_height: number | null;
   sub_stream_encoding: string | null;
   has_ptz: number;
+  rotation: Camera["rotation"];
   recording_mode: Camera["recordingMode"];
   motion_recording: number;
   motion_detection_source: Camera["motionDetectionSource"];
@@ -55,6 +56,7 @@ function toCamera(row: CameraRow): Camera {
     subStreamHeight: row.sub_stream_height,
     subStreamEncoding: row.sub_stream_encoding,
     hasPtz: Boolean(row.has_ptz),
+    rotation: row.rotation,
     recordingMode: row.recording_mode,
     motionRecording: Boolean(row.motion_recording),
     motionDetectionSource: row.motion_detection_source,
@@ -88,13 +90,13 @@ export function createCamera(input: CreateCameraInput): Camera {
       id, name, source_type, host, port, onvif_path, username, password,
       rtsp_main_uri, rtsp_sub_uri, onvif_profile_token, onvif_sub_profile_token,
       rtsp_compat_mode, main_stream_width, main_stream_height, main_stream_encoding,
-      sub_stream_width, sub_stream_height, sub_stream_encoding, has_ptz,
+      sub_stream_width, sub_stream_height, sub_stream_encoding, has_ptz, rotation,
       recording_mode, motion_recording, motion_detection_source, retention_days
     ) VALUES (
       @id, @name, @sourceType, @host, @port, @onvifPath, @username, @password,
       @rtspMainUri, @rtspSubUri, @mainProfileToken, @subProfileToken,
       @rtspCompatMode, @mainStreamWidth, @mainStreamHeight, @mainStreamEncoding,
-      @subStreamWidth, @subStreamHeight, @subStreamEncoding, @hasPtz,
+      @subStreamWidth, @subStreamHeight, @subStreamEncoding, @hasPtz, @rotation,
       @recordingMode, @motionRecording, @motionDetectionSource, @retentionDays
     )`
   ).run({
@@ -118,6 +120,7 @@ export function createCamera(input: CreateCameraInput): Camera {
     subStreamHeight: input.subStreamMetadata?.height ?? null,
     subStreamEncoding: input.subStreamMetadata?.encoding ?? null,
     hasPtz: input.hasPtz ? 1 : 0,
+    rotation: input.rotation ?? 0,
     recordingMode: input.recordingMode ?? "off",
     motionRecording: input.motionRecording === false ? 0 : 1,
     // Defaults to "video" (OpenCV analysis) rather than "onvif": PullPoint
@@ -153,6 +156,7 @@ export function updateCamera(id: string, input: UpdateCameraInput): Camera | nul
     ["subProfileToken", "onvif_sub_profile_token", (v) => v],
     ["rtspCompatMode", "rtsp_compat_mode", (v) => v],
     ["hasPtz", "has_ptz", (v) => (v ? 1 : 0)],
+    ["rotation", "rotation", (v) => v],
     ["recordingMode", "recording_mode", (v) => v],
     ["motionRecording", "motion_recording", (v) => (v ? 1 : 0)],
     ["motionDetectionSource", "motion_detection_source", (v) => v],

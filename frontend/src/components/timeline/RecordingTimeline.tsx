@@ -1,5 +1,6 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import type { RecordingSegment } from "../../api/recordings";
+import { useTranslation } from "react-i18next";
+import { findSegmentAtMoment, type RecordingSegment } from "../../api/recordings";
 import type { CameraEvent } from "../../api/types";
 import { friendlyEventType } from "../../lib/eventLabels";
 
@@ -11,26 +12,27 @@ interface RecordingTimelineProps {
   selectedMomentMs: number | null;
   /** Currently exportable range (ms), rendered as a translucent band - null if none. */
   selectedRangeMs?: { startMs: number; endMs: number } | null;
-  /** Called on a plain click (not a drag) on a point that falls within a recorded segment - used for preview playback. */
-  onSelectMoment: (moment: Date, segment: RecordingSegment) => void;
-  /** Called after dragging across the bar, resolved against the segment covering the drag's start point - used to pick an export range directly on the timeline. */
-  onSelectRange?: (start: Date, end: Date, segment: RecordingSegment) => void;
+  /**
+   * Called on a plain click (not a drag) anywhere on the bar, with the
+   * segment covering that moment for THIS timeline (or null if it falls in
+   * a gap) - used both for preview playback and to keep multiple
+   * timelines (one per camera, see LanePlayerCard/LaneTimelineRow) in sync on the same
+   * wall-clock moment even when a given camera has no recording there.
+   */
+  onSelectMoment: (moment: Date, segment: RecordingSegment | null) => void;
+  /** Called after dragging across the bar, with the segment covering the drag's start point for THIS timeline (or null if it falls in a gap). */
+  onSelectRange?: (start: Date, end: Date, segment: RecordingSegment | null) => void;
   onSelectEvent?: (event: CameraEvent) => void;
-  /** Called when the user clicks/drags starting from a point with no recording covering it. */
-  onSelectGap?: () => void;
+  /** Hides the hour-of-day ruler row - used when several timelines are stacked, so only the bottom-most one shows it (they all share the same day/axis). Defaults to true. */
+  showHourMarks?: boolean;
+  /** Hides the usage hint paragraph below the bar - same rationale as `showHourMarks`. Defaults to true. */
+  showHint?: boolean;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MARKS = [0, 3, 6, 9, 12, 15, 18, 21, 24];
 /** Minimum pixel movement before a press+release counts as a drag (range select) instead of a plain click (moment select). */
 const DRAG_THRESHOLD_PX = 4;
-
-function findSegmentAt(segments: RecordingSegment[], momentMs: number): RecordingSegment | undefined {
-  return segments.find((segment) => {
-    const startMs = new Date(segment.start).getTime();
-    return momentMs >= startMs && momentMs <= startMs + segment.duration * 1000;
-  });
-}
 
 /**
  * Horizontal 24h timeline: recorded segments are rendered as blocks
@@ -57,12 +59,15 @@ export function RecordingTimeline({
   onSelectMoment,
   onSelectRange,
   onSelectEvent,
-  onSelectGap,
+  showHourMarks = true,
+  showHint = true,
 }: RecordingTimelineProps) {
+  const { t, i18n } = useTranslation();
   const dayStartMs = dayStart.getTime();
   const barRef = useRef<HTMLDivElement | null>(null);
   const dragStartXRef = useRef<number | null>(null);
   const [liveDrag, setLiveDrag] = useState<{ startFraction: number; currentFraction: number } | null>(null);
+  const [hoverFraction, setHoverFraction] = useState<number | null>(null);
 
   const xToFraction = (clientX: number): number => {
     const bar = barRef.current;
@@ -79,8 +84,14 @@ export function RecordingTimeline({
   };
 
   const handlePointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const fraction = xToFraction(e.clientX);
+    setHoverFraction(fraction);
     if (dragStartXRef.current === null) return;
-    setLiveDrag((prev) => (prev ? { ...prev, currentFraction: xToFraction(e.clientX) } : prev));
+    setLiveDrag((prev) => (prev ? { ...prev, currentFraction: fraction } : prev));
+  };
+
+  const handlePointerLeave = () => {
+    setHoverFraction(null);
   };
 
   const handlePointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -94,24 +105,14 @@ export function RecordingTimeline({
     const isDrag = Math.abs(e.clientX - startX) >= DRAG_THRESHOLD_PX;
 
     if (!isDrag) {
-      const segment = findSegmentAt(segments, startMomentMs);
-      if (segment) {
-        onSelectMoment(new Date(startMomentMs), segment);
-      } else {
-        onSelectGap?.();
-      }
+      onSelectMoment(new Date(startMomentMs), findSegmentAtMoment(segments, startMomentMs) ?? null);
       return;
     }
 
     const endMomentMs = dayStartMs + xToFraction(e.clientX) * DAY_MS;
     const rangeStartMs = Math.min(startMomentMs, endMomentMs);
     const rangeEndMs = Math.max(startMomentMs, endMomentMs);
-    const segment = findSegmentAt(segments, rangeStartMs);
-    if (segment) {
-      onSelectRange?.(new Date(rangeStartMs), new Date(rangeEndMs), segment);
-    } else {
-      onSelectGap?.();
-    }
+    onSelectRange?.(new Date(rangeStartMs), new Date(rangeEndMs), findSegmentAtMoment(segments, rangeStartMs) ?? null);
   };
 
   const pctFor = (momentMs: number) => Math.min(100, Math.max(0, ((momentMs - dayStartMs) / DAY_MS) * 100));
@@ -132,7 +133,7 @@ export function RecordingTimeline({
               <button
                 key={event.id}
                 type="button"
-                title={`${friendlyEventType(event.type)} às ${new Date(event.occurred_at).toLocaleTimeString()}`}
+                title={t("timeline.eventTitle", { type: friendlyEventType(event.type, t), time: new Date(event.occurred_at).toLocaleTimeString(i18n.language) })}
                 onClick={() => onSelectEvent?.(event)}
                 style={{ left: `${leftPct}%` }}
                 className="absolute top-0 h-3 w-3 -translate-x-1/2 rounded-full border border-neutral-950 bg-amber-400 hover:bg-amber-300"
@@ -146,6 +147,7 @@ export function RecordingTimeline({
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerLeave}
         className="relative h-14 w-full touch-none cursor-crosshair overflow-hidden rounded-md border border-neutral-800 bg-neutral-950"
       >
         {segments.map((segment) => {
@@ -161,7 +163,7 @@ export function RecordingTimeline({
           return (
             <div
               key={segment.start}
-              title={`${new Date(segment.start).toLocaleTimeString()} (${Math.round(segment.duration)}s) — clique para ir direto para aquele instante, ou arraste para selecionar um trecho pra exportar`}
+              title={t("timeline.segmentTitle", { time: new Date(segment.start).toLocaleTimeString(i18n.language), duration: Math.round(segment.duration) })}
               style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
               className={`absolute top-0 h-full transition-colors ${
                 isSelected ? "bg-blue-700 hover:bg-blue-600" : "bg-green-700 hover:bg-green-600"
@@ -171,7 +173,7 @@ export function RecordingTimeline({
         })}
         {selectedRangeMs && (
           <div
-            title="Trecho selecionado para exportação"
+            title={t("timeline.selectedRangeTitle")}
             style={{
               left: `${pctFor(selectedRangeMs.startMs)}%`,
               width: `${Math.max(0.2, pctFor(selectedRangeMs.endMs) - pctFor(selectedRangeMs.startMs))}%`,
@@ -190,32 +192,38 @@ export function RecordingTimeline({
         )}
         {selectedLeftPct !== null && (
           <div
-            title="Momento selecionado"
+            title={t("timeline.selectedMomentTitle")}
             style={{ left: `${selectedLeftPct}%` }}
             className="pointer-events-none absolute top-0 h-full w-0.5 -translate-x-1/2 bg-white shadow-[0_0_4px_rgba(255,255,255,0.9)]"
           />
         )}
         {segments.length === 0 && (
           <div className="pointer-events-none flex h-full items-center justify-center text-xs text-neutral-600">
-            Nenhuma gravação neste dia
+            {t("timeline.noRecordingsToday")}
+          </div>
+        )}
+        {hoverFraction !== null && (
+          <div
+            style={{ left: `${Math.min(97, Math.max(3, hoverFraction * 100))}%` }}
+            className="pointer-events-none absolute top-1 z-10 -translate-x-1/2 whitespace-nowrap rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-[11px] font-medium text-neutral-900 shadow"
+          >
+            {new Date(dayStartMs + hoverFraction * DAY_MS).toLocaleTimeString(i18n.language)}
           </div>
         )}
       </div>
       <div className="relative h-4 text-[10px] text-neutral-500">
-        {HOUR_MARKS.map((hour) => (
-          <span
-            key={hour}
-            className="absolute -translate-x-1/2"
-            style={{ left: `${(hour / 24) * 100}%` }}
-          >
-            {String(hour).padStart(2, "0")}h
-          </span>
-        ))}
+        {showHourMarks &&
+          HOUR_MARKS.map((hour) => (
+            <span key={hour} className="absolute -translate-x-1/2" style={{ left: `${(hour / 24) * 100}%` }}>
+              {String(hour).padStart(2, "0")}h
+            </span>
+          ))}
       </div>
-      <p className="text-[11px] text-neutral-600">
-        Clique para ir direto para um instante, ou arraste para selecionar um trecho exato (mesmo dentro de um
-        arquivo de horas) e exportá-lo.
-      </p>
+      {showHint && (
+        <p className="text-[11px] text-neutral-600">
+          {t("timeline.footerHint")}
+        </p>
+      )}
     </div>
   );
 }

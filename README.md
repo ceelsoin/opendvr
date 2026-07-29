@@ -39,6 +39,15 @@ For manual/local development (hot reload), production builds, and every other de
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup, conventions, and the PR process. Bug reports/feature requests use the templates under `.github/ISSUE_TEMPLATE/`.
 
+## Credits
+
+Created and maintained by **[Celso Inacio](https://github.com/ceelsoin)**.
+
+OpenDVR builds on top of great open-source projects — most notably [MediaMTX](https://github.com/bluenviron/mediamtx) for streaming/recording, plus the npm/Docker dependencies listed in [THIRD-PARTY-NOTICES.md](./THIRD-PARTY-NOTICES.md).
+
 ## License
 
-No license file is currently included in this repository — treat all rights as reserved until one is added.
+This project is licensed under the [MIT License](./LICENSE) — Copyright (c) 2026 Celso Inacio.
+
+Third-party dependencies keep their own licenses (all permissive: MIT, Apache-2.0, BSD, ISC) — see [THIRD-PARTY-NOTICES.md](./THIRD-PARTY-NOTICES.md) for the full list and attribution.
+

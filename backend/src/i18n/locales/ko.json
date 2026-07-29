@@ -1,0 +1,40 @@
+{
+  "errors": {
+    "cameraNotFound": "카메라를 찾을 수 없습니다",
+    "gridNotFound": "그리드를 찾을 수 없습니다",
+    "eventNotFound": "이벤트를 찾을 수 없습니다",
+    "invalidPayload": "잘못된 데이터입니다",
+    "onvifConnectionFailed": "ONVIF를 통해 카메라에 연결할 수 없습니다. 호스트, 포트, ONVIF 경로 및 자격 증명을 확인하세요.",
+    "hostRequired": "호스트는 필수입니다.",
+    "usernameRequired": "사용자 이름은 필수입니다.",
+    "passwordRequired": "비밀번호는 필수입니다.",
+    "streamUrlRequired": "스트림 URL은 필수입니다.",
+    "onvifUrlInvalid": "잘못된 ONVIF URL입니다",
+    "onvifCredentialsRequired": "호스트, 사용자 이름, 비밀번호를 입력하세요(또는 ONVIF URL)",
+    "onvifHostRequired": "호스트를 입력하세요(또는 ONVIF URL)",
+    "ptzMoveFailed": "PTZ 이동 실패",
+    "ptzStopFailed": "PTZ 정지 실패",
+    "ptzPresetsListFailed": "프리셋 목록을 가져오지 못했습니다",
+    "ptzPresetSetFailed": "프리셋 저장 실패",
+    "ptzPresetGotoFailed": "프리셋 이동 실패",
+    "recordingsListFailed": "녹화 목록을 가져올 수 없습니다.",
+    "discoveryFailed": "검색 실패",
+    "invalidCredentials": "잘못된 사용자 이름 또는 비밀번호",
+    "accountAlreadyExists": "이미 계정이 설정되어 있습니다. 로그인 화면을 이용하세요.",
+    "discordNotConfigured": "Discord 웹훅이 설정되지 않았습니다.",
+    "telegramNotConfigured": "Telegram 봇 토큰/채팅 ID가 설정되지 않았습니다.",
+    "webhookNotConfigured": "일반 웹훅 URL이 설정되지 않았습니다.",
+    "smtpNotConfigured": "SMTP가 설정되지 않았습니다(호스트, 발신자, 수신자가 필요합니다)."
+  },
+  "notifications": {
+    "testMessage": "🔔 OpenDVR 테스트 알림",
+    "testCameraName": "테스트",
+    "motionDetected": "움직임이 감지되었습니다",
+    "tamperDetected": "훼손/조작이 감지되었습니다",
+    "lineCrossingDetected": "라인 교차가 감지되었습니다",
+    "intrusionDetected": "구역 침입이 감지되었습니다",
+    "occupancyDetected": "구역 점유가 감지되었습니다",
+    "watchRecording": "녹화 보기:",
+    "eventMessage": "📷 {{camera}}: {{eventType}} ({{time}})"
+  }
+}

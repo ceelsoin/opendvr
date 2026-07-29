@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
+import { t } from "../../i18n/index.js";
 import {
   createCamera,
   deleteCamera,
@@ -15,6 +16,7 @@ import { provisionCamera } from "../../media/provisioning.js";
 import { getVlcRelayUrl, stopVlcRelay } from "../../media/vlcRelay.js";
 import { stopMjpegBridge } from "../../media/mjpegBridge.js";
 import { stopWebpageBridge } from "../../media/webpageBridge.js";
+import { stopRotationBridge } from "../../media/rotationBridge.js";
 import { stopMotionRecording } from "../../media/motionRecording.js";
 import { restartMotionListening, shouldDetectMotion, startMotionListening, stopMotionListening } from "../../media/motionOrchestrator.js";
 import { errorMessage } from "../../lib/errors.js";
@@ -46,6 +48,7 @@ const baseCameraSchema = z.object({
   mainStreamMetadata: streamMetadataSchema.optional(),
   subStreamMetadata: streamMetadataSchema.optional(),
   hasPtz: z.boolean().optional(),
+  rotation: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]).optional(),
   recordingMode: z.enum(["off", "continuous", "motion"]).optional(),
   motionRecording: z.boolean().optional(),
   motionDetectionSource: z.enum(["onvif", "video"]).optional(),
@@ -58,11 +61,11 @@ const baseCameraSchema = z.object({
 const createCameraSchema = baseCameraSchema.superRefine((data, ctx) => {
   const sourceType = data.sourceType ?? "onvif";
   if (sourceType === "onvif") {
-    if (!data.host) ctx.addIssue({ code: "custom", message: "Host é obrigatório.", path: ["host"] });
-    if (!data.username) ctx.addIssue({ code: "custom", message: "Usuário é obrigatório.", path: ["username"] });
-    if (!data.password) ctx.addIssue({ code: "custom", message: "Senha é obrigatória.", path: ["password"] });
+    if (!data.host) ctx.addIssue({ code: "custom", message: t("errors.hostRequired"), path: ["host"] });
+    if (!data.username) ctx.addIssue({ code: "custom", message: t("errors.usernameRequired"), path: ["username"] });
+    if (!data.password) ctx.addIssue({ code: "custom", message: t("errors.passwordRequired"), path: ["password"] });
   } else if (!data.rtspMainUri) {
-    ctx.addIssue({ code: "custom", message: "URL do stream é obrigatória.", path: ["rtspMainUri"] });
+    ctx.addIssue({ code: "custom", message: t("errors.streamUrlRequired"), path: ["rtspMainUri"] });
   }
 });
 
@@ -76,7 +79,7 @@ camerasRouter.get("/", (_req, res) => {
 camerasRouter.get("/:id", (req, res) => {
   const camera = getCameraById(req.params.id);
   if (!camera) {
-    res.status(404).json({ error: "Camera not found" });
+    res.status(404).json({ error: t("errors.cameraNotFound") });
     return;
   }
   res.json(toPublicCamera(camera));
@@ -94,7 +97,7 @@ camerasRouter.get("/:id", (req, res) => {
 camerasRouter.get("/:id/stream-status", async (req, res) => {
   const camera = getCameraById(req.params.id);
   if (!camera) {
-    res.status(404).json({ error: "Camera not found" });
+    res.status(404).json({ error: t("errors.cameraNotFound") });
     return;
   }
   const status = await getCameraPathStatus(camera.id);
@@ -108,7 +111,7 @@ camerasRouter.get("/:id/stream-status", async (req, res) => {
 camerasRouter.post("/", async (req, res) => {
   const parsed = createCameraSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+    res.status(400).json({ error: t("errors.invalidPayload"), details: parsed.error.flatten() });
     return;
   }
   const camera = createCamera(parsed.data);
@@ -127,13 +130,13 @@ camerasRouter.post("/", async (req, res) => {
 camerasRouter.patch("/:id", async (req, res) => {
   const existing = getCameraById(req.params.id);
   if (!existing) {
-    res.status(404).json({ error: "Camera not found" });
+    res.status(404).json({ error: t("errors.cameraNotFound") });
     return;
   }
 
   const parsed = updateCameraSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+    res.status(400).json({ error: t("errors.invalidPayload"), details: parsed.error.flatten() });
     return;
   }
 
@@ -147,7 +150,7 @@ camerasRouter.patch("/:id", async (req, res) => {
     ...(connectionFieldsChanged && !parsed.data.rtspMainUri ? { rtspMainUri: undefined } : {}),
   });
   if (!updated) {
-    res.status(404).json({ error: "Camera not found" });
+    res.status(404).json({ error: t("errors.cameraNotFound") });
     return;
   }
 
@@ -170,7 +173,7 @@ camerasRouter.patch("/:id", async (req, res) => {
 camerasRouter.post("/:id/restart", async (req, res) => {
   const camera = getCameraById(req.params.id);
   if (!camera) {
-    res.status(404).json({ error: "Camera not found" });
+    res.status(404).json({ error: t("errors.cameraNotFound") });
     return;
   }
 
@@ -185,7 +188,7 @@ camerasRouter.post("/:id/restart", async (req, res) => {
 camerasRouter.delete("/:id", async (req, res) => {
   const camera = getCameraById(req.params.id);
   if (!camera) {
-    res.status(404).json({ error: "Camera not found" });
+    res.status(404).json({ error: t("errors.cameraNotFound") });
     return;
   }
   stopMotionListening(camera.id);
@@ -193,6 +196,7 @@ camerasRouter.delete("/:id", async (req, res) => {
   await stopVlcRelay(camera.id);
   await stopMjpegBridge(camera.id);
   await stopWebpageBridge(camera.id);
+  await stopRotationBridge(camera.id);
   await deleteCameraPath(camera.id);
   deleteCamera(camera.id);
   res.status(204).send();
@@ -208,7 +212,7 @@ camerasRouter.delete("/:id", async (req, res) => {
 camerasRouter.post("/:id/disable", async (req, res) => {
   const camera = getCameraById(req.params.id);
   if (!camera) {
-    res.status(404).json({ error: "Camera not found" });
+    res.status(404).json({ error: t("errors.cameraNotFound") });
     return;
   }
   stopMotionListening(camera.id);
@@ -216,6 +220,7 @@ camerasRouter.post("/:id/disable", async (req, res) => {
   await stopVlcRelay(camera.id);
   await stopMjpegBridge(camera.id);
   await stopWebpageBridge(camera.id);
+  await stopRotationBridge(camera.id);
   await deleteCameraPath(camera.id);
   const updated = setCameraEnabled(camera.id, false);
   res.json(toPublicCamera(updated ?? camera));
@@ -225,12 +230,12 @@ camerasRouter.post("/:id/disable", async (req, res) => {
 camerasRouter.post("/:id/enable", async (req, res) => {
   const camera = getCameraById(req.params.id);
   if (!camera) {
-    res.status(404).json({ error: "Camera not found" });
+    res.status(404).json({ error: t("errors.cameraNotFound") });
     return;
   }
   const enabledCamera = setCameraEnabled(camera.id, true);
   if (!enabledCamera) {
-    res.status(404).json({ error: "Camera not found" });
+    res.status(404).json({ error: t("errors.cameraNotFound") });
     return;
   }
   await provisionCamera(enabledCamera, { forceRefresh: true });
@@ -245,7 +250,7 @@ camerasRouter.post("/:id/enable", async (req, res) => {
 camerasRouter.post("/:id/test-connection", async (req, res) => {
   const camera = getCameraById(req.params.id);
   if (!camera) {
-    res.status(404).json({ error: "Camera not found" });
+    res.status(404).json({ error: t("errors.cameraNotFound") });
     return;
   }
   try {
@@ -256,7 +261,7 @@ camerasRouter.post("/:id/test-connection", async (req, res) => {
     logger.warn({ err, cameraId: camera.id }, "ONVIF connection test failed");
     res.status(502).json({
       ok: false,
-      error: "Não foi possível conectar à câmera via ONVIF. Verifique host, porta, caminho ONVIF e credenciais.",
+      error: t("errors.onvifConnectionFailed"),
       details,
     });
   }

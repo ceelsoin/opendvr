@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { socket } from "../../api/socket";
 import { useCameras } from "../../api/cameras";
 import { useCameraEventStore } from "../../store/cameraEventStore";
@@ -18,6 +19,7 @@ interface CameraEventPayload {
  * (2) shows a toast notification with the camera name + friendly event type.
  */
 export function EventSocketListener() {
+  const { t } = useTranslation();
   const { data: cameras } = useCameras();
   const triggerFlash = useCameraEventStore((s) => s.triggerFlash);
   const addToast = useToastStore((s) => s.addToast);
@@ -25,15 +27,15 @@ export function EventSocketListener() {
   useEffect(() => {
     function handleEvent(payload: CameraEventPayload) {
       triggerFlash(payload.cameraId);
-      const cameraName = cameras?.find((c) => c.id === payload.cameraId)?.name ?? "Câmera";
-      addToast("info", `${cameraName}: ${friendlyEventType(payload.type)}`);
+      const cameraName = cameras?.find((c) => c.id === payload.cameraId)?.name ?? t("cameras.unknownCameraName");
+      addToast("info", `${cameraName}: ${friendlyEventType(payload.type, t)}`);
     }
 
     socket.on("camera:event", handleEvent);
     return () => {
       socket.off("camera:event", handleEvent);
     };
-  }, [cameras, triggerFlash, addToast]);
+  }, [cameras, triggerFlash, addToast, t]);
 
   return null;
 }

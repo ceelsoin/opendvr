@@ -1,0 +1,40 @@
+{
+  "errors": {
+    "cameraNotFound": "Caméra introuvable",
+    "gridNotFound": "Grille introuvable",
+    "eventNotFound": "Événement introuvable",
+    "invalidPayload": "Données invalides",
+    "onvifConnectionFailed": "Impossible de se connecter à la caméra via ONVIF. Vérifiez l'hôte, le port, le chemin ONVIF et les identifiants.",
+    "hostRequired": "L'hôte est obligatoire.",
+    "usernameRequired": "Le nom d'utilisateur est obligatoire.",
+    "passwordRequired": "Le mot de passe est obligatoire.",
+    "streamUrlRequired": "L'URL du flux est obligatoire.",
+    "onvifUrlInvalid": "URL ONVIF invalide",
+    "onvifCredentialsRequired": "Indiquez l'hôte, le nom d'utilisateur et le mot de passe (ou une URL ONVIF)",
+    "onvifHostRequired": "Indiquez un hôte (ou une URL ONVIF)",
+    "ptzMoveFailed": "Échec du déplacement PTZ",
+    "ptzStopFailed": "Échec de l'arrêt PTZ",
+    "ptzPresetsListFailed": "Échec de la liste des préréglages",
+    "ptzPresetSetFailed": "Échec de l'enregistrement du préréglage",
+    "ptzPresetGotoFailed": "Échec du déplacement vers le préréglage",
+    "recordingsListFailed": "Impossible de lister les enregistrements.",
+    "discoveryFailed": "Échec de la découverte",
+    "invalidCredentials": "Nom d'utilisateur ou mot de passe invalide",
+    "accountAlreadyExists": "Un compte est déjà configuré. Utilisez l'écran de connexion.",
+    "discordNotConfigured": "Webhook Discord non configuré.",
+    "telegramNotConfigured": "Jeton du bot / ID de chat Telegram non configurés.",
+    "webhookNotConfigured": "URL du webhook générique non configurée.",
+    "smtpNotConfigured": "SMTP non configuré (hôte, expéditeur et destinataire requis)."
+  },
+  "notifications": {
+    "testMessage": "🔔 Notification de test OpenDVR",
+    "testCameraName": "Test",
+    "motionDetected": "Mouvement détecté",
+    "tamperDetected": "Altération/violation détectée",
+    "lineCrossingDetected": "Franchissement de ligne détecté",
+    "intrusionDetected": "Intrusion dans la zone détectée",
+    "occupancyDetected": "Occupation de la zone détectée",
+    "watchRecording": "Voir l'enregistrement :",
+    "eventMessage": "📷 {{camera}} : {{eventType}} à {{time}}"
+  }
+}

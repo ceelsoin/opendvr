@@ -1,0 +1,40 @@
+{
+  "errors": {
+    "cameraNotFound": "Kamera nicht gefunden",
+    "gridNotFound": "Grid nicht gefunden",
+    "eventNotFound": "Ereignis nicht gefunden",
+    "invalidPayload": "Ungültige Daten",
+    "onvifConnectionFailed": "Verbindung zur Kamera über ONVIF fehlgeschlagen. Überprüfe Host, Port, ONVIF-Pfad und Zugangsdaten.",
+    "hostRequired": "Host ist erforderlich.",
+    "usernameRequired": "Benutzername ist erforderlich.",
+    "passwordRequired": "Passwort ist erforderlich.",
+    "streamUrlRequired": "Stream-URL ist erforderlich.",
+    "onvifUrlInvalid": "Ungültige ONVIF-URL",
+    "onvifCredentialsRequired": "Gib Host, Benutzername und Passwort an (oder eine ONVIF-URL)",
+    "onvifHostRequired": "Gib einen Host an (oder eine ONVIF-URL)",
+    "ptzMoveFailed": "PTZ-Bewegung fehlgeschlagen",
+    "ptzStopFailed": "PTZ-Stopp fehlgeschlagen",
+    "ptzPresetsListFailed": "Voreinstellungen konnten nicht aufgelistet werden",
+    "ptzPresetSetFailed": "Voreinstellung konnte nicht gespeichert werden",
+    "ptzPresetGotoFailed": "Anfahren der Voreinstellung fehlgeschlagen",
+    "recordingsListFailed": "Aufnahmen konnten nicht aufgelistet werden.",
+    "discoveryFailed": "Suche fehlgeschlagen",
+    "invalidCredentials": "Ungültiger Benutzername oder ungültiges Passwort",
+    "accountAlreadyExists": "Es ist bereits ein Konto eingerichtet. Verwende den Anmeldebildschirm.",
+    "discordNotConfigured": "Discord-Webhook nicht konfiguriert.",
+    "telegramNotConfigured": "Telegram-Bot-Token/Chat-ID nicht konfiguriert.",
+    "webhookNotConfigured": "Allgemeine Webhook-URL nicht konfiguriert.",
+    "smtpNotConfigured": "SMTP nicht konfiguriert (Host, Absender und Empfänger sind erforderlich)."
+  },
+  "notifications": {
+    "testMessage": "🔔 OpenDVR-Testbenachrichtigung",
+    "testCameraName": "Test",
+    "motionDetected": "Bewegung erkannt",
+    "tamperDetected": "Manipulation/Sabotage erkannt",
+    "lineCrossingDetected": "Linienüberquerung erkannt",
+    "intrusionDetected": "Bereichsverletzung erkannt",
+    "occupancyDetected": "Bereichsbelegung erkannt",
+    "watchRecording": "Aufnahme ansehen:",
+    "eventMessage": "📷 {{camera}}: {{eventType}} um {{time}}"
+  }
+}

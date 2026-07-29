@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useCameras, useCreateCamera } from "../../api/cameras";
 import { streamNetworkScan, type NetworkScanHostResult } from "../../api/networkScan";
 import type { Camera, CreateCameraInput } from "../../api/types";
@@ -24,9 +25,9 @@ function pickDefaultTokens(streams: NonNullable<NetworkScanHostResult["onvif"]>[
   };
 }
 
-function buildCreateInput(result: NetworkScanHostResult, username: string, password: string): CreateCameraInput {
+function buildCreateInput(result: NetworkScanHostResult, username: string, password: string, t: (key: string, vars?: Record<string, string | number>) => string): CreateCameraInput {
   const base: CreateCameraInput = {
-    name: `Câmera ${result.host}`,
+    name: t("onvifScan.defaultCameraName", { host: result.host }),
     host: result.host,
     port: result.onvifPort ?? 80,
     onvifPath: "/onvif/device_service",
@@ -62,22 +63,23 @@ function buildCreateInput(result: NetworkScanHostResult, username: string, passw
   return base;
 }
 
-function resultSummary(result: NetworkScanHostResult): string {
+function resultSummary(result: NetworkScanHostResult, t: (key: string, vars?: Record<string, string | number>) => string): string {
   if (result.onvif?.ok) {
-    return `ONVIF ok (${result.onvif.streams?.length ?? 0} stream(s)) na porta ${result.onvifPort}`;
+    return t("onvifScan.summaryOnvifOk", { count: result.onvif.streams?.length ?? 0, port: result.onvifPort ?? 0 });
   }
   if (result.onvif && !result.onvif.ok) {
-    return `Porta ONVIF ${result.onvifPort} aberta, mas falhou: ${result.onvif.error}${
-      result.rtspPath ? ` — RTSP direto encontrado em ${result.rtspPath}` : ""
-    }`;
+    return (
+      t("onvifScan.summaryOnvifFailed", { port: result.onvifPort ?? 0, error: result.onvif.error ?? "" }) +
+      (result.rtspPath ? t("onvifScan.summaryOnvifFailedRtspSuffix", { path: result.rtspPath }) : "")
+    );
   }
   if (result.rtspPath) {
-    return `RTSP confirmado, URL adivinhada: ${result.rtspPath}`;
+    return t("onvifScan.summaryRtspGuessed", { path: result.rtspPath });
   }
   if (result.onvifPort !== null) {
-    return `Porta ONVIF ${result.onvifPort} aberta (sem credenciais para confirmar)`;
+    return t("onvifScan.summaryOnvifPortOpen", { port: result.onvifPort });
   }
-  return "Porta RTSP (554) aberta, mas nenhuma URL comum respondeu";
+  return t("onvifScan.summaryRtspPortOpen");
 }
 
 /**
@@ -88,6 +90,7 @@ function resultSummary(result: NetworkScanHostResult): string {
  * whichever discovered hosts they select.
  */
 export function OnvifScanModal({ onClose }: OnvifScanModalProps) {
+  const { t } = useTranslation();
   const { data: cameras } = useCameras();
   const createCamera = useCreateCamera();
   const addToast = useToastStore((s) => s.addToast);
@@ -132,13 +135,13 @@ export function OnvifScanModal({ onClose }: OnvifScanModalProps) {
         { range, username, password },
         (event) => {
           if (event.type === "start") {
-            appendLog(`$ varredura iniciada — ${event.totalHosts} host(s) na faixa`);
+            appendLog(t("onvifScan.logStart", { count: event.totalHosts }));
           } else if (event.type === "host-start") {
-            appendLog(`testando ${event.host}...`);
+            appendLog(t("onvifScan.logTesting", { host: event.host }));
           } else if (event.type === "host-result") {
             const { type: _type, ...result } = event;
             if (result.rtspOpen || result.onvifPort !== null) {
-              appendLog(`  ✓ ${result.host} — ${resultSummary(result)}`);
+              appendLog(t("onvifScan.logFound", { host: result.host, summary: resultSummary(result, t) }));
               setResults((prev) => [...prev, result]);
               setSelected((prev) => {
                 // Auto-select confirmed cameras (ONVIF, or a working guessed
@@ -151,17 +154,17 @@ export function OnvifScanModal({ onClose }: OnvifScanModalProps) {
               });
             }
           } else if (event.type === "done") {
-            appendLog("$ varredura concluída");
+            appendLog(t("onvifScan.logDone"));
           } else if (event.type === "error") {
-            appendLog(`$ erro: ${event.message}`);
+            appendLog(t("onvifScan.logError", { message: event.message }));
             addToast("error", event.message);
           }
         },
         controller.signal
       );
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Falha na varredura.";
-      appendLog(`$ erro: ${message}`);
+      const message = err instanceof Error ? err.message : t("onvifScan.scanFailedGeneric");
+      appendLog(t("onvifScan.logError", { message }));
       addToast("error", message);
     } finally {
       setScanning(false);
@@ -191,7 +194,7 @@ export function OnvifScanModal({ onClose }: OnvifScanModalProps) {
     for (const result of toAdd) {
       try {
         // eslint-disable-next-line no-await-in-loop
-        await createCamera.mutateAsync(buildCreateInput(result, username, password));
+        await createCamera.mutateAsync(buildCreateInput(result, username, password, t));
         successCount++;
       } catch {
         failCount++;
@@ -200,7 +203,7 @@ export function OnvifScanModal({ onClose }: OnvifScanModalProps) {
     setAdding(false);
     addToast(
       failCount === 0 ? "success" : "error",
-      `${successCount} câmera(s) adicionada(s)${failCount ? `, ${failCount} falharam` : ""}.`
+      `${t("onvifScan.addResultToast", { success: successCount })}${failCount ? t("onvifScan.addResultFailedSuffix", { count: failCount }) : ""}.`
     );
     if (successCount > 0) {
       onClose();
@@ -212,10 +215,9 @@ export function OnvifScanModal({ onClose }: OnvifScanModalProps) {
       <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-y-auto rounded-lg border border-neutral-800 bg-neutral-950 p-5">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold">Varredura de rede (ONVIF/RTSP)</h2>
+            <h2 className="text-base font-semibold">{t("onvifScan.title")}</h2>
             <p className="mt-1 text-xs text-neutral-500">
-              Testa cada IP da faixa em busca de portas RTSP/ONVIF abertas — funciona mesmo quando a descoberta
-              automática (WS-Discovery) não encontra nada, o que é comum rodando em Docker.
+              {t("onvifScan.description")}
             </p>
           </div>
           <button type="button" onClick={onClose} className="text-neutral-500 hover:text-neutral-300">
@@ -225,11 +227,11 @@ export function OnvifScanModal({ onClose }: OnvifScanModalProps) {
 
         <form onSubmit={handleStartScan} className="flex flex-col gap-3">
           <div>
-            <label className="mb-1 block text-xs text-neutral-500">Faixa de IP</label>
+            <label className="mb-1 block text-xs text-neutral-500">{t("onvifScan.ipRangeLabel")}</label>
             <input
               value={range}
               onChange={(e) => setRange(e.target.value)}
-              placeholder="192.168.1.0/24 ou 192.168.1.1-254"
+              placeholder={t("onvifScan.ipRangePlaceholder")}
               required
               disabled={scanning}
               className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm disabled:opacity-50"
@@ -239,7 +241,7 @@ export function OnvifScanModal({ onClose }: OnvifScanModalProps) {
             <input
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Usuário ONVIF (mesmo de todas as câmeras)"
+              placeholder={t("onvifScan.usernamePlaceholder")}
               required
               disabled={scanning}
               className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm disabled:opacity-50"
@@ -247,7 +249,7 @@ export function OnvifScanModal({ onClose }: OnvifScanModalProps) {
             <input
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Senha"
+              placeholder={t("onvifScan.passwordPlaceholder")}
               type="password"
               disabled={scanning}
               className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm disabled:opacity-50"
@@ -259,7 +261,7 @@ export function OnvifScanModal({ onClose }: OnvifScanModalProps) {
               disabled={scanning}
               className="flex-1 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium hover:bg-blue-500 disabled:opacity-50"
             >
-              {scanning ? "Escaneando..." : "Iniciar varredura"}
+              {scanning ? t("onvifScan.scanning") : t("onvifScan.startScan")}
             </button>
             {scanning && (
               <button
@@ -267,7 +269,7 @@ export function OnvifScanModal({ onClose }: OnvifScanModalProps) {
                 onClick={handleCancelScan}
                 className="rounded-md bg-neutral-800 px-3 py-2 text-sm hover:bg-neutral-700"
               >
-                Cancelar
+                {t("onvifScan.cancel")}
               </button>
             )}
           </div>
@@ -278,7 +280,7 @@ export function OnvifScanModal({ onClose }: OnvifScanModalProps) {
           className="mt-4 h-48 overflow-y-auto rounded-md border border-neutral-800 bg-black p-3 font-mono text-xs text-green-400"
         >
           {logLines.length === 0 ? (
-            <p className="text-neutral-600">Aguardando início da varredura...</p>
+            <p className="text-neutral-600">{t("onvifScan.waitingScan")}</p>
           ) : (
             logLines.map((line, i) => (
               <div key={i} className="whitespace-pre-wrap">
@@ -290,7 +292,7 @@ export function OnvifScanModal({ onClose }: OnvifScanModalProps) {
 
         {results.length > 0 && (
           <div className="mt-4 flex flex-col gap-2">
-            <h3 className="text-sm font-semibold">Encontrados ({results.length})</h3>
+            <h3 className="text-sm font-semibold">{t("onvifScan.foundCount", { count: results.length })}</h3>
             <div className="flex flex-col gap-1.5">
               {results.map((result) => (
                 <label
@@ -303,7 +305,7 @@ export function OnvifScanModal({ onClose }: OnvifScanModalProps) {
                     onChange={() => toggleSelected(result.host)}
                   />
                   <span className="font-mono text-neutral-200">{result.host}</span>
-                  <span className="text-neutral-500">{resultSummary(result)}</span>
+                  <span className="text-neutral-500">{resultSummary(result, t)}</span>
                 </label>
               ))}
             </div>
@@ -313,7 +315,7 @@ export function OnvifScanModal({ onClose }: OnvifScanModalProps) {
               disabled={selected.size === 0 || adding}
               className="mt-1 self-start rounded-md bg-green-700 px-3 py-1.5 text-sm font-medium hover:bg-green-600 disabled:opacity-50"
             >
-              {adding ? "Adicionando..." : `Adicionar selecionadas (${selected.size})`}
+              {adding ? t("onvifScan.adding") : t("onvifScan.addSelected", { count: selected.size })}
             </button>
           </div>
         )}

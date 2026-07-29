@@ -1,0 +1,40 @@
+{
+  "errors": {
+    "cameraNotFound": "الكاميرا غير موجودة",
+    "gridNotFound": "الشبكة غير موجودة",
+    "eventNotFound": "الحدث غير موجود",
+    "invalidPayload": "بيانات غير صالحة",
+    "onvifConnectionFailed": "تعذّر الاتصال بالكاميرا عبر ONVIF. تحقق من المضيف والمنفذ ومسار ONVIF وبيانات الاعتماد.",
+    "hostRequired": "المضيف مطلوب.",
+    "usernameRequired": "اسم المستخدم مطلوب.",
+    "passwordRequired": "كلمة المرور مطلوبة.",
+    "streamUrlRequired": "عنوان URL للبث مطلوب.",
+    "onvifUrlInvalid": "عنوان ONVIF غير صالح",
+    "onvifCredentialsRequired": "أدخل المضيف واسم المستخدم وكلمة المرور (أو عنوان ONVIF)",
+    "onvifHostRequired": "أدخل المضيف (أو عنوان ONVIF)",
+    "ptzMoveFailed": "فشل تحريك PTZ",
+    "ptzStopFailed": "فشل إيقاف PTZ",
+    "ptzPresetsListFailed": "فشل سرد الإعدادات المسبقة",
+    "ptzPresetSetFailed": "فشل حفظ الإعداد المسبق",
+    "ptzPresetGotoFailed": "فشل الانتقال إلى الإعداد المسبق",
+    "recordingsListFailed": "تعذّر سرد التسجيلات.",
+    "discoveryFailed": "فشل الاكتشاف",
+    "invalidCredentials": "اسم المستخدم أو كلمة المرور غير صحيحة",
+    "accountAlreadyExists": "يوجد حساب مُعد بالفعل. استخدم شاشة تسجيل الدخول.",
+    "discordNotConfigured": "لم يتم تكوين webhook الخاص بـ Discord.",
+    "telegramNotConfigured": "لم يتم تكوين رمز بوت Telegram / معرّف الدردشة.",
+    "webhookNotConfigured": "لم يتم تكوين عنوان URL لـ webhook العام.",
+    "smtpNotConfigured": "لم يتم تكوين SMTP (المضيف والمرسل والمستلم مطلوبون)."
+  },
+  "notifications": {
+    "testMessage": "🔔 إشعار اختبار من OpenDVR",
+    "testCameraName": "اختبار",
+    "motionDetected": "تم اكتشاف حركة",
+    "tamperDetected": "تم اكتشاف عبث/تخريب",
+    "lineCrossingDetected": "تم اكتشاف تجاوز خط",
+    "intrusionDetected": "تم اكتشاف تسلل إلى المنطقة",
+    "occupancyDetected": "تم اكتشاف إشغال المنطقة",
+    "watchRecording": "مشاهدة التسجيل:",
+    "eventMessage": "📷 {{camera}}: {{eventType}} في {{time}}"
+  }
+}

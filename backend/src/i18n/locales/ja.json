@@ -1,0 +1,40 @@
+{
+  "errors": {
+    "cameraNotFound": "カメラが見つかりません",
+    "gridNotFound": "グリッドが見つかりません",
+    "eventNotFound": "イベントが見つかりません",
+    "invalidPayload": "無効なデータです",
+    "onvifConnectionFailed": "ONVIF経由でカメラに接続できませんでした。ホスト、ポート、ONVIFパス、認証情報を確認してください。",
+    "hostRequired": "ホストは必須です。",
+    "usernameRequired": "ユーザー名は必須です。",
+    "passwordRequired": "パスワードは必須です。",
+    "streamUrlRequired": "ストリームURLは必須です。",
+    "onvifUrlInvalid": "ONVIF URLが無効です",
+    "onvifCredentialsRequired": "ホスト、ユーザー名、パスワードを入力してください（またはONVIF URL）",
+    "onvifHostRequired": "ホストを入力してください（またはONVIF URL）",
+    "ptzMoveFailed": "PTZの移動に失敗しました",
+    "ptzStopFailed": "PTZの停止に失敗しました",
+    "ptzPresetsListFailed": "プリセットの取得に失敗しました",
+    "ptzPresetSetFailed": "プリセットの保存に失敗しました",
+    "ptzPresetGotoFailed": "プリセットへの移動に失敗しました",
+    "recordingsListFailed": "録画の一覧を取得できませんでした。",
+    "discoveryFailed": "検出に失敗しました",
+    "invalidCredentials": "ユーザー名またはパスワードが正しくありません",
+    "accountAlreadyExists": "アカウントはすでに設定されています。ログイン画面を使用してください。",
+    "discordNotConfigured": "Discordのウェブフックが設定されていません。",
+    "telegramNotConfigured": "Telegramのボットトークン/チャットIDが設定されていません。",
+    "webhookNotConfigured": "汎用ウェブフックのURLが設定されていません。",
+    "smtpNotConfigured": "SMTPが設定されていません（ホスト、送信者、受信者が必要です）。"
+  },
+  "notifications": {
+    "testMessage": "🔔 OpenDVRテスト通知",
+    "testCameraName": "テスト",
+    "motionDetected": "動きを検知しました",
+    "tamperDetected": "改ざん・妨害を検知しました",
+    "lineCrossingDetected": "ライン通過を検知しました",
+    "intrusionDetected": "エリア侵入を検知しました",
+    "occupancyDetected": "エリア占有を検知しました",
+    "watchRecording": "録画を見る：",
+    "eventMessage": "📷 {{camera}}：{{eventType}}（{{time}}）"
+  }
+}

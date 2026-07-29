@@ -1,6 +1,8 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { env } from "../config/env.js";
 import { logger } from "../lib/logger.js";
+import { rotationFilter } from "./rotationBridge.js";
+import type { CameraRotation } from "../types/camera.js";
 
 /**
  * Bridges an MJPEG-over-HTTP camera (`multipart/x-mixed-replace`, common on
@@ -27,6 +29,7 @@ const RESPAWN_DELAY_MS = 3000;
 
 interface BridgeHandle {
   process: ChildProcess;
+  rotation: CameraRotation;
   /** Set by stopMjpegBridge() before killing, so the exit handler knows not to auto-respawn. */
   stopping: boolean;
 }
@@ -37,15 +40,19 @@ const activeBridges = new Map<string, BridgeHandle>();
  * Ensures an ffmpeg bridge is running for this camera, reading from
  * `mjpegUrl` (the camera's MJPEG HTTP URL, credentials embedded in the URL
  * if needed) and publishing to `rtsp://<mediamtx>/<cameraId>`. Reuses an
- * already-running bridge as-is if present.
+ * already-running bridge as-is if present. `rotation` (0 by default) adds
+ * the same `-vf transpose=...` filter media/rotationBridge.ts uses for
+ * other source types - this bridge already re-encodes (MJPEG has no video
+ * codec to copy), so rotation is just one more filter on the same pass
+ * instead of a whole separate transcode step.
  */
-export function ensureMjpegBridge(cameraId: string, mjpegUrl: string): void {
+export function ensureMjpegBridge(cameraId: string, mjpegUrl: string, rotation: CameraRotation = 0): void {
   const existing = activeBridges.get(cameraId);
   if (existing && existing.process.exitCode === null && !existing.process.killed) {
     return;
   }
 
-  const handle: BridgeHandle = { process: null as unknown as ChildProcess, stopping: false };
+  const handle: BridgeHandle = { process: null as unknown as ChildProcess, rotation, stopping: false };
   activeBridges.set(cameraId, handle);
   spawnBridge(cameraId, mjpegUrl, handle);
 }
@@ -58,6 +65,7 @@ function spawnBridge(cameraId: string, mjpegUrl: string, handle: BridgeHandle): 
     [
       "-i",
       mjpegUrl,
+      ...(handle.rotation !== 0 ? ["-vf", rotationFilter(handle.rotation)] : []),
       "-c:v",
       "libx264",
       "-preset",

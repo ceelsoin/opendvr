@@ -4,6 +4,7 @@ import { discoverCameras } from "../../onvif/discovery.js";
 import { scanNetwork, type ScanEvent } from "../../onvif/networkScan.js";
 import { parseIpRange } from "../../lib/ipRange.js";
 import { errorMessage } from "../../lib/errors.js";
+import { t } from "../../i18n/index.js";
 import { logger } from "../../lib/logger.js";
 
 export const discoveryRouter = Router();
@@ -16,7 +17,7 @@ discoveryRouter.post("/", async (req, res) => {
     res.json(devices);
   } catch (err) {
     logger.error({ err }, "ONVIF discovery failed");
-    res.status(500).json({ error: "Discovery failed" });
+    res.status(500).json({ error: t("errors.discoveryFailed") });
   }
 });
 
@@ -36,7 +37,7 @@ const scanSchema = z.object({
 discoveryRouter.post("/scan", async (req, res) => {
   const parsed = scanSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+    res.status(400).json({ error: t("errors.invalidPayload"), details: parsed.error.flatten() });
     return;
   }
 

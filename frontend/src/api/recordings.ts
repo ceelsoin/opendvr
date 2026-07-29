@@ -10,7 +10,36 @@ export interface RecordingSegment {
   url: string;
 }
 
-/** Lists recorded segments for a camera within [start, end] (ISO 8601), read from MediaMTX's Playback server. */
+/**
+ * Clamps a segment's reported duration so it never extends past the
+ * current wall-clock moment, dropping it entirely if it would end up at
+ * zero/negative. Real-world reason this is needed: for the segment that's
+ * STILL being actively written (the camera currently recording), MediaMTX's
+ * Playback `/list` endpoint can report a `duration` that overshoots how
+ * much has actually been written so far - in practice this shows up as a
+ * timeline block stretching from "now" into a future that was never really
+ * recorded, which then fails to play if clicked. Since a recording can
+ * never legitimately exist in the future, clamping to "now" is always a
+ * safe, correct fix regardless of the exact reason MediaMTX overshoots.
+ */
+function clampToNow(segments: RecordingSegment[]): RecordingSegment[] {
+  const nowMs = Date.now();
+  return segments
+    .map((segment) => {
+      const startMs = new Date(segment.start).getTime();
+      const maxDurationSeconds = (nowMs - startMs) / 1000;
+      return { ...segment, duration: Math.min(segment.duration, maxDurationSeconds) };
+    })
+    .filter((segment) => segment.duration > 0);
+}
+
+/**
+ * Lists recorded segments for a camera within [start, end] (ISO 8601), read
+ * from MediaMTX's Playback server. Refetches every 30s so the
+ * still-recording segment's real (clamped) duration keeps growing while
+ * the timeline stays open, instead of freezing at whatever had actually
+ * been written at the moment of the last fetch.
+ */
 export function useRecordings(cameraId: string, start: string, end: string, enabled = true) {
   return useQuery({
     queryKey: ["recordings", cameraId, start, end],
@@ -18,13 +47,46 @@ export function useRecordings(cameraId: string, start: string, end: string, enab
       const { data } = await apiClient.get<RecordingSegment[]>(`/recordings/${cameraId}`, {
         params: { start, end },
       });
-      return data;
+      return clampToNow(data);
     },
     enabled: enabled && Boolean(cameraId),
+    refetchInterval: 30_000,
   });
 }
 
 const DEFAULT_CLIP_WINDOW_SECONDS = 60;
+
+/** Finds the recorded segment (if any) covering a given wall-clock moment (ms since epoch). */
+export function findSegmentAtMoment(segments: RecordingSegment[], momentMs: number): RecordingSegment | undefined {
+  return segments.find((segment) => {
+    const startMs = new Date(segment.start).getTime();
+    return momentMs >= startMs && momentMs <= startMs + segment.duration * 1000;
+  });
+}
+
+/**
+ * Finds where continuous playback should resume right after a clip ends at
+ * `afterMs` (see LanePlayerCard's `onEnded` handling): if there's still
+ * recording covering that instant, just keep going from there (the
+ * segment continues, only the requested preview *window* ended); otherwise
+ * jumps to the start of the next segment that begins at/after `afterMs`,
+ * skipping over any gap. Returns null once there's nothing left to play
+ * for the rest of the day, so playback can stop cleanly instead of looping.
+ */
+export function findNextPlaybackMoment(segments: RecordingSegment[], afterMs: number): number | null {
+  // Small buffer past the instant that just finished playing, so a clip
+  // that ends exactly at its segment's own boundary doesn't immediately
+  // re-match that same (now fully consumed) segment.
+  const probeMs = afterMs + 250;
+  if (findSegmentAtMoment(segments, probeMs)) {
+    return afterMs;
+  }
+  const next = segments
+    .map((segment) => ({ segment, startMs: new Date(segment.start).getTime() }))
+    .filter(({ startMs }) => startMs >= afterMs)
+    .sort((a, b) => a.startMs - b.startMs)[0];
+  return next ? next.startMs : null;
+}
 
 /**
  * Builds a playback URL for an arbitrary start/duration within a camera's

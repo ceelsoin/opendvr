@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useSystemStats } from "../../api/system";
 import { formatBytes, usageColorClass } from "../../lib/systemStats";
 
@@ -19,6 +20,7 @@ function Metric({ label, percent, detail }: { label: string; percent: number; de
  * kiosk custom-grid view, which deliberately has no chrome at all.
  */
 export function TopStatusBar({ onMenuClick }: { onMenuClick?: () => void }) {
+  const { t } = useTranslation();
   const { data } = useSystemStats();
 
   return (
@@ -27,7 +29,7 @@ export function TopStatusBar({ onMenuClick }: { onMenuClick?: () => void }) {
         <button
           type="button"
           onClick={onMenuClick}
-          aria-label="Abrir menu"
+          aria-label={t("dashboard.openMenu")}
           className="rounded p-1 text-neutral-400 hover:bg-neutral-900 hover:text-neutral-200 md:hidden"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
@@ -39,26 +41,26 @@ export function TopStatusBar({ onMenuClick }: { onMenuClick?: () => void }) {
       {data ? (
         <Link to="/dashboard" className="flex items-center gap-4 hover:opacity-80">
           <Metric
-            label="CPU"
+            label={t("dashboard.cpu")}
             percent={data.cpu.usagePercent}
-            detail={`${data.cpu.cores} núcleo(s) · carga: ${data.cpu.loadAvg.map((v) => v.toFixed(2)).join(" / ")}`}
+            detail={t("dashboard.topBarCpuDetail", { cores: data.cpu.cores, load: data.cpu.loadAvg.map((v) => v.toFixed(2)).join(" / ") })}
           />
           <Metric
-            label="Mem"
+            label={t("dashboard.memory")}
             percent={data.memory.usagePercent}
-            detail={`${formatBytes(data.memory.usedBytes)} de ${formatBytes(data.memory.totalBytes)}`}
+            detail={t("dashboard.topBarMemDetail", { used: formatBytes(data.memory.usedBytes), total: formatBytes(data.memory.totalBytes) })}
           />
           {data.disks.slice(0, 1).map((disk) => (
             <Metric
               key={disk.path}
-              label="Disco"
+              label={t("dashboard.disk")}
               percent={disk.usagePercent}
-              detail={`${disk.label}: ${formatBytes(disk.usedBytes)} de ${formatBytes(disk.totalBytes)}`}
+              detail={t("dashboard.topBarDiskDetail", { label: disk.label, used: formatBytes(disk.usedBytes), total: formatBytes(disk.totalBytes) })}
             />
           ))}
         </Link>
       ) : (
-        <span className="text-neutral-600">Carregando estatísticas...</span>
+        <span className="text-neutral-600">{t("dashboard.topBarLoading")}</span>
       )}
       </div>
     </header>

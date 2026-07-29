@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "../../db/client.js";
 import { getCameraById } from "../../db/cameras.repository.js";
 import { deleteEvent, markEventRead } from "../../db/events.repository.js";
+import { t } from "../../i18n/index.js";
 
 export const eventsRouter = Router();
 
@@ -34,7 +35,7 @@ eventsRouter.get("/", (req, res) => {
   const to = String(req.query.to ?? new Date().toISOString());
 
   if (cameraId && !getCameraById(cameraId)) {
-    res.status(404).json({ error: "Camera not found" });
+    res.status(404).json({ error: t("errors.cameraNotFound") });
     return;
   }
 
@@ -59,7 +60,7 @@ eventsRouter.get("/", (req, res) => {
 eventsRouter.get("/:id", (req, res) => {
   const row = db.prepare("SELECT * FROM events WHERE id = ?").get(req.params.id) as EventRow | undefined;
   if (!row) {
-    res.status(404).json({ error: "Event not found" });
+    res.status(404).json({ error: t("errors.eventNotFound") });
     return;
   }
   res.json(serializeEvent(row));
@@ -69,7 +70,7 @@ eventsRouter.patch("/:id", (req, res) => {
   const read = Boolean(req.body?.read);
   const updated = markEventRead(req.params.id, read);
   if (!updated) {
-    res.status(404).json({ error: "Event not found" });
+    res.status(404).json({ error: t("errors.eventNotFound") });
     return;
   }
   const row = db.prepare("SELECT * FROM events WHERE id = ?").get(req.params.id) as EventRow;
@@ -79,7 +80,7 @@ eventsRouter.patch("/:id", (req, res) => {
 eventsRouter.delete("/:id", (req, res) => {
   const deleted = deleteEvent(req.params.id);
   if (!deleted) {
-    res.status(404).json({ error: "Event not found" });
+    res.status(404).json({ error: t("errors.eventNotFound") });
     return;
   }
   res.status(204).send();

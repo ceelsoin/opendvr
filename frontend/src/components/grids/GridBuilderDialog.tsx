@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useCameras } from "../../api/cameras";
 import { useCreateGrid, useUpdateGrid } from "../../api/grids";
 import type { CustomGrid } from "../../api/types";
@@ -14,6 +15,7 @@ const COLUMN_OPTIONS = [1, 2, 3, 4, 5, 6];
 
 /** Modal for creating/editing a custom grid: name, column count ("formato"), camera selection and order. */
 export function GridBuilderDialog({ open, onClose, grid }: GridBuilderDialogProps) {
+  const { t } = useTranslation();
   const { data: cameras } = useCameras();
   const createGrid = useCreateGrid();
   const updateGrid = useUpdateGrid();
@@ -68,21 +70,21 @@ export function GridBuilderDialog({ open, onClose, grid }: GridBuilderDialogProp
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-lg border border-neutral-800 bg-neutral-900 p-6">
-        <h2 className="mb-4 text-lg font-semibold">{grid ? "Editar grid" : "Novo grid"}</h2>
+        <h2 className="mb-4 text-lg font-semibold">{grid ? t("grid.builderEditTitle") : t("grid.builderNewTitle")}</h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <label className="flex flex-col gap-1 text-sm">
-            Nome do grid
+            {t("grid.gridNameLabel")}
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              placeholder="Ex: Portaria, Fundos, Tablet da sala"
+              placeholder={t("grid.gridNamePlaceholder")}
               className="rounded border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
             />
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            Colunas (formato)
+            {t("grid.columnsLabel")}
             <select
               value={columns}
               onChange={(e) => setColumns(Number(e.target.value))}
@@ -90,14 +92,14 @@ export function GridBuilderDialog({ open, onClose, grid }: GridBuilderDialogProp
             >
               {COLUMN_OPTIONS.map((n) => (
                 <option key={n} value={n}>
-                  {n} coluna{n > 1 ? "s" : ""}
+                  {t("grid.columns", { count: n })}
                 </option>
               ))}
             </select>
           </label>
 
           <div>
-            <p className="mb-2 text-sm text-neutral-300">Câmeras disponíveis</p>
+            <p className="mb-2 text-sm text-neutral-300">{t("grid.availableCameras")}</p>
             <div className="flex max-h-48 flex-col gap-1 overflow-auto rounded border border-neutral-800 p-2">
               {cameras && cameras.length > 0 ? (
                 cameras.map((camera) => (
@@ -111,15 +113,15 @@ export function GridBuilderDialog({ open, onClose, grid }: GridBuilderDialogProp
                   </label>
                 ))
               ) : (
-                <p className="text-xs text-neutral-500">Nenhuma câmera cadastrada ainda.</p>
+                <p className="text-xs text-neutral-500">{t("grid.noCamerasRegistered")}</p>
               )}
             </div>
           </div>
 
           <div>
-            <p className="mb-2 text-sm text-neutral-300">Ordem no grid</p>
+            <p className="mb-2 text-sm text-neutral-300">{t("grid.gridOrder")}</p>
             {cameraIds.length === 0 ? (
-              <p className="text-xs text-neutral-500">Selecione ao menos uma câmera acima.</p>
+              <p className="text-xs text-neutral-500">{t("grid.selectAtLeastOne")}</p>
             ) : (
               <ul className="flex flex-col gap-1">
                 {cameraIds.map((id, index) => (
@@ -136,7 +138,7 @@ export function GridBuilderDialog({ open, onClose, grid }: GridBuilderDialogProp
                         onClick={() => moveCamera(index, -1)}
                         disabled={index === 0}
                         className="rounded px-2 text-neutral-400 hover:text-neutral-100 disabled:opacity-30"
-                        aria-label="Mover para cima"
+                        aria-label={t("grid.moveUp")}
                       >
                         ↑
                       </button>
@@ -145,7 +147,7 @@ export function GridBuilderDialog({ open, onClose, grid }: GridBuilderDialogProp
                         onClick={() => moveCamera(index, 1)}
                         disabled={index === cameraIds.length - 1}
                         className="rounded px-2 text-neutral-400 hover:text-neutral-100 disabled:opacity-30"
-                        aria-label="Mover para baixo"
+                        aria-label={t("grid.moveDown")}
                       >
                         ↓
                       </button>
@@ -156,7 +158,7 @@ export function GridBuilderDialog({ open, onClose, grid }: GridBuilderDialogProp
             )}
           </div>
 
-          {hasError && <p className="text-sm text-red-400">Erro ao salvar o grid. Tente novamente.</p>}
+          {hasError && <p className="text-sm text-red-400">{t("grid.saveError")}</p>}
 
           <div className="mt-2 flex justify-end gap-2">
             <button
@@ -164,14 +166,14 @@ export function GridBuilderDialog({ open, onClose, grid }: GridBuilderDialogProp
               onClick={onClose}
               className="rounded px-4 py-2 text-sm text-neutral-400 hover:text-neutral-100"
             >
-              Cancelar
+              {t("grid.cancel")}
             </button>
             <button
               type="submit"
               disabled={!canSubmit}
               className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
             >
-              {isPending ? "Salvando..." : "Salvar"}
+              {isPending ? t("grid.saving") : t("grid.save")}
             </button>
           </div>
         </form>

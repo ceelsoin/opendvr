@@ -5,6 +5,7 @@ import { z } from "zod";
 import { countUsers, createUser, getUserByUsername } from "../../db/users.repository.js";
 import { buildAuthCookie, buildClearAuthCookie, getCookie, signAuthToken, verifyAuthToken } from "../../auth/token.js";
 import { env } from "../../config/env.js";
+import { t } from "../../i18n/index.js";
 import { logger } from "../../lib/logger.js";
 
 export const authRouter = Router();
@@ -39,13 +40,13 @@ function resolveSessionDuration(rememberMe: boolean | undefined): { expiresIn: s
 /** Creates the first (and typically only) admin account. Refuses if one already exists - use /login instead. */
 authRouter.post("/setup", async (req, res) => {
   if (countUsers() > 0) {
-    res.status(409).json({ error: "Já existe uma conta configurada. Use a tela de login." });
+    res.status(409).json({ error: t("errors.accountAlreadyExists") });
     return;
   }
 
   const parsed = credentialsSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Dados inválidos", details: parsed.error.flatten() });
+    res.status(400).json({ error: t("errors.invalidPayload"), details: parsed.error.flatten() });
     return;
   }
 
@@ -62,14 +63,14 @@ authRouter.post("/setup", async (req, res) => {
 authRouter.post("/login", async (req, res) => {
   const parsed = credentialsSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Usuário ou senha inválidos" });
+    res.status(400).json({ error: t("errors.invalidCredentials") });
     return;
   }
 
   const user = getUserByUsername(parsed.data.username);
   const validPassword = user ? await bcrypt.compare(parsed.data.password, user.passwordHash) : false;
   if (!user || !validPassword) {
-    res.status(401).json({ error: "Usuário ou senha inválidos" });
+    res.status(401).json({ error: t("errors.invalidCredentials") });
     return;
   }
 

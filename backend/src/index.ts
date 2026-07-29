@@ -13,7 +13,9 @@ import { getCameraPathStatus } from "./media/mediamtx.js";
 import { stopAllVlcRelays } from "./media/vlcRelay.js";
 import { stopAllMjpegBridges } from "./media/mjpegBridge.js";
 import { stopAllWebpageBridges } from "./media/webpageBridge.js";
+import { stopAllRotationBridges } from "./media/rotationBridge.js";
 import { runRetentionCleanup } from "./jobs/retentionCleanup.js";
+import { warmPtzConnection, PTZ_CONNECTION_TTL_MS } from "./onvif/ptz.js";
 import { logger } from "./lib/logger.js";
 
 runMigrations();
@@ -37,7 +39,25 @@ for (const camera of listCameras()) {
   if (shouldDetectMotion(camera)) {
     void startMotionListening(camera);
   }
+  if (camera.hasPtz) {
+    void warmPtzConnection(camera);
+  }
 }
+
+// Cameras' PTZ connections (see onvif/ptz.ts) are cached for
+// PTZ_CONNECTION_TTL_MS to avoid paying a full ONVIF reconnect (~10-25s on
+// these fragile OEM cameras) on every button press - but that only helps
+// once *something* has warmed the cache. Proactively refreshing it on a
+// recurring basis (comfortably before it expires) means a user's first PTZ
+// command of the day/session is fast too, instead of eating that cost live
+// the first time they actually try to move the camera.
+const PTZ_WARMUP_INTERVAL_MS = PTZ_CONNECTION_TTL_MS - 60_000;
+setInterval(() => {
+  for (const camera of listCameras()) {
+    if (!camera.enabled || !camera.hasPtz) continue;
+    void warmPtzConnection(camera);
+  }
+}, PTZ_WARMUP_INTERVAL_MS).unref();
 
 // Also guard against MediaMTX restarting on its own (crash/OOM) while the
 // backend keeps running: periodically check whether each camera's path is
@@ -112,6 +132,7 @@ function shutdown(signal: string) {
   stopAllVlcRelays();
   stopAllMjpegBridges();
   void stopAllWebpageBridges();
+  stopAllRotationBridges();
   stopAllMotionDetectors();
   httpServer.close(() => process.exit(0));
   setTimeout(() => process.exit(1), 5000).unref();

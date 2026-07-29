@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useCameras } from "../api/cameras";
 import { useDeleteEvent, useEvents, useMarkEventRead } from "../api/events";
 import { friendlyEventType } from "../lib/eventLabels";
@@ -11,6 +12,7 @@ function todayDateInputValue(): string {
 }
 
 export function EventsPage() {
+  const { t, i18n } = useTranslation();
   const { data: cameras } = useCameras();
   const [cameraId, setCameraId] = useState<string>("");
   const [date, setDate] = useState<string>(todayDateInputValue());
@@ -41,7 +43,7 @@ export function EventsPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
         <label className="text-sm text-neutral-400" htmlFor="events-camera-select">
-          Câmera
+          {t("events.cameraLabel")}
         </label>
         <select
           id="events-camera-select"
@@ -49,7 +51,7 @@ export function EventsPage() {
           value={cameraId}
           onChange={(e) => setCameraId(e.target.value)}
         >
-          <option value="">Todas</option>
+          <option value="">{t("events.allCameras")}</option>
           {cameras?.map((camera) => (
             <option key={camera.id} value={camera.id}>
               {camera.name}
@@ -58,7 +60,7 @@ export function EventsPage() {
         </select>
 
         <label className="text-sm text-neutral-400" htmlFor="events-date-select">
-          Dia
+          {t("events.dayLabel")}
         </label>
         <input
           id="events-date-select"
@@ -69,7 +71,7 @@ export function EventsPage() {
         />
 
         <label className="text-sm text-neutral-400" htmlFor="events-type-select">
-          Tipo
+          {t("events.typeLabel")}
         </label>
         <select
           id="events-type-select"
@@ -77,24 +79,24 @@ export function EventsPage() {
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
         >
-          <option value="">Todos</option>
+          <option value="">{t("events.allTypes")}</option>
           {availableTypes.map((type) => (
             <option key={type} value={type}>
-              {friendlyEventType(type)}
+              {friendlyEventType(type, t)}
             </option>
           ))}
         </select>
 
         <label className="flex items-center gap-2 text-sm text-neutral-400">
           <input type="checkbox" checked={unreadOnly} onChange={(e) => setUnreadOnly(e.target.checked)} />
-          Apenas não lidos
+          {t("events.unreadOnly")}
         </label>
       </div>
 
       {isLoading ? (
-        <p className="text-neutral-400">Carregando eventos...</p>
+        <p className="text-neutral-400">{t("events.loading")}</p>
       ) : filteredEvents.length === 0 ? (
-        <p className="text-neutral-400">Nenhum evento registrado neste período.</p>
+        <p className="text-neutral-400">{t("events.none")}</p>
       ) : (
         <div className="flex flex-col gap-2">
           {filteredEvents.map((event) => (
@@ -107,15 +109,15 @@ export function EventsPage() {
               {event.snapshotUrl && (
                 <img
                   src={event.snapshotUrl}
-                  alt="Snapshot do evento"
+                  alt={t("events.snapshotAlt")}
                   className="h-14 w-24 shrink-0 rounded object-cover"
                 />
               )}
               <div className="flex flex-1 flex-col">
                 <span className="font-medium">{cameraName(event.camera_id)}</span>
-                <span className="text-xs text-neutral-500">{friendlyEventType(event.type)}</span>
+                <span className="text-xs text-neutral-500">{friendlyEventType(event.type, t)}</span>
               </div>
-              <span className="text-neutral-500">{new Date(event.occurred_at).toLocaleString()}</span>
+              <span className="text-neutral-500">{new Date(event.occurred_at).toLocaleString(i18n.language)}</span>
               <div className="flex shrink-0 items-center gap-2">
                 {!event.read && (
                   <button
@@ -123,7 +125,7 @@ export function EventsPage() {
                     onClick={() => markRead.mutate({ id: event.id, read: true })}
                     className="rounded-md bg-neutral-800 px-2 py-1 text-xs hover:bg-neutral-700"
                   >
-                    Marcar como lido
+                    {t("events.markRead")}
                   </button>
                 )}
                 <button
@@ -131,7 +133,7 @@ export function EventsPage() {
                   onClick={() => deleteEvent.mutate(event.id)}
                   className="rounded-md px-2 py-1 text-xs text-red-400 hover:bg-red-950"
                 >
-                  Excluir
+                  {t("events.delete")}
                 </button>
               </div>
             </div>

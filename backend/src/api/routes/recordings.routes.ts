@@ -2,6 +2,7 @@ import { Router } from "express";
 import { getCameraById } from "../../db/cameras.repository.js";
 import { listRecordingSegments } from "../../media/mediamtx.js";
 import { errorMessage } from "../../lib/errors.js";
+import { t } from "../../i18n/index.js";
 import { logger } from "../../lib/logger.js";
 
 export const recordingsRouter = Router();
@@ -20,7 +21,7 @@ export const recordingsRouter = Router();
 recordingsRouter.get("/:cameraId", async (req, res) => {
   const camera = getCameraById(req.params.cameraId);
   if (!camera) {
-    res.status(404).json({ error: "Camera not found" });
+    res.status(404).json({ error: t("errors.cameraNotFound") });
     return;
   }
 
@@ -40,6 +41,6 @@ recordingsRouter.get("/:cameraId", async (req, res) => {
     );
   } catch (err) {
     logger.warn({ err, cameraId: camera.id }, "Failed to list recording segments");
-    res.status(502).json({ error: "Não foi possível listar as gravações.", details: errorMessage(err) });
+    res.status(502).json({ error: t("errors.recordingsListFailed"), details: errorMessage(err) });
   }
 });

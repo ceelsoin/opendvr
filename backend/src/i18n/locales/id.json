@@ -1,0 +1,40 @@
+{
+  "errors": {
+    "cameraNotFound": "Kamera tidak ditemukan",
+    "gridNotFound": "Grid tidak ditemukan",
+    "eventNotFound": "Peristiwa tidak ditemukan",
+    "invalidPayload": "Data tidak valid",
+    "onvifConnectionFailed": "Tidak dapat terhubung ke kamera melalui ONVIF. Periksa host, port, jalur ONVIF, dan kredensial.",
+    "hostRequired": "Host wajib diisi.",
+    "usernameRequired": "Nama pengguna wajib diisi.",
+    "passwordRequired": "Kata sandi wajib diisi.",
+    "streamUrlRequired": "URL stream wajib diisi.",
+    "onvifUrlInvalid": "URL ONVIF tidak valid",
+    "onvifCredentialsRequired": "Masukkan host, nama pengguna, dan kata sandi (atau URL ONVIF)",
+    "onvifHostRequired": "Masukkan host (atau URL ONVIF)",
+    "ptzMoveFailed": "Gagal menggerakkan PTZ",
+    "ptzStopFailed": "Gagal menghentikan PTZ",
+    "ptzPresetsListFailed": "Gagal mendapatkan daftar preset",
+    "ptzPresetSetFailed": "Gagal menyimpan preset",
+    "ptzPresetGotoFailed": "Gagal berpindah ke preset",
+    "recordingsListFailed": "Tidak dapat menampilkan daftar rekaman.",
+    "discoveryFailed": "Penemuan gagal",
+    "invalidCredentials": "Nama pengguna atau kata sandi tidak valid",
+    "accountAlreadyExists": "Akun sudah dikonfigurasi. Gunakan layar masuk.",
+    "discordNotConfigured": "Webhook Discord belum dikonfigurasi.",
+    "telegramNotConfigured": "Token bot / ID obrolan Telegram belum dikonfigurasi.",
+    "webhookNotConfigured": "URL webhook umum belum dikonfigurasi.",
+    "smtpNotConfigured": "SMTP belum dikonfigurasi (host, pengirim, dan penerima wajib diisi)."
+  },
+  "notifications": {
+    "testMessage": "🔔 Notifikasi uji coba OpenDVR",
+    "testCameraName": "Uji Coba",
+    "motionDetected": "Gerakan terdeteksi",
+    "tamperDetected": "Perusakan/gangguan terdeteksi",
+    "lineCrossingDetected": "Pelintasan garis terdeteksi",
+    "intrusionDetected": "Penyusupan area terdeteksi",
+    "occupancyDetected": "Okupansi area terdeteksi",
+    "watchRecording": "Tonton rekaman:",
+    "eventMessage": "📷 {{camera}}: {{eventType}} pukul {{time}}"
+  }
+}

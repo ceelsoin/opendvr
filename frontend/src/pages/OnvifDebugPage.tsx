@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useCameras } from "../api/cameras";
 import { useOnvifDebugCommands, useRunOnvifDebugCommand } from "../api/onvifDebug";
 
@@ -10,6 +11,8 @@ interface HistoryEntry {
   status: "pending" | "ok" | "error" | "local";
   output?: unknown;
   errorMessage?: string;
+  startedAt?: number;
+  tookMs?: number;
 }
 
 let nextEntryId = 0;
@@ -24,6 +27,7 @@ function formatOutput(output: unknown): string {
 }
 
 export function OnvifDebugPage() {
+  const { t, i18n } = useTranslation();
   const { data: cameras } = useCameras();
   const { data: commands } = useOnvifDebugCommands();
   const runCommand = useRunOnvifDebugCommand();
@@ -54,7 +58,7 @@ export function OnvifDebugPage() {
   }, [commandNameFilter, commands]);
 
   const pushEntry = (entry: Omit<HistoryEntry, "id" | "timestamp">) => {
-    setHistory((h) => [...h, { ...entry, id: nextEntryId++, timestamp: new Date().toLocaleTimeString() }]);
+    setHistory((h) => [...h, { ...entry, id: nextEntryId++, timestamp: new Date().toLocaleTimeString(i18n.language) }]);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -70,7 +74,7 @@ export function OnvifDebugPage() {
         cameraName: selectedCamera?.name ?? "-",
         raw,
         status: "error",
-        errorMessage: 'Comandos começam com "/". Digite /help para ver a lista.',
+        errorMessage: t("onvifDebug.commandsMustStartWithSlash"),
       });
       return;
     }
@@ -82,7 +86,7 @@ export function OnvifDebugPage() {
       const listing = (commands ?? [])
         .map((c) => `${c.usage}\n    ${c.description}`)
         .join("\n\n");
-      pushEntry({ cameraName: selectedCamera?.name ?? "-", raw, status: "local", output: listing || "Carregando comandos..." });
+      pushEntry({ cameraName: selectedCamera?.name ?? "-", raw, status: "local", output: listing || t("onvifDebug.loadingCommands") });
       return;
     }
 
@@ -92,33 +96,45 @@ export function OnvifDebugPage() {
     }
 
     if (!selectedCamera) {
-      pushEntry({ cameraName: "-", raw, status: "error", errorMessage: "Selecione uma câmera primeiro." });
+      pushEntry({ cameraName: "-", raw, status: "error", errorMessage: t("onvifDebug.selectCameraFirst") });
       return;
     }
 
     const entryId = nextEntryId++;
+    const startedAt = Date.now();
     setHistory((h) => [
       ...h,
-      { id: entryId, cameraName: selectedCamera.name, raw, status: "pending", timestamp: new Date().toLocaleTimeString() },
+      {
+        id: entryId,
+        cameraName: selectedCamera.name,
+        raw,
+        status: "pending",
+        timestamp: new Date().toLocaleTimeString(i18n.language),
+        startedAt,
+      },
     ]);
 
     runCommand.mutate(
       { cameraId: selectedCamera.id, command, args },
       {
         onSuccess: (data) => {
+          const tookMs = Date.now() - startedAt;
           setHistory((h) =>
             h.map((entry) =>
               entry.id === entryId
                 ? data.ok
-                  ? { ...entry, status: "ok", output: data.result }
-                  : { ...entry, status: "error", errorMessage: data.error }
+                  ? { ...entry, status: "ok", output: data.result, tookMs }
+                  : { ...entry, status: "error", errorMessage: data.error, tookMs }
                 : entry
             )
           );
         },
         onError: (err) => {
+          const tookMs = Date.now() - startedAt;
           setHistory((h) =>
-            h.map((entry) => (entry.id === entryId ? { ...entry, status: "error", errorMessage: String(err) } : entry))
+            h.map((entry) =>
+              entry.id === entryId ? { ...entry, status: "error", errorMessage: String(err), tookMs } : entry
+            )
           );
         },
       }
@@ -150,7 +166,7 @@ export function OnvifDebugPage() {
   return (
     <div className="flex h-[calc(100vh-3rem)] flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold">Debug ONVIF</h2>
+        <h2 className="text-base font-semibold">{t("onvifDebug.title")}</h2>
         <select
           value={cameraId}
           onChange={(e) => setCameraId(e.target.value)}
@@ -170,8 +186,7 @@ export function OnvifDebugPage() {
       >
         {history.length === 0 && (
           <p className="text-neutral-600">
-            Digite <span className="text-neutral-300">/help</span> para ver os comandos disponíveis. Exemplo:{" "}
-            <span className="text-neutral-300">/device.info</span>
+            {t("onvifDebug.helpHint")}
           </p>
         )}
         {history.map((entry) => (
@@ -180,7 +195,8 @@ export function OnvifDebugPage() {
               <span>[{entry.timestamp}]</span>
               {entry.status !== "local" && <span className="text-blue-400">{entry.cameraName}</span>}
               <span className="text-neutral-300">{entry.raw}</span>
-              {entry.status === "pending" && <span className="text-yellow-500">executando...</span>}
+              {entry.status === "pending" && <span className="text-yellow-500">{t("onvifDebug.executing")}</span>}
+              {entry.tookMs !== undefined && <span className="text-neutral-600">took {entry.tookMs}ms</span>}
             </div>
             {entry.status === "ok" && (
               <pre className="mt-1 whitespace-pre-wrap break-all text-green-400">{formatOutput(entry.output)}</pre>
@@ -223,7 +239,7 @@ export function OnvifDebugPage() {
             type="submit"
             className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium hover:bg-blue-500"
           >
-            Enviar
+            {t("onvifDebug.send")}
           </button>
         </form>
       </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { usePtzGotoPreset, usePtzPresets, usePtzSavePreset } from "../../api/ptz";
 import { usePtzTargetStore } from "../../store/ptzTargetStore";
 import { extractErrorMessage } from "../../lib/apiError";
@@ -12,6 +13,7 @@ import { PtzJoystick } from "./PtzJoystick";
  * instead of being embedded inline in each camera tile.
  */
 export function PtzTargetPanel() {
+  const { t } = useTranslation();
   const target = usePtzTargetStore((s) => s.target);
   const clearTarget = usePtzTargetStore((s) => s.clearTarget);
   const addToast = useToastStore((s) => s.addToast);
@@ -24,17 +26,17 @@ export function PtzTargetPanel() {
   if (!target) return null;
 
   const handleSavePreset = () => {
-    const name = window.prompt("Nome do preset:");
+    const name = window.prompt(t("ptz.presetNamePrompt"));
     if (name) {
       savePreset.mutate(name, {
-        onError: (err) => addToast("error", extractErrorMessage(err, "Falha ao salvar o preset.")),
+        onError: (err) => addToast("error", extractErrorMessage(err, t("ptz.savePresetFailed"))),
       });
     }
   };
 
   const handleGotoPreset = (token: string) => {
     gotoPreset.mutate(token, {
-      onError: (err) => addToast("error", extractErrorMessage(err, "Falha ao ir para o preset.")),
+      onError: (err) => addToast("error", extractErrorMessage(err, t("ptz.gotoPresetFailed"))),
     });
   };
 
@@ -44,13 +46,13 @@ export function PtzTargetPanel() {
         <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-blue-400">
           <span className="h-2 w-2 shrink-0 rounded-full bg-blue-500" />
           <span className="truncate">
-            Controlando: <span className="text-neutral-200">{target.name}</span>
+            {t("ptz.controlling")} <span className="text-neutral-200">{target.name}</span>
           </span>
         </div>
         <button
           type="button"
           onClick={clearTarget}
-          title="Fechar controle PTZ"
+          title={t("ptz.closeControl")}
           className="shrink-0 text-neutral-500 hover:text-neutral-300"
         >
           ✕
@@ -63,13 +65,13 @@ export function PtzTargetPanel() {
 
       <div className="flex flex-col gap-1.5 border-t border-neutral-800 pt-2">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] text-neutral-500">Presets</span>
+          <span className="text-[11px] text-neutral-500">{t("ptz.presetsLabel")}</span>
           <button
             type="button"
             onClick={handleSavePreset}
             className="text-[11px] text-neutral-400 hover:text-neutral-200"
           >
-            + salvar posição
+            {t("ptz.savePresetButtonShort")}
           </button>
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -83,7 +85,7 @@ export function PtzTargetPanel() {
               {preset.name ?? preset.token}
             </button>
           ))}
-          {!presets.data?.length && <span className="text-[11px] text-neutral-600">Nenhum preset salvo</span>}
+          {!presets.data?.length && <span className="text-[11px] text-neutral-600">{t("ptz.noPresets")}</span>}
         </div>
       </div>
     </div>
