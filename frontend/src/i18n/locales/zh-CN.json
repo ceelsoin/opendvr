@@ -246,8 +246,8 @@
     "fitAllHint": "自动调整卡片大小和列数，使所有摄像头都能在屏幕上显示，无需滚动。"
   },
   "settingsPage": {
-    "title": "外部通知",
-    "description": "检测到移动/破坏事件（ONVIF 或视频分析）时会自动发送。每个渠道独立决定是否将当时的快照作为附件发送。",
+    "title": "设置",
+    "description": "调整系统设置。例如页面上的 HLS 流优化设置，以及在检测到移动/破坏事件（ONVIF 或视频分析）时自动发送的通知。每个渠道独立决定是否将当时的快照作为附件发送。",
     "configured": "已配置",
     "notConfigured": "未配置",
     "discordTitle": "Discord",
@@ -312,7 +312,24 @@
     "toastPushEnableFailed": "启用推送通知失败。",
     "toastPushPermissionDenied": "浏览器中的通知权限被拒绝。",
     "toastPushDisabled": "已在此设备上禁用推送通知。",
-    "toastPushDisableFailed": "禁用推送通知失败。"
+    "toastPushDisableFailed": "禁用推送通知失败。",
+    "streamTitle": "流媒体（HLS）优化",
+    "streamDescription": "调整 MediaMTX 生成 HLS 的方式以及浏览器播放器的缓冲方式 - 当摄像头的流已经连接但网页播放器仍加载缓慢或失败时很有用。",
+    "streamVariantLabel": "HLS 格式",
+    "streamVariantLowLatency": "低延迟 HLS（推荐）",
+    "streamVariantFmp4": "分段 MP4",
+    "streamVariantMpegts": "MPEG-TS（最大兼容性）",
+    "streamSegmentCountLabel": "保留的分段数",
+    "streamSegmentDurationLabel": "分段时长（如 1s）",
+    "streamPartDurationLabel": "分片时长（如 200ms）",
+    "streamSegmentMaxSizeLabel": "分段最大大小（如 50M）",
+    "streamMuxerCloseAfterLabel": "最后一个观看者离开后保持 HLS 活跃（如 60s）",
+    "streamLiveSyncLabel": "播放器实时同步（落后直播的分段数）",
+    "streamMaxBufferLabel": "播放器最大缓冲（秒）",
+    "streamAlwaysRemuxLabel": "始终生成 HLS，即使没有观看者（占用更多内存，消除首次加载延迟）",
+    "streamPreferSubStreamLabel": "在网格中使用较低质量的子码流（全屏时切换为主码流）",
+    "toastStreamSaved": "流媒体设置已保存。",
+    "toastStreamSaveFailed": "保存流媒体设置失败。"
   },
   "timeline": {
     "cameraLabel": "摄像头",

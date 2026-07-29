@@ -11,12 +11,13 @@ import {
   updateCamera,
 } from "../../db/cameras.repository.js";
 import { discoverStreams } from "../../onvif/device.js";
-import { deleteCameraPath, getCameraPathStatus } from "../../media/mediamtx.js";
+import { deleteCameraPath, getCameraPathStatus, subStreamPathName } from "../../media/mediamtx.js";
 import { provisionCamera } from "../../media/provisioning.js";
 import { getVlcRelayUrl, stopVlcRelay } from "../../media/vlcRelay.js";
 import { stopMjpegBridge } from "../../media/mjpegBridge.js";
 import { stopWebpageBridge } from "../../media/webpageBridge.js";
 import { stopRotationBridge } from "../../media/rotationBridge.js";
+import { stopTimestampBridge } from "../../media/timestampBridge.js";
 import { stopMotionRecording } from "../../media/motionRecording.js";
 import { restartMotionListening, shouldDetectMotion, startMotionListening, stopMotionListening } from "../../media/motionOrchestrator.js";
 import { errorMessage } from "../../lib/errors.js";
@@ -245,7 +246,9 @@ camerasRouter.delete("/:id", async (req, res) => {
   await stopMjpegBridge(camera.id);
   await stopWebpageBridge(camera.id);
   await stopRotationBridge(camera.id);
+  await stopTimestampBridge(camera.id);
   await deleteCameraPath(camera.id);
+  await deleteCameraPath(subStreamPathName(camera.id));
   deleteCamera(camera.id);
   res.status(204).send();
 });
@@ -269,7 +272,9 @@ camerasRouter.post("/:id/disable", async (req, res) => {
   await stopMjpegBridge(camera.id);
   await stopWebpageBridge(camera.id);
   await stopRotationBridge(camera.id);
+  await stopTimestampBridge(camera.id);
   await deleteCameraPath(camera.id);
+  await deleteCameraPath(subStreamPathName(camera.id));
   const updated = setCameraEnabled(camera.id, false);
   res.json(toPublicCamera(updated ?? camera));
 });

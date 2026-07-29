@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getNotificationSettings, updateNotificationSettings } from "../../notifications/notificationSettings.js";
 import { sendTestNotification } from "../../notifications/webhooks.js";
 import { hasPushSubscriptions } from "../../lib/webPush.js";
+import { applyStreamSettingsToMediaMtx, getStreamSettings, updateStreamSettings } from "../../media/streamSettings.js";
 import { getBackendLanguage, setBackendLanguage, SUPPORTED_BACKEND_LANGUAGES, t } from "../../i18n/index.js";
 import { errorMessage } from "../../lib/errors.js";
 import { logger } from "../../lib/logger.js";
@@ -124,4 +125,32 @@ settingsRouter.post("/notifications/test", async (req, res) => {
     logger.warn({ err, channel: parsed.data.channel }, "Test notification failed");
     res.status(502).json({ ok: false, error: errorMessage(err) });
   }
+});
+
+settingsRouter.get("/stream", (_req, res) => {
+  res.json(getStreamSettings());
+});
+
+const updateStreamSettingsSchema = z.object({
+  hlsVariant: z.enum(["mpegts", "fmp4", "lowLatency"]).optional(),
+  hlsSegmentCount: z.number().int().min(2).max(60).optional(),
+  hlsSegmentDuration: z.string().min(1).optional(),
+  hlsPartDuration: z.string().min(1).optional(),
+  hlsSegmentMaxSize: z.string().min(1).optional(),
+  hlsAlwaysRemux: z.boolean().optional(),
+  hlsMuxerCloseAfter: z.string().min(1).optional(),
+  preferSubStreamInGrid: z.boolean().optional(),
+  playerLiveSyncDurationCount: z.number().int().min(1).max(20).optional(),
+  playerMaxBufferLength: z.number().min(1).max(60).optional(),
+});
+
+settingsRouter.put("/stream", async (req, res) => {
+  const parsed = updateStreamSettingsSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: t("errors.invalidPayload"), details: parsed.error.flatten() });
+    return;
+  }
+  const updated = updateStreamSettings(parsed.data);
+  await applyStreamSettingsToMediaMtx();
+  res.json(updated);
 });

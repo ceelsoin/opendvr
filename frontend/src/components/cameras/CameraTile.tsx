@@ -9,6 +9,7 @@ import {
   useRestartCamera,
   useTestCameraConnection,
 } from "../../api/cameras";
+import { useStreamSettings } from "../../api/streamSettings";
 import type { Camera } from "../../api/types";
 import { HlsPlayer } from "../player/HlsPlayer";
 import { useCameraEventStore } from "../../store/cameraEventStore";
@@ -65,6 +66,31 @@ export function CameraTile({ camera, fillHeight = false }: { camera: Camera; fil
   // page needing a reload.
   const [reloadKey, setReloadKey] = useState(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Grid tiles load the lighter sub-stream (when the camera has one and the
+  // Settings page's "prefer sub-stream in grid" toggle is on) for faster/
+  // lighter loading, switching to the full-quality main stream in
+  // fullscreen - see api/streamSettings.ts and media/provisioning.ts's
+  // `provisionSubStreamPath` on the backend.
+  const { data: streamSettings } = useStreamSettings();
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  useEffect(() => {
+    const handleFullscreenChange = () => setIsFullscreen(document.fullscreenElement === containerRef.current);
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+  // Must mirror media/provisioning.ts's `provisionSubStreamPath` eligibility
+  // check exactly - it never registers a `_sub` path for vlc-relay cameras
+  // (single-RTSP-session OEM cameras, see media/vlcRelay.ts), even if a
+  // sub-stream profile was otherwise resolved via ONVIF. Requesting a `_sub`
+  // path that was never provisioned makes MediaMTX's HLS server 404 with
+  // `{"error":"path '..._sub' is not configured"}`.
+  const usesSubStream =
+    !isFullscreen &&
+    streamSettings?.preferSubStreamInGrid &&
+    Boolean(camera.subStreamWidth) &&
+    camera.rtspCompatMode !== "vlc-relay";
+  const hlsPathName = usesSubStream ? `${camera.id}_sub` : camera.id;
 
   // Always polled (not just when the "diagnóstico" panel is open) so the
   // status dot reflects real RTSP readiness, not just camera.status. Not
@@ -245,7 +271,7 @@ export function CameraTile({ camera, fillHeight = false }: { camera: Camera; fil
             {!camera.enabled ? t("cameras.statusDisabledTitle") : t("cameras.statusOfflineTitle")}
           </div>
         ) : (
-          <HlsPlayer key={reloadKey} src={`/hls/${camera.id}/index.m3u8`} className="h-full w-full" />
+          <HlsPlayer key={reloadKey} src={`/hls/${hlsPathName}/index.m3u8`} className="h-full w-full" />
         )}
         {!showOffline && camera.recordingMode === "continuous" && (
           <div className="absolute right-2 top-2 flex items-center gap-1.5 rounded bg-black/60 px-2 py-1 text-xs font-medium text-red-400">

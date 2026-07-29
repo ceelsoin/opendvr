@@ -246,8 +246,8 @@
     "fitAllHint": "يضبط حجم البلاطات وعدد الأعمدة تلقائيًا لتناسب جميع الكاميرات في الشاشة دون الحاجة إلى التمرير."
   },
   "settingsPage": {
-    "title": "الإشعارات الخارجية",
-    "description": "تُرسل تلقائيًا عند اكتشاف حدث حركة/عبث (ONVIF أو تحليل فيديو). يقرر كل قناة بشكل مستقل ما إذا كانت سترسل لقطة تلك اللحظة كمرفق.",
+    "title": "الإعدادات",
+    "description": "اضبط إعدادات النظام. مثل إعدادات تحسين بث HLS في الصفحة والإشعارات التي تُرسل تلقائيًا عند اكتشاف حدث حركة/عبث (ONVIF أو تحليل فيديو). يقرر كل قناة بشكل مستقل ما إذا كانت سترسل لقطة تلك اللحظة كمرفق.",
     "configured": "تم الإعداد",
     "notConfigured": "لم يتم الإعداد",
     "discordTitle": "Discord",
@@ -312,7 +312,24 @@
     "toastPushEnableFailed": "فشل تفعيل إشعارات الدفع.",
     "toastPushPermissionDenied": "تم رفض إذن الإشعارات في المتصفح.",
     "toastPushDisabled": "تم تعطيل إشعارات الدفع على هذا الجهاز.",
-    "toastPushDisableFailed": "فشل تعطيل إشعارات الدفع."
+    "toastPushDisableFailed": "فشل تعطيل إشعارات الدفع.",
+    "streamTitle": "تحسين البث (HLS)",
+    "streamDescription": "يضبط كيفية توليد MediaMTX لبث HLS وكيفية تخزين المشغّل في المتصفح للبيانات مؤقتًا - مفيد عندما يكون بث الكاميرا متصلاً بال‌فعل لكن مشغّل الويب لا يزال بطيئًا في التحميل أو يفشل.",
+    "streamVariantLabel": "صيغة HLS",
+    "streamVariantLowLatency": "HLS منخفض الكمون (موصى به)",
+    "streamVariantFmp4": "MP4 مجزأ",
+    "streamVariantMpegts": "MPEG-TS (أقصى توافق)",
+    "streamSegmentCountLabel": "عدد المقاطع المحتفظ بها",
+    "streamSegmentDurationLabel": "مدة المقطع (مثال: 1s)",
+    "streamPartDurationLabel": "مدة الجزء (مثال: 200ms)",
+    "streamSegmentMaxSizeLabel": "الحجم الأقصى للمقطع (مثال: 50M)",
+    "streamMuxerCloseAfterLabel": "إبقاء HLS نشطًا بعد آخر مشاهد (مثال: 60s)",
+    "streamLiveSyncLabel": "مزامنة المشغّل المباشرة (عدد المقاطع خلف البث المباشر)",
+    "streamMaxBufferLabel": "الحد الأقصى لتخزين المشغّل المؤقت (بالثواني)",
+    "streamAlwaysRemuxLabel": "توليد HLS دائمًا حتى بدون مشاهدين (يستهلك ذاكرة أكثر، يزيل تأخير التحميل الأول)",
+    "streamPreferSubStreamLabel": "استخدام البث الفرعي الأقل جودة في الشبكة (يتحول إلى البث الرئيسي في وضع ملء الشاشة)",
+    "toastStreamSaved": "تم حفظ إعدادات البث.",
+    "toastStreamSaveFailed": "فشل حفظ إعدادات البث."
   },
   "timeline": {
     "cameraLabel": "الكاميرا",

@@ -246,8 +246,8 @@
     "fitAllHint": "타일 크기와 열 수를 자동으로 조정하여 모든 카메라가 스크롤 없이 화면에 맞도록 합니다."
   },
   "settingsPage": {
-    "title": "외부 알림",
-    "description": "동작/훼손 이벤트가 감지되면(ONVIF 또는 동영상 분석) 자동으로 전송됩니다. 각 채널은 해당 순간의 스냅샷을 첨부로 보낼지 독립적으로 결정합니다.",
+    "title": "설정",
+    "description": "시스템 설정을 조정합니다. 예를 들어 페이지의 HLS 스트림 최적화 설정과 동작/훼손 이벤트(ONVIF 또는 동영상 분석)가 감지될 때 자동으로 전송되는 알림 등입니다. 각 채널은 해당 순간의 스냅샷을 첨부로 보낼지 독립적으로 결정합니다.",
     "configured": "설정됨",
     "notConfigured": "설정되지 않음",
     "discordTitle": "Discord",
@@ -312,7 +312,24 @@
     "toastPushEnableFailed": "푸시 알림 활성화에 실패했습니다.",
     "toastPushPermissionDenied": "브라우저에서 알림 권한이 거부되었습니다.",
     "toastPushDisabled": "이 기기에서 푸시 알림이 비활성화되었습니다.",
-    "toastPushDisableFailed": "푸시 알림 비활성화에 실패했습니다."
+    "toastPushDisableFailed": "푸시 알림 비활성화에 실패했습니다.",
+    "streamTitle": "스트리밍(HLS) 최적화",
+    "streamDescription": "MediaMTX가 HLS를 생성하는 방식과 브라우저 플레이어의 버퍼링 방식을 조정합니다 - 카메라 스트림은 이미 연결되어 있지만 웹 플레이어가 여전히 느리게 로드되거나 실패할 때 유용합니다.",
+    "streamVariantLabel": "HLS 형식",
+    "streamVariantLowLatency": "저지연 HLS(권장)",
+    "streamVariantFmp4": "분할 MP4",
+    "streamVariantMpegts": "MPEG-TS(최대 호환성)",
+    "streamSegmentCountLabel": "유지할 세그먼트 수",
+    "streamSegmentDurationLabel": "세그먼트 길이(예: 1s)",
+    "streamPartDurationLabel": "파트 길이(예: 200ms)",
+    "streamSegmentMaxSizeLabel": "최대 세그먼트 크기(예: 50M)",
+    "streamMuxerCloseAfterLabel": "마지막 시청자 이후 HLS 유지 시간(예: 60s)",
+    "streamLiveSyncLabel": "플레이어 라이브 동기화(라이브보다 뒤처진 세그먼트 수)",
+    "streamMaxBufferLabel": "플레이어 최대 버퍼(초)",
+    "streamAlwaysRemuxLabel": "시청자가 없어도 항상 HLS 생성(RAM을 더 사용하지만 첫 로딩 지연이 사라짐)",
+    "streamPreferSubStreamLabel": "그리드에서 저화질 서브 스트림 사용(전체 화면에서는 메인 스트림으로 전환)",
+    "toastStreamSaved": "스트리밍 설정이 저장되었습니다.",
+    "toastStreamSaveFailed": "스트리밍 설정 저장에 실패했습니다."
   },
   "timeline": {
     "cameraLabel": "카메라",

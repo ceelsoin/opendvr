@@ -246,8 +246,8 @@
     "fitAllHint": "Menyesuaikan ukuran kotak dan jumlah kolom secara otomatis agar semua kamera muat di layar tanpa perlu menggulir."
   },
   "settingsPage": {
-    "title": "Notifikasi eksternal",
-    "description": "Dikirim secara otomatis saat peristiwa gerakan/gangguan terdeteksi (ONVIF atau analisis video). Setiap saluran secara independen memutuskan apakah akan mengirim snapshot saat itu sebagai lampiran.",
+    "title": "Pengaturan",
+    "description": "Sesuaikan pengaturan sistem. Seperti pengaturan optimasi stream HLS pada halaman dan notifikasi yang dikirim secara otomatis saat peristiwa gerakan/gangguan terdeteksi (ONVIF atau analisis video). Setiap saluran secara independen memutuskan apakah akan mengirim snapshot saat itu sebagai lampiran.",
     "configured": "Dikonfigurasi",
     "notConfigured": "Belum dikonfigurasi",
     "discordTitle": "Discord",
@@ -312,7 +312,24 @@
     "toastPushEnableFailed": "Gagal mengaktifkan notifikasi push.",
     "toastPushPermissionDenied": "Izin notifikasi ditolak di browser.",
     "toastPushDisabled": "Notifikasi push dinonaktifkan di perangkat ini.",
-    "toastPushDisableFailed": "Gagal menonaktifkan notifikasi push."
+    "toastPushDisableFailed": "Gagal menonaktifkan notifikasi push.",
+    "streamTitle": "Optimasi streaming (HLS)",
+    "streamDescription": "Menyesuaikan cara MediaMTX menghasilkan HLS dan cara pemutar di browser melakukan buffering - berguna saat stream kamera sudah terhubung tetapi pemutar web masih lambat dimuat atau gagal.",
+    "streamVariantLabel": "Format HLS",
+    "streamVariantLowLatency": "HLS latensi rendah (disarankan)",
+    "streamVariantFmp4": "MP4 terfragmentasi",
+    "streamVariantMpegts": "MPEG-TS (kompatibilitas maksimum)",
+    "streamSegmentCountLabel": "Jumlah segmen yang disimpan",
+    "streamSegmentDurationLabel": "Durasi segmen (mis. 1s)",
+    "streamPartDurationLabel": "Durasi bagian (mis. 200ms)",
+    "streamSegmentMaxSizeLabel": "Ukuran maksimum segmen (mis. 50M)",
+    "streamMuxerCloseAfterLabel": "Pertahankan HLS aktif setelah penonton terakhir (mis. 60s)",
+    "streamLiveSyncLabel": "Sinkronisasi live pemutar (jumlah segmen di belakang live)",
+    "streamMaxBufferLabel": "Buffer maksimum pemutar (detik)",
+    "streamAlwaysRemuxLabel": "Selalu hasilkan HLS, bahkan tanpa penonton (menggunakan lebih banyak RAM, menghilangkan penundaan pemuatan pertama)",
+    "streamPreferSubStreamLabel": "Gunakan sub-stream kualitas lebih rendah di grid (beralih ke stream utama saat layar penuh)",
+    "toastStreamSaved": "Pengaturan streaming disimpan.",
+    "toastStreamSaveFailed": "Gagal menyimpan pengaturan streaming."
   },
   "timeline": {
     "cameraLabel": "Kamera",

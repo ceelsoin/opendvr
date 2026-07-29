@@ -59,6 +59,11 @@ export async function upsertCameraPath(pathName: string, config: MediaMtxPathCon
   logger.info({ pathName }, "MediaMTX path registered");
 }
 
+/** Derives the MediaMTX path name used for a camera's sub-stream (lower-resolution profile), when one is available - see media/provisioning.ts's `provisionSubStreamPath` and frontend quality-switching in CameraTile.tsx. */
+export function subStreamPathName(cameraId: string): string {
+  return `${cameraId}_sub`;
+}
+
 /** Removes a camera's path configuration from MediaMTX (e.g. on camera deletion). */
 export async function deleteCameraPath(pathName: string): Promise<void> {
   try {
@@ -177,4 +182,30 @@ export async function getRecordingClip(pathName: string, start: string, duration
     throw new Error(`MediaMTX playback API GET /get failed: ${res.status} ${body}`);
   }
   return Buffer.from(await res.arrayBuffer());
+}
+
+/** Subset of MediaMTX's global config relevant to HLS delivery tuning - see media/streamSettings.ts, which is the source of truth for the persisted values (this is just the shape of the PATCH body). */
+export interface GlobalHlsConfig {
+  hlsVariant?: "mpegts" | "fmp4" | "lowLatency";
+  hlsSegmentCount?: number;
+  hlsSegmentDuration?: string;
+  hlsPartDuration?: string;
+  hlsSegmentMaxSize?: string;
+  hlsAlwaysRemux?: boolean;
+  hlsMuxerCloseAfter?: string;
+}
+
+/**
+ * Patches MediaMTX's GLOBAL configuration (`/v3/config/global/patch`) -
+ * unlike `upsertCameraPath`/`patchCameraPath`, this affects every camera's
+ * HLS output at once, since HLS segment/part tuning isn't a per-path
+ * setting in MediaMTX. Applied at boot and whenever the Settings page's
+ * stream section is saved (see media/streamSettings.ts).
+ */
+export async function patchGlobalConfig(partial: GlobalHlsConfig): Promise<void> {
+  await request(`/v3/config/global/patch`, {
+    method: "PATCH",
+    body: JSON.stringify(partial),
+  });
+  logger.info({ partial }, "MediaMTX global config updated");
 }

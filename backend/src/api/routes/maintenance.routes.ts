@@ -13,6 +13,7 @@ import { stopAllVlcRelays } from "../../media/vlcRelay.js";
 import { stopAllMjpegBridges } from "../../media/mjpegBridge.js";
 import { stopAllWebpageBridges } from "../../media/webpageBridge.js";
 import { stopAllRotationBridges } from "../../media/rotationBridge.js";
+import { stopAllTimestampBridges } from "../../media/timestampBridge.js";
 import { stopAllRecordings } from "../../media/recorder.js";
 import { stopAllMotionDetectors } from "../../media/motionDetector.js";
 import { env } from "../../config/env.js";
@@ -128,6 +129,7 @@ maintenanceRouter.post("/factory-reset", async (req, res) => {
   stopAllMjpegBridges();
   await stopAllWebpageBridges();
   stopAllRotationBridges();
+  stopAllTimestampBridges();
   stopAllRecordings();
   stopAllMotionDetectors();
 

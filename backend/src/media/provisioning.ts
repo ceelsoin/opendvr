@@ -1,11 +1,12 @@
 import type { Camera } from "../types/camera.js";
 import { discoverStreams } from "../onvif/device.js";
-import { upsertCameraPath } from "./mediamtx.js";
+import { deleteCameraPath, subStreamPathName, upsertCameraPath } from "./mediamtx.js";
 import { withRtspCredentials } from "../lib/rtsp.js";
 import { ensureVlcRelay, stopVlcRelay } from "./vlcRelay.js";
 import { ensureMjpegBridge } from "./mjpegBridge.js";
 import { ensureWebpageBridge } from "./webpageBridge.js";
 import { ensureRotationBridge, stopRotationBridge } from "./rotationBridge.js";
+import { ensureTimestampBridge, stopTimestampBridge } from "./timestampBridge.js";
 import { updateCameraConnection } from "../db/cameras.repository.js";
 import { logger } from "../lib/logger.js";
 
@@ -71,6 +72,7 @@ async function provisionDirectSourceCamera(camera: Camera): Promise<Camera["stat
           : camera.rtspMainUri;
 
     if (camera.rotation !== 0) {
+      await stopTimestampBridge(camera.id);
       await upsertCameraPath(camera.id, {
         source: "publisher",
         sourceOnDemand: false,
@@ -88,13 +90,27 @@ async function provisionDirectSourceCamera(camera: Camera): Promise<Camera["stat
     }
     await stopRotationBridge(camera.id);
 
-    await upsertCameraPath(camera.id, {
-      source: sourceUri,
-      sourceOnDemand: false,
-      record: camera.recordingMode === "continuous",
-      rtspTransport: camera.sourceType === "rtsp" ? (camera.rtspCompatMode === "vlc-relay" ? "udp" : "tcp") : undefined,
-      recordDeleteAfter: `${camera.retentionDays}d`,
-    });
+    if (camera.sourceType === "rtsp" && camera.rtspCompatMode === "vlc-relay") {
+      // See media/timestampBridge.ts: the relay's own RTSP output can't be
+      // pulled directly by MediaMTX (its HLS muxer crash-loops on the
+      // relay's unreliable timestamps) - publish a sanitized copy instead.
+      await upsertCameraPath(camera.id, {
+        source: "publisher",
+        sourceOnDemand: false,
+        record: camera.recordingMode === "continuous",
+        recordDeleteAfter: `${camera.retentionDays}d`,
+      });
+      await ensureTimestampBridge(camera.id, sourceUri);
+    } else {
+      await stopTimestampBridge(camera.id);
+      await upsertCameraPath(camera.id, {
+        source: sourceUri,
+        sourceOnDemand: false,
+        record: camera.recordingMode === "continuous",
+        rtspTransport: camera.sourceType === "rtsp" ? "tcp" : undefined,
+        recordDeleteAfter: `${camera.retentionDays}d`,
+      });
+    }
     updateCameraConnection(camera.id, { status: "online" });
     logger.info({ cameraId: camera.id }, "Câmera provisionada com sucesso");
     return "online";
@@ -102,6 +118,43 @@ async function provisionDirectSourceCamera(camera: Camera): Promise<Camera["stat
     logger.warn({ err, cameraId: camera.id }, "Failed to provision direct-source stream for camera");
     updateCameraConnection(camera.id, { status: "offline" });
     return "offline";
+  }
+}
+
+/**
+ * Registers (or removes) a second MediaMTX path for the camera's lower-
+ * resolution sub-stream, `${camera.id}_sub` (see mediamtx.ts's
+ * `subStreamPathName`) - lets the web player load a lighter feed for grid
+ * tiles while keeping the main path for fullscreen/recording (see
+ * frontend/src/components/cameras/CameraTile.tsx). Only meaningful for
+ * ONVIF cameras with a resolved sub-stream URI; removes any stale sub path
+ * otherwise (e.g. the user cleared the sub-stream selection on edit).
+ * Skipped entirely for `vlc-relay` cameras - that compatibility mode
+ * already pins a single RTSP session against the main stream, and the OEM
+ * cameras that need it are frequently limited to one concurrent RTSP
+ * session in the first place (see media/vlcRelay.ts) - so a second direct
+ * connection would likely just break both. Best-effort: never throws, a
+ * failure here just means quality-switching isn't available for this
+ * camera, the main stream keeps working normally.
+ */
+async function provisionSubStreamPath(camera: Camera): Promise<void> {
+  const subPath = subStreamPathName(camera.id);
+  if (!camera.rtspSubUri || camera.rtspCompatMode === "vlc-relay") {
+    await deleteCameraPath(subPath);
+    return;
+  }
+  try {
+    await upsertCameraPath(subPath, {
+      source: withRtspCredentials(camera.rtspSubUri, camera.username, camera.password),
+      // Always connected, same reasoning as the main path below - an
+      // on-demand sub-stream would reintroduce exactly the "first load
+      // waits for the camera" delay this feature is meant to avoid.
+      sourceOnDemand: false,
+      record: false,
+      rtspTransport: "tcp",
+    });
+  } catch (err) {
+    logger.warn({ err, cameraId: camera.id }, "Failed to provision sub-stream MediaMTX path");
   }
 }
 
@@ -153,6 +206,7 @@ async function provisionOnvifCamera(camera: Camera, options: { forceRefresh?: bo
         : withRtspCredentials(rtspUri, camera.username, camera.password);
 
     if (camera.rotation !== 0) {
+      await stopTimestampBridge(camera.id);
       await upsertCameraPath(camera.id, {
         source: "publisher",
         sourceOnDemand: false,
@@ -171,41 +225,50 @@ async function provisionOnvifCamera(camera: Camera, options: { forceRefresh?: bo
         ...(mainStreamMetadata ? { mainStreamMetadata } : {}),
         ...(subStreamMetadata ? { subStreamMetadata } : {}),
       });
+      await provisionSubStreamPath(camera);
       return "online";
     }
     await stopRotationBridge(camera.id);
 
-    await upsertCameraPath(camera.id, {
-      source: sourceUri,
-      // Always keep the source connected, regardless of whether disk
-      // recording is enabled. Otherwise (on-demand) MediaMTX only connects
-      // to the camera/relay when a viewer opens the stream, so every first
-      // load of the frontend has to wait for that connection to establish
-      // (ONVIF/relay/RTSP handshake) before anything plays - by staying
-      // always connected, the frontend just attaches to an already-ready
-      // stream, which is instant.
-      sourceOnDemand: false,
-      record: camera.recordingMode === "continuous",
-      // Cheap/OEM cameras (and containerized deployments) are more reliable
-      // over TCP; UDP is more prone to packet loss/NAT issues that show up
-      // as a stuck/never-ready path even though the camera is reachable.
-      // EXCEPTION: the VLC relay's own RTSP output (#rtp{sdp=...}) only
-      // serves over UDP - forcing TCP against it fails with "461 Unsupported
-      // transport". This hop is container-to-container on the same docker
-      // network though (no real NAT/packet-loss concern), so UDP is safe here.
-      rtspTransport: camera.rtspCompatMode === "vlc-relay" ? "udp" : "tcp",
-      // Per-camera retention: overrides mediamtx.yml's global pathDefaults
-      // (7d) so each camera's own `retentionDays` setting actually governs
-      // how long its recorded clips are kept, instead of one fixed value
-      // for every camera. MediaMTX handles the actual file deletion natively.
-      recordDeleteAfter: `${camera.retentionDays}d`,
-    });
+    if (camera.rtspCompatMode === "vlc-relay") {
+      // See media/timestampBridge.ts: the relay's own RTSP output can't be
+      // pulled directly by MediaMTX (its HLS muxer crash-loops on the
+      // relay's unreliable timestamps) - publish a sanitized copy instead.
+      await upsertCameraPath(camera.id, {
+        source: "publisher",
+        sourceOnDemand: false,
+        record: camera.recordingMode === "continuous",
+        recordDeleteAfter: `${camera.retentionDays}d`,
+      });
+      await ensureTimestampBridge(camera.id, sourceUri);
+    } else {
+      await stopTimestampBridge(camera.id);
+      await upsertCameraPath(camera.id, {
+        source: sourceUri,
+        // Always keep the source connected, regardless of whether disk
+        // recording is enabled. Otherwise (on-demand) MediaMTX only connects
+        // to the camera/relay when a viewer opens the stream, so every first
+        // load of the frontend has to wait for that connection to establish
+        // (ONVIF/relay/RTSP handshake) before anything plays - by staying
+        // always connected, the frontend just attaches to an already-ready
+        // stream, which is instant.
+        sourceOnDemand: false,
+        record: camera.recordingMode === "continuous",
+        rtspTransport: "tcp",
+        // Per-camera retention: overrides mediamtx.yml's global pathDefaults
+        // (7d) so each camera's own `retentionDays` setting actually governs
+        // how long its recorded clips are kept, instead of one fixed value
+        // for every camera. MediaMTX handles the actual file deletion natively.
+        recordDeleteAfter: `${camera.retentionDays}d`,
+      });
+    }
     updateCameraConnection(camera.id, {
       rtspMainUri: rtspUri,
       status: "online",
       ...(mainStreamMetadata ? { mainStreamMetadata } : {}),
       ...(subStreamMetadata ? { subStreamMetadata } : {}),
     });
+    await provisionSubStreamPath(camera);
     logger.info({ cameraId: camera.id }, "Câmera provisionada com sucesso");
     return "online";
   } catch (err) {

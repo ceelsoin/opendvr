@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import Hls from "hls.js";
+import { useStreamSettings } from "../../api/streamSettings";
 
 interface HlsPlayerProps {
   src: string;
@@ -12,12 +13,16 @@ type PlayerState = "loading" | "playing" | "error";
 /**
  * Plays an HLS stream (MediaMTX output, proxied through the backend at
  * /hls/<cameraId>/index.m3u8). Uses hls.js where needed, falling back to
- * the browser's native HLS support (Safari).
+ * the browser's native HLS support (Safari). Buffer/latency tuning comes
+ * from the Settings page's stream section (see api/streamSettings.ts) -
+ * shared/cached across every mounted player, so this adds no extra
+ * requests beyond the first.
  */
 export function HlsPlayer({ src, className }: HlsPlayerProps) {
   const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [state, setState] = useState<PlayerState>("loading");
+  const { data: streamSettings } = useStreamSettings();
 
   useEffect(() => {
     const video = videoRef.current;
@@ -59,6 +64,9 @@ export function HlsPlayer({ src, className }: HlsPlayerProps) {
         // camera is registered (MediaMTX connects to the source on demand).
         manifestLoadingMaxRetry: 6,
         manifestLoadingRetryDelay: 2000,
+        lowLatencyMode: streamSettings?.hlsVariant === "lowLatency",
+        liveSyncDurationCount: streamSettings?.playerLiveSyncDurationCount ?? 3,
+        maxBufferLength: streamSettings?.playerMaxBufferLength ?? 10,
       });
       hls.on(Hls.Events.ERROR, (_event, data) => {
         if (!data.fatal) return;
@@ -124,7 +132,7 @@ export function HlsPlayer({ src, className }: HlsPlayerProps) {
       video.removeEventListener("error", handleNativeError);
       hls?.destroy();
     };
-  }, [src]);
+  }, [src, streamSettings]);
 
   return (
     <div className={`relative ${className ?? ""}`}>

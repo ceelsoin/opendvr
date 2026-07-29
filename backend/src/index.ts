@@ -12,10 +12,12 @@ import { startMotionListening, shouldDetectMotion } from "./media/motionOrchestr
 import { stopAllMotionDetectors } from "./media/motionDetector.js";
 import { provisionCamera } from "./media/provisioning.js";
 import { getCameraPathStatus } from "./media/mediamtx.js";
+import { applyStreamSettingsToMediaMtx } from "./media/streamSettings.js";
 import { stopAllVlcRelays } from "./media/vlcRelay.js";
 import { stopAllMjpegBridges } from "./media/mjpegBridge.js";
 import { stopAllWebpageBridges } from "./media/webpageBridge.js";
 import { stopAllRotationBridges } from "./media/rotationBridge.js";
+import { stopAllTimestampBridges } from "./media/timestampBridge.js";
 import { runRetentionCleanup } from "./jobs/retentionCleanup.js";
 import { warmPtzConnection, PTZ_CONNECTION_TTL_MS } from "./onvif/ptz.js";
 import { notifyCameraUnavailable, notifyCameraRecovered } from "./notifications/webhooks.js";
@@ -55,11 +57,12 @@ if (env.httpsCertFile && env.httpsKeyFile) {
   }
 }
 
-// MediaMTX paths only exist in-memory (registered via its Control API), so
-// they're lost whenever the MediaMTX container/process restarts - even if
-// the backend itself didn't. Re-provision every stored camera on boot so
-// streams/recording resume without the user having to manually hit
-// "Reiniciar" on each camera after any restart.
+// MediaMTX paths - AND its global HLS config, see media/streamSettings.ts -
+// only exist in-memory (set via its Control API), so they're lost whenever
+// the MediaMTX container/process restarts - even if the backend itself
+// didn't. Re-apply both on boot so streams/recording and any saved HLS
+// tuning resume without the user having to manually hit "Reiniciar".
+void applyStreamSettingsToMediaMtx();
 for (const camera of listCameras()) {
   if (!camera.enabled) continue;
   void provisionCamera(camera);
@@ -202,6 +205,7 @@ function shutdown(signal: string) {
   stopAllMjpegBridges();
   void stopAllWebpageBridges();
   stopAllRotationBridges();
+  stopAllTimestampBridges();
   stopAllMotionDetectors();
   httpsServer?.close();
   httpServer.close(() => process.exit(0));

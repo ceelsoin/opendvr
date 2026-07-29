@@ -257,8 +257,8 @@
     "fitAllHint": "Automatically adjusts tile size and column count so every camera fits on screen without scrolling."
   },
   "settingsPage": {
-    "title": "External notifications",
-    "description": "Sent automatically when a motion/tamper event is detected (ONVIF or video analysis). Each channel independently decides whether to send the moment's snapshot as an attachment.",
+    "title": "Settings",
+    "description": "Adjust the system settings, such as the page's HLS stream optimization settings and notifications automatically sent when a motion/tamper event is detected (ONVIF or video analysis). Each channel independently decides whether to send the moment's snapshot as an attachment.",
     "configured": "Configured",
     "notConfigured": "Not configured",
     "discordTitle": "Discord",
@@ -323,7 +323,24 @@
     "toastPushEnableFailed": "Failed to enable push notifications.",
     "toastPushPermissionDenied": "Notification permission was denied in the browser.",
     "toastPushDisabled": "Push notifications disabled on this device.",
-    "toastPushDisableFailed": "Failed to disable push notifications."
+    "toastPushDisableFailed": "Failed to disable push notifications.",
+    "streamTitle": "Streaming (HLS) optimization",
+    "streamDescription": "Tune how MediaMTX generates HLS and how the browser player buffers it - useful when the camera's stream is already connected but the web player is still slow to start or fails.",
+    "streamVariantLabel": "HLS format",
+    "streamVariantLowLatency": "Low-Latency HLS (recommended)",
+    "streamVariantFmp4": "Fragmented MP4",
+    "streamVariantMpegts": "MPEG-TS (maximum compatibility)",
+    "streamSegmentCountLabel": "Segments kept",
+    "streamSegmentDurationLabel": "Segment duration (e.g. 1s)",
+    "streamPartDurationLabel": "Part duration (e.g. 200ms)",
+    "streamSegmentMaxSizeLabel": "Max segment size (e.g. 50M)",
+    "streamMuxerCloseAfterLabel": "Keep HLS warm after last viewer (e.g. 60s)",
+    "streamLiveSyncLabel": "Player live sync (segments behind live)",
+    "streamMaxBufferLabel": "Player max buffer (seconds)",
+    "streamAlwaysRemuxLabel": "Always generate HLS, even with no viewers (uses more RAM, removes first-load delay)",
+    "streamPreferSubStreamLabel": "Use the lower-quality sub-stream in the grid (switches to main stream in fullscreen)",
+    "toastStreamSaved": "Streaming settings saved.",
+    "toastStreamSaveFailed": "Failed to save streaming settings."
   },
   "timeline": {
     "cameraLabel": "Camera",

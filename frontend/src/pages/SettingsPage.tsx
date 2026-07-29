@@ -6,6 +6,7 @@ import {
   useTestNotification,
   useUpdateNotificationSettings,
 } from "../api/settings";
+import { useStreamSettings, useUpdateStreamSettings, type HlsVariant } from "../api/streamSettings";
 import { useSubscribePush, useUnsubscribePush, useVapidPublicKey } from "../api/push";
 import { getExistingPushSubscription, isPushSupported, subscribeToPush, unsubscribeFromPush } from "../lib/push";
 import { useToastStore } from "../store/toastStore";
@@ -42,6 +43,19 @@ export function SettingsPage() {
   const [s3SecretKey, setS3SecretKey] = useState("");
   const [s3BucketName, setS3BucketName] = useState("");
 
+  const { data: streamSettings } = useStreamSettings();
+  const updateStreamSettings = useUpdateStreamSettings();
+  const [hlsVariant, setHlsVariant] = useState<HlsVariant>("lowLatency");
+  const [hlsSegmentCount, setHlsSegmentCount] = useState("7");
+  const [hlsSegmentDuration, setHlsSegmentDuration] = useState("1s");
+  const [hlsPartDuration, setHlsPartDuration] = useState("200ms");
+  const [hlsSegmentMaxSize, setHlsSegmentMaxSize] = useState("50M");
+  const [hlsAlwaysRemux, setHlsAlwaysRemux] = useState(false);
+  const [hlsMuxerCloseAfter, setHlsMuxerCloseAfter] = useState("60s");
+  const [preferSubStreamInGrid, setPreferSubStreamInGrid] = useState(false);
+  const [playerLiveSyncDurationCount, setPlayerLiveSyncDurationCount] = useState("3");
+  const [playerMaxBufferLength, setPlayerMaxBufferLength] = useState("10");
+
   const pushSupported = isPushSupported();
   const [pushSubscription, setPushSubscription] = useState<PushSubscription | null>(null);
   const [pushBusy, setPushBusy] = useState(false);
@@ -77,6 +91,20 @@ export function SettingsPage() {
     setS3AccessKey(status.s3AccessKey ?? "");
     setS3BucketName(status.s3BucketName ?? "");
   }, [status]);
+
+  useEffect(() => {
+    if (!streamSettings) return;
+    setHlsVariant(streamSettings.hlsVariant);
+    setHlsSegmentCount(String(streamSettings.hlsSegmentCount));
+    setHlsSegmentDuration(streamSettings.hlsSegmentDuration);
+    setHlsPartDuration(streamSettings.hlsPartDuration);
+    setHlsSegmentMaxSize(streamSettings.hlsSegmentMaxSize);
+    setHlsAlwaysRemux(streamSettings.hlsAlwaysRemux);
+    setHlsMuxerCloseAfter(streamSettings.hlsMuxerCloseAfter);
+    setPreferSubStreamInGrid(streamSettings.preferSubStreamInGrid);
+    setPlayerLiveSyncDurationCount(String(streamSettings.playerLiveSyncDurationCount));
+    setPlayerMaxBufferLength(String(streamSettings.playerMaxBufferLength));
+  }, [streamSettings]);
 
   const extractErrorMessage = (err: unknown, fallback: string): string => {
     const data = axios.isAxiosError(err) ? (err.response?.data as { error?: string }) : undefined;
@@ -198,6 +226,27 @@ export function SettingsPage() {
     }
   };
 
+  const handleSaveStream = async (e: FormEvent) => {
+    e.preventDefault();
+    try {
+      await updateStreamSettings.mutateAsync({
+        hlsVariant,
+        hlsSegmentCount: Number(hlsSegmentCount),
+        hlsSegmentDuration,
+        hlsPartDuration,
+        hlsSegmentMaxSize,
+        hlsAlwaysRemux,
+        hlsMuxerCloseAfter,
+        preferSubStreamInGrid,
+        playerLiveSyncDurationCount: Number(playerLiveSyncDurationCount),
+        playerMaxBufferLength: Number(playerMaxBufferLength),
+      });
+      addToast("success", t("settingsPage.toastStreamSaved"));
+    } catch (err) {
+      addToast("error", extractErrorMessage(err, t("settingsPage.toastStreamSaveFailed")));
+    }
+  };
+
   const handleSaveS3 = async (e: FormEvent) => {
     e.preventDefault();
     try {
@@ -282,6 +331,118 @@ export function SettingsPage() {
         </p>
       </div>
 
+      {/* Streaming (HLS) optimization */}
+      <form onSubmit={handleSaveStream} className="flex flex-col gap-3 rounded-lg border border-neutral-800 p-4">
+        <div>
+          <h3 className="text-sm font-medium">{t("settingsPage.streamTitle")}</h3>
+          <p className="text-sm text-neutral-500">{t("settingsPage.streamDescription")}</p>
+        </div>
+
+        <label className="flex flex-col gap-1 text-sm">
+          {t("settingsPage.streamVariantLabel")}
+          <select
+            value={hlsVariant}
+            onChange={(e) => setHlsVariant(e.target.value as HlsVariant)}
+            className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+          >
+            <option value="lowLatency">{t("settingsPage.streamVariantLowLatency")}</option>
+            <option value="fmp4">{t("settingsPage.streamVariantFmp4")}</option>
+            <option value="mpegts">{t("settingsPage.streamVariantMpegts")}</option>
+          </select>
+        </label>
+
+        <div className="grid grid-cols-2 gap-3">
+          <label className="flex flex-col gap-1 text-sm">
+            {t("settingsPage.streamSegmentCountLabel")}
+            <input
+              type="number"
+              min={2}
+              max={60}
+              value={hlsSegmentCount}
+              onChange={(e) => setHlsSegmentCount(e.target.value)}
+              className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            {t("settingsPage.streamSegmentDurationLabel")}
+            <input
+              value={hlsSegmentDuration}
+              onChange={(e) => setHlsSegmentDuration(e.target.value)}
+              className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            {t("settingsPage.streamPartDurationLabel")}
+            <input
+              value={hlsPartDuration}
+              onChange={(e) => setHlsPartDuration(e.target.value)}
+              className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            {t("settingsPage.streamSegmentMaxSizeLabel")}
+            <input
+              value={hlsSegmentMaxSize}
+              onChange={(e) => setHlsSegmentMaxSize(e.target.value)}
+              className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            {t("settingsPage.streamMuxerCloseAfterLabel")}
+            <input
+              value={hlsMuxerCloseAfter}
+              onChange={(e) => setHlsMuxerCloseAfter(e.target.value)}
+              className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            {t("settingsPage.streamLiveSyncLabel")}
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={playerLiveSyncDurationCount}
+              onChange={(e) => setPlayerLiveSyncDurationCount(e.target.value)}
+              className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            {t("settingsPage.streamMaxBufferLabel")}
+            <input
+              type="number"
+              min={1}
+              max={60}
+              value={playerMaxBufferLength}
+              onChange={(e) => setPlayerMaxBufferLength(e.target.value)}
+              className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+            />
+          </label>
+        </div>
+
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={hlsAlwaysRemux} onChange={(e) => setHlsAlwaysRemux(e.target.checked)} />
+          {t("settingsPage.streamAlwaysRemuxLabel")}
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={preferSubStreamInGrid}
+            onChange={(e) => setPreferSubStreamInGrid(e.target.checked)}
+          />
+          {t("settingsPage.streamPreferSubStreamLabel")}
+        </label>
+
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={updateStreamSettings.isPending}
+            className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium hover:bg-blue-500 disabled:opacity-50"
+          >
+            {t("settingsPage.save")}
+          </button>
+        </div>
+      </form>
+
       {/* Push (PWA) */}
       <div className="flex flex-col gap-2 rounded-lg border border-neutral-800 p-4">
         <div className="flex items-center justify-between">
@@ -320,6 +481,8 @@ export function SettingsPage() {
           </div>
         )}
       </div>
+
+      
 
       {/* Discord */}
       <form onSubmit={handleSaveDiscord} className="flex flex-col gap-2 rounded-lg border border-neutral-800 p-4">

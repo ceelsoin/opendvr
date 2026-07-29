@@ -246,8 +246,8 @@
     "fitAllHint": "タイルのサイズと列数を自動調整し、スクロールせずにすべてのカメラを画面に収めます。"
   },
   "settingsPage": {
-    "title": "外部通知",
-    "description": "動体検知/改ざんイベントが検知されると自動的に送信されます（ONVIFまたは動画解析）。各チャンネルは、その瞬間のスナップショットを添付するかどうかを個別に決定します。",
+    "title": "設定",
+    "description": "システム設定を調整します。ページ上のHLSストリーム最適化設定や、動体検知/改ざんイベント（ONVIFまたは動画解析）が検知されたときに自動的に送信される通知などです。各チャンネルは、その瞬間のスナップショットを添付するかどうかを個別に決定します。",
     "configured": "設定済み",
     "notConfigured": "未設定",
     "discordTitle": "Discord",
@@ -312,7 +312,24 @@
     "toastPushEnableFailed": "プッシュ通知の有効化に失敗しました。",
     "toastPushPermissionDenied": "ブラウザで通知の許可が拒否されました。",
     "toastPushDisabled": "このデバイスでプッシュ通知を無効にしました。",
-    "toastPushDisableFailed": "プッシュ通知の無効化に失敗しました。"
+    "toastPushDisableFailed": "プッシュ通知の無効化に失敗しました。",
+    "streamTitle": "ストリーミング（HLS）の最適化",
+    "streamDescription": "MediaMTX が HLS を生成する方法とブラウザプレーヤーのバッファリング方法を調整します - カメラのストリームはすでに接続されているのに、Web プレーヤーの読み込みが遅い、または失敗する場合に役立ちます。",
+    "streamVariantLabel": "HLS 形式",
+    "streamVariantLowLatency": "低遅延 HLS（推奨）",
+    "streamVariantFmp4": "フラグメント化 MP4",
+    "streamVariantMpegts": "MPEG-TS（最大互換性）",
+    "streamSegmentCountLabel": "保持するセグメント数",
+    "streamSegmentDurationLabel": "セグメント長（例: 1s）",
+    "streamPartDurationLabel": "パート長（例: 200ms）",
+    "streamSegmentMaxSizeLabel": "セグメント最大サイズ（例: 50M）",
+    "streamMuxerCloseAfterLabel": "最後の視聴者の後も HLS を維持する時間（例: 60s）",
+    "streamLiveSyncLabel": "プレーヤーのライブ同期（ライブから遅れるセグメント数）",
+    "streamMaxBufferLabel": "プレーヤーの最大バッファ（秒）",
+    "streamAlwaysRemuxLabel": "視聴者がいなくても常に HLS を生成する（メモリ使用量が増えるが、初回読み込みの遅延がなくなる）",
+    "streamPreferSubStreamLabel": "グリッドでは低画質のサブストリームを使用する（フルスクリーンではメインストリームに切り替え）",
+    "toastStreamSaved": "ストリーミング設定を保存しました。",
+    "toastStreamSaveFailed": "ストリーミング設定の保存に失敗しました。"
   },
   "timeline": {
     "cameraLabel": "カメラ",
