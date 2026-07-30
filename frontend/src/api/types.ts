@@ -168,6 +168,7 @@ export interface CustomGrid {
   name: string;
   columns: number;
   cameraIds: string[];
+  isPublic: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -176,7 +177,23 @@ export interface CreateGridInput {
   name: string;
   columns?: number;
   cameraIds: string[];
+  isPublic?: boolean;
 }
 
 export type UpdateGridInput = Partial<CreateGridInput>;
+
+/** Credential-free camera shape served by GET /grids/:id/public - see backend/src/types/grid.ts. */
+export interface PublicGridCamera {
+  id: string;
+  name: string;
+  rotation: 0 | 90 | 180 | 270;
+  hasSubStream: boolean;
+}
+
+export interface PublicGrid {
+  id: string;
+  name: string;
+  columns: number;
+  cameras: PublicGridCamera[];
+}
 

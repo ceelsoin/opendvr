@@ -274,6 +274,8 @@
     "gridNameLabel": "ग्रिड का नाम",
     "gridNamePlaceholder": "उदा: प्रवेश द्वार, पिछवाड़ा, लिविंग रूम टैबलेट",
     "columnsLabel": "कॉलम (प्रारूप)",
+    "publicAccessLabel": "सार्वजनिक पहुंच (लॉगिन आवश्यक नहीं)",
+    "publicAccessHint": "लिंक रखने वाला कोई भी व्यक्ति बिना लॉगिन किए इस ग्रिड को देख सकेगा।",
     "availableCameras": "उपलब्ध कैमरे",
     "noCamerasRegistered": "अभी तक कोई कैमरा पंजीकृत नहीं है।",
     "gridOrder": "ग्रिड क्रम",

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "./client";
-import type { CreateGridInput, CustomGrid, UpdateGridInput } from "./types";
+import type { CreateGridInput, CustomGrid, PublicGrid, UpdateGridInput } from "./types";
 
 const GRIDS_KEY = ["grids"] as const;
 
@@ -23,6 +23,23 @@ export function useGrid(id: string | undefined) {
       return data;
     },
     enabled: Boolean(id),
+  });
+}
+
+/**
+ * Credential-free variant of the grid + its cameras, served without a
+ * session when the grid is marked public (see requireAuth.ts). Used by
+ * CustomGridViewPage so an anonymous viewer never needs `/api/cameras`.
+ */
+export function usePublicGrid(id: string | undefined) {
+  return useQuery({
+    queryKey: [...GRIDS_KEY, id, "public"],
+    queryFn: async () => {
+      const { data } = await apiClient.get<PublicGrid>(`/grids/${id}/public`);
+      return data;
+    },
+    enabled: Boolean(id),
+    retry: false,
   });
 }
 

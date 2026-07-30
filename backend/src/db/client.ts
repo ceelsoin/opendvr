@@ -57,7 +57,9 @@ const MIGRATIONS: string[] = [
   // Custom grids: user-defined layout (column count + ordered camera
   // selection). The row's `id` doubles as the unique, shareable/viewable
   // URL segment (GET /api/grids/:id has no auth, same as the rest of the
-  // API), so a grid can be pinned to a specific device via `/g/:id`.
+  // API), so a grid can be pinned to a specific device via `/g/:id`. When
+  // `is_public` is set, GET /api/grids/:id/public and the HLS streams for
+  // its cameras also bypass requireAuth - see auth/requireAuth.ts.
   `CREATE TABLE IF NOT EXISTS grids (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -209,6 +211,11 @@ const COLUMN_MIGRATIONS: Record<string, string[]> = {
     // (see notifications/captioning.ts) - filled in asynchronously after
     // the event row already exists, same pattern as snapshot_path.
     "ALTER TABLE events ADD COLUMN caption TEXT",
+  ],
+  grids: [
+    // Lets a grid opt out of requireAuth for its viewing endpoints (see
+    // db/grids.repository.ts's isCameraInPublicGrid + auth/requireAuth.ts).
+    "ALTER TABLE grids ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0",
   ],
 };
 

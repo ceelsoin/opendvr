@@ -274,6 +274,8 @@
     "gridNameLabel": "网格名称",
     "gridNamePlaceholder": "例如：门口、后院、客厅平板",
     "columnsLabel": "列数（布局）",
+    "publicAccessLabel": "公开访问（无需登录）",
+    "publicAccessHint": "任何拥有链接的人都可以在不登录的情况下查看此宫格布局。",
     "availableCameras": "可用摄像头",
     "noCamerasRegistered": "尚未注册任何摄像头。",
     "gridOrder": "网格顺序",

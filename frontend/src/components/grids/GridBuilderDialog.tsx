@@ -23,12 +23,14 @@ export function GridBuilderDialog({ open, onClose, grid }: GridBuilderDialogProp
   const [name, setName] = useState("");
   const [columns, setColumns] = useState(3);
   const [cameraIds, setCameraIds] = useState<string[]>([]);
+  const [isPublic, setIsPublic] = useState(false);
 
   useEffect(() => {
     if (open) {
       setName(grid?.name ?? "");
       setColumns(grid?.columns ?? 3);
       setCameraIds(grid?.cameraIds ?? []);
+      setIsPublic(grid?.isPublic ?? false);
     }
   }, [open, grid]);
 
@@ -56,7 +58,7 @@ export function GridBuilderDialog({ open, onClose, grid }: GridBuilderDialogProp
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    const input = { name: trimmedName, columns, cameraIds };
+    const input = { name: trimmedName, columns, cameraIds, isPublic };
     if (grid) {
       await updateGrid.mutateAsync({ id: grid.id, input });
     } else {
@@ -97,6 +99,12 @@ export function GridBuilderDialog({ open, onClose, grid }: GridBuilderDialogProp
               ))}
             </select>
           </label>
+
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />
+            {t("grid.publicAccessLabel")}
+          </label>
+          {isPublic && <p className="-mt-2 text-xs text-amber-400">{t("grid.publicAccessHint")}</p>}
 
           <div>
             <p className="mb-2 text-sm text-neutral-300">{t("grid.availableCameras")}</p>

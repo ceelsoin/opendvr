@@ -274,6 +274,8 @@
     "gridNameLabel": "Name des Grids",
     "gridNamePlaceholder": "Z. B.: Eingang, Garten, Tablet im Wohnzimmer",
     "columnsLabel": "Spalten (Format)",
+    "publicAccessLabel": "Öffentlicher Zugriff (ohne Anmeldung)",
+    "publicAccessHint": "Jeder mit dem Link kann dieses Grid ohne Anmeldung ansehen.",
     "availableCameras": "Verfügbare Kameras",
     "noCamerasRegistered": "Noch keine Kameras registriert.",
     "gridOrder": "Reihenfolge im Grid",

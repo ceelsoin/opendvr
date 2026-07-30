@@ -285,6 +285,8 @@
     "gridNameLabel": "Nome do grid",
     "gridNamePlaceholder": "Ex: Portaria, Fundos, Tablet da sala",
     "columnsLabel": "Colunas (formato)",
+    "publicAccessLabel": "Acesso público (sem login)",
+    "publicAccessHint": "Qualquer pessoa com o link poderá assistir a este grid sem precisar entrar na conta.",
     "availableCameras": "Câmeras disponíveis",
     "noCamerasRegistered": "Nenhuma câmera cadastrada ainda.",
     "gridOrder": "Ordem no grid",

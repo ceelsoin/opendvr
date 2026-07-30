@@ -274,6 +274,8 @@
     "gridNameLabel": "Nombre de la cuadrícula",
     "gridNamePlaceholder": "Ej: Entrada, Patio trasero, Tablet de la sala",
     "columnsLabel": "Columnas (formato)",
+    "publicAccessLabel": "Acceso público (sin inicio de sesión)",
+    "publicAccessHint": "Cualquier persona con el enlace podrá ver esta cuadrícula sin iniciar sesión.",
     "availableCameras": "Cámaras disponibles",
     "noCamerasRegistered": "Aún no hay cámaras registradas.",
     "gridOrder": "Orden en la cuadrícula",

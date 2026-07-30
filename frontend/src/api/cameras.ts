@@ -10,13 +10,14 @@ import type {
 
 const CAMERAS_KEY = ["cameras"] as const;
 
-export function useCameras() {
+export function useCameras(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: CAMERAS_KEY,
     queryFn: async () => {
       const { data } = await apiClient.get<Camera[]>("/cameras");
       return data;
     },
+    enabled: options?.enabled ?? true,
   });
 }
 

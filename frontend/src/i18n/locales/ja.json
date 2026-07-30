@@ -274,6 +274,8 @@
     "gridNameLabel": "グリッド名",
     "gridNamePlaceholder": "例: 玄関、庭、リビングのタブレット",
     "columnsLabel": "列数（レイアウト）",
+    "publicAccessLabel": "公開アクセス（ログイン不要）",
+    "publicAccessHint": "リンクを知っている人は誰でもログインせずにこのグリッドを閲覧できます。",
     "availableCameras": "利用可能なカメラ",
     "noCamerasRegistered": "まだカメラが登録されていません。",
     "gridOrder": "グリッドの順序",

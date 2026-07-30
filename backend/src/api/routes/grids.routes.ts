@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { z } from "zod";
 import { createGrid, deleteGrid, getGridById, listGrids, updateGrid } from "../../db/grids.repository.js";
+import { getCameraById } from "../../db/cameras.repository.js";
+import type { PublicGridCamera } from "../../types/grid.js";
 import { t } from "../../i18n/index.js";
 
 export const gridsRouter = Router();
@@ -9,6 +11,7 @@ const createGridSchema = z.object({
   name: z.string().min(1),
   columns: z.number().int().min(1).max(8).optional(),
   cameraIds: z.array(z.string()).default([]),
+  isPublic: z.boolean().optional(),
 });
 
 const updateGridSchema = createGridSchema.partial();
@@ -27,6 +30,28 @@ gridsRouter.get("/:id", (req, res) => {
     return;
   }
   res.json(grid);
+});
+
+// Bypasses requireAuth (see auth/requireAuth.ts) when the grid is marked
+// public - returns a credential-free camera shape (no host/username/RTSP
+// URIs) so an anonymous viewer only ever gets what's needed to render the
+// tiles for this specific grid.
+gridsRouter.get("/:id/public", (req, res) => {
+  const grid = getGridById(req.params.id);
+  if (!grid || !grid.isPublic) {
+    res.status(404).json({ error: t("errors.gridNotFound") });
+    return;
+  }
+  const cameras: PublicGridCamera[] = grid.cameraIds
+    .map((id) => getCameraById(id))
+    .filter((camera): camera is NonNullable<typeof camera> => Boolean(camera))
+    .map((camera) => ({
+      id: camera.id,
+      name: camera.name,
+      rotation: camera.rotation,
+      hasSubStream: Boolean(camera.subStreamWidth) && camera.rtspCompatMode !== "vlc-relay",
+    }));
+  res.json({ id: grid.id, name: grid.name, columns: grid.columns, cameras });
 });
 
 gridsRouter.post("/", (req, res) => {

@@ -285,6 +285,8 @@
     "gridNameLabel": "Grid name",
     "gridNamePlaceholder": "E.g.: Entrance, Backyard, Living room tablet",
     "columnsLabel": "Columns (layout)",
+    "publicAccessLabel": "Public access (no login required)",
+    "publicAccessHint": "Anyone with the link will be able to view this grid without signing in.",
     "availableCameras": "Available cameras",
     "noCamerasRegistered": "No cameras registered yet.",
     "gridOrder": "Grid order",

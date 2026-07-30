@@ -7,6 +7,7 @@ interface GridRow {
   name: string;
   columns: number;
   camera_ids: string;
+  is_public: number;
   created_at: string;
   updated_at: string;
 }
@@ -17,6 +18,7 @@ function toGrid(row: GridRow): Grid {
     name: row.name,
     columns: row.columns,
     cameraIds: JSON.parse(row.camera_ids) as string[],
+    isPublic: row.is_public === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -35,12 +37,13 @@ export function getGridById(id: string): Grid | null {
 export function createGrid(input: CreateGridInput): Grid {
   const id = randomUUID();
   db.prepare(
-    `INSERT INTO grids (id, name, columns, camera_ids) VALUES (@id, @name, @columns, @cameraIds)`
+    `INSERT INTO grids (id, name, columns, camera_ids, is_public) VALUES (@id, @name, @columns, @cameraIds, @isPublic)`
   ).run({
     id,
     name: input.name,
     columns: input.columns ?? 3,
     cameraIds: JSON.stringify(input.cameraIds ?? []),
+    isPublic: input.isPublic ? 1 : 0,
   });
   const grid = getGridById(id);
   if (!grid) {
@@ -65,6 +68,10 @@ export function updateGrid(id: string, input: UpdateGridInput): Grid | null {
     fields.push("camera_ids = @cameraIds");
     params.cameraIds = JSON.stringify(input.cameraIds);
   }
+  if (input.isPublic !== undefined) {
+    fields.push("is_public = @isPublic");
+    params.isPublic = input.isPublic ? 1 : 0;
+  }
 
   if (fields.length === 0) {
     return getGridById(id);
@@ -77,4 +84,14 @@ export function updateGrid(id: string, input: UpdateGridInput): Grid | null {
 export function deleteGrid(id: string): boolean {
   const result = db.prepare("DELETE FROM grids WHERE id = ?").run(id);
   return result.changes > 0;
+}
+
+/**
+ * Used by requireAuth to decide whether an unauthenticated request for a
+ * camera's HLS stream is allowed through: true if the camera belongs to at
+ * least one grid marked `isPublic`.
+ */
+export function isCameraInPublicGrid(cameraId: string): boolean {
+  const rows = db.prepare("SELECT camera_ids FROM grids WHERE is_public = 1").all() as { camera_ids: string }[];
+  return rows.some((row) => (JSON.parse(row.camera_ids) as string[]).includes(cameraId));
 }

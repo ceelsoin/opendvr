@@ -274,6 +274,8 @@
     "gridNameLabel": "Nama grid",
     "gridNamePlaceholder": "Mis: Pintu masuk, Halaman belakang, Tablet ruang keluarga",
     "columnsLabel": "Kolom (tata letak)",
+    "publicAccessLabel": "Akses publik (tanpa perlu login)",
+    "publicAccessHint": "Siapa pun yang memiliki tautan ini dapat melihat grid ini tanpa perlu masuk.",
     "availableCameras": "Kamera yang tersedia",
     "noCamerasRegistered": "Belum ada kamera yang terdaftar.",
     "gridOrder": "Urutan grid",

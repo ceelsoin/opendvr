@@ -274,6 +274,8 @@
     "gridNameLabel": "Nom de la grille",
     "gridNamePlaceholder": "Ex : Entrée, Jardin, Tablette du salon",
     "columnsLabel": "Colonnes (format)",
+    "publicAccessLabel": "Accès public (sans connexion)",
+    "publicAccessHint": "Toute personne disposant du lien pourra visionner cette grille sans se connecter.",
     "availableCameras": "Caméras disponibles",
     "noCamerasRegistered": "Aucune caméra enregistrée pour l'instant.",
     "gridOrder": "Ordre dans la grille",

@@ -274,6 +274,8 @@
     "gridNameLabel": "اسم الشبكة",
     "gridNamePlaceholder": "مثال: المدخل، الفناء الخلفي، جهاز اللوحي في غرفة الجلوس",
     "columnsLabel": "الأعمدة (التنسيق)",
+    "publicAccessLabel": "وصول عام (بدون تسجيل دخول)",
+    "publicAccessHint": "يمكن لأي شخص لديه الرابط مشاهدة هذه الشبكة دون الحاجة لتسجيل الدخول.",
     "availableCameras": "الكاميرات المتاحة",
     "noCamerasRegistered": "لا توجد كاميرات مسجّلة بعد.",
     "gridOrder": "ترتيب الشبكة",
