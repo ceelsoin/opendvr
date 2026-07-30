@@ -6,3 +6,4 @@ data/
 certs/*.pem
 .env
 certs/*.key
+.vscode/*log

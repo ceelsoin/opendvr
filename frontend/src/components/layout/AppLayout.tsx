@@ -14,6 +14,7 @@ const navItems: Array<{ to: string; key: string; end?: boolean }> = [
   { to: "/timeline", key: "nav.timeline" },
   { to: "/events", key: "nav.events" },
   { to: "/cameras", key: "nav.cameras" },
+  { to: "/faces", key: "nav.faces" },
   { to: "/onvif-debug", key: "nav.onvifDebug" },
   { to: "/settings", key: "nav.settings" },
   { to: "/maintenance", key: "nav.maintenance" },

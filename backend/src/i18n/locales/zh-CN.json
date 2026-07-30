@@ -26,7 +26,14 @@
     "webhookNotConfigured": "未配置通用 Webhook 网址。",
     "smtpNotConfigured": "未配置 SMTP（主机、发件人和收件人为必填项）。",
     "pushNotConfigured": "尚未注册任何推送订阅。",
-    "pushSendFailed": "发送测试推送通知失败。"
+    "pushSendFailed": "发送测试推送通知失败。",
+    "noFaceDetected": "上传的图片中未检测到人脸。",
+    "faceModelNotAvailable": "服务器上没有可用的人脸识别模型。",
+    "faceNotFound": "未找到该人脸",
+    "snapshotFailed": "无法从摄像头获取快照。"
+  },
+  "captioning": {
+    "prompt": "请用一句简短的话描述这张监控摄像头图像中正在发生的事情。"
   },
   "notifications": {
     "testMessage": "🔔 OpenDVR 测试通知",
@@ -36,6 +43,10 @@
     "lineCrossingDetected": "检测到越界",
     "intrusionDetected": "检测到区域入侵",
     "occupancyDetected": "检测到区域占用",
+    "personDetected": "检测到人员",
+    "vehicleDetected": "检测到车辆",
+    "animalDetected": "检测到动物",
+    "objectDetected": "检测到物体",
     "watchRecording": "观看录像：",
     "eventMessage": "📷 {{camera}}：{{eventType}}，时间 {{time}}",
     "cameraUnavailable": "⚠️ {{camera}} 已离线 {{duration}}（自 {{since}} 起）。",

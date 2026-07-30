@@ -18,17 +18,30 @@ than diffing against just the previous frame) and gives us contour area,
 a much more meaningful "how big is the moving thing" signal than a raw
 percent-of-changed-pixels count.
 
+Each reported event includes a base64 JPEG of the triggering frame (at
+FRAME_EXPORT_WIDTH, a middle ground between the tiny MOG2 analysis frame
+and full resolution) so Node can optionally forward it to the shared YOLO
+/ face-recognition worker (media/visionWorker.ts, media/objectDetection.ts)
+for object classification/zone filtering/face matching - entirely optional,
+see that module for the fallback behavior when it's disabled/unavailable.
+
 Usage: python3 motion_worker.py <rtsp_url>
 """
 import sys
 import json
 import time
+import base64
 
 import cv2
 
 ANALYSIS_FPS = 5.0
 ANALYSIS_INTERVAL_S = 1.0 / ANALYSIS_FPS
 RESIZE_WIDTH = 320
+# Resolution of the JPEG frame attached to each reported event - higher
+# than RESIZE_WIDTH (used only for the cheap MOG2 diff) so YOLO/face
+# detection have enough detail to work with, but still far below full
+# camera resolution to keep the base64 payload small.
+FRAME_EXPORT_WIDTH = 640
 # Minimum contour area, as a fraction of the (resized) frame area, to count
 # as "motion" rather than noise/compression artifacts.
 MIN_AREA_RATIO = 0.01
@@ -102,7 +115,11 @@ def main() -> int:
             continue
 
         last_event_at = now
-        print(json.dumps({"type": "motion", "areaRatio": round(area_ratio, 4)}), flush=True)
+        export_scale = FRAME_EXPORT_WIDTH / float(width)
+        export_frame = cv2.resize(frame, (FRAME_EXPORT_WIDTH, max(1, int(height * export_scale))))
+        ok_encode, buffer = cv2.imencode(".jpg", export_frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+        frame_b64 = base64.b64encode(buffer).decode("ascii") if ok_encode else None
+        print(json.dumps({"type": "motion", "areaRatio": round(area_ratio, 4), "frame": frame_b64}), flush=True)
 
 
 if __name__ == "__main__":

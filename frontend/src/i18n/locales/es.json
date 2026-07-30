@@ -5,6 +5,7 @@
     "timeline": "Grabaciones",
     "events": "Eventos",
     "cameras": "Cámaras",
+    "faces": "Rostros",
     "onvifDebug": "Depuración ONVIF",
     "settings": "Configuración",
     "logout": "Cerrar sesión"
@@ -34,7 +35,11 @@
     "motionDetected": "Movimiento detectado",
     "lineCrossingDetected": "Cruce de línea detectado",
     "intrusionDetected": "Intrusión en área detectada",
-    "occupancyDetected": "Ocupación de área detectada"
+    "occupancyDetected": "Ocupación de área detectada",
+    "personDetected": "Persona detectada",
+    "vehicleDetected": "Vehículo detectado",
+    "animalDetected": "Animal detectado",
+    "objectDetected": "Objeto detectado"
   },
   "cameras": {
     "title": "Cámaras registradas",
@@ -162,7 +167,38 @@
     "streamUrlRequired": "La URL del stream es obligatoria",
     "onvifConnectionFailed": "No se pudo conectar a la cámara vía ONVIF.",
     "saveFailed": "Error al guardar la cámara. Verifica los datos e inténtalo de nuevo.",
-    "previouslySelected": "Seleccionado anteriormente"
+    "previouslySelected": "Seleccionado anteriormente",
+    "aiVisionLabel": "Visión por computadora (IA) — opcional",
+    "objectDetectionCheckbox": "Detección de objetos (persona/vehículo/animal)",
+    "objectDetectionHint": "Ejecuta un modelo YOLO ligero solo cuando el detector de movimiento (arriba) ya se activó — reduce falsos positivos (sombras, viento, etc). Requiere los archivos del modelo configurados en el servidor (ver docs/configuration.md).",
+    "faceRecognitionCheckbox": "Reconocimiento facial (rostros conocidos)",
+    "detectionZoneButton": "Definir zona de interés",
+    "detectionZoneSet": "Zona definida",
+    "detectionZoneNeedsSave": "Guarda la cámara primero para definir la zona"
+  },
+  "detectionZone": {
+    "title": "Zona de interés",
+    "hint": "Haz clic en la imagen para dibujar un polígono (mín. 3 puntos). Solo las detecciones dentro de ella generan eventos.",
+    "loadingSnapshot": "Cargando imagen de la cámara...",
+    "snapshotFailed": "No se pudo cargar una imagen de la cámara.",
+    "undoPoint": "Deshacer último punto",
+    "clear": "Limpiar",
+    "pointCount": "{{count}} punto(s)",
+    "cancel": "Cancelar",
+    "save": "Guardar"
+  },
+  "facesPage": {
+    "title": "Rostros conocidos",
+    "description": "Registra fotos de rostros conocidos para que el reconocimiento facial distinga entre personas conocidas y desconocidas en los eventos de cámaras con esta opción activada.",
+    "nameLabel": "Nombre",
+    "namePlaceholder": "Ej: Juan",
+    "photoLabel": "Foto del rostro",
+    "saving": "Guardando...",
+    "addButton": "Agregar",
+    "saveFailed": "No se pudo guardar el rostro. Asegúrate de que la foto tenga un rostro visible.",
+    "loading": "Cargando rostros...",
+    "none": "Aún no hay rostros registrados.",
+    "remove": "Eliminar"
   },
   "onvifScan": {
     "title": "Escaneo de red (ONVIF/RTSP)",
@@ -313,6 +349,15 @@
     "toastPushPermissionDenied": "Se denegó el permiso de notificaciones en el navegador.",
     "toastPushDisabled": "Notificaciones push desactivadas en este dispositivo.",
     "toastPushDisableFailed": "Error al desactivar las notificaciones push.",
+    "captioningTitle": "Subtítulo automático (IA)",
+    "captioningDescription": "Usa un endpoint de visión compatible con OpenAI (p. ej. una instancia local de Ollama/LM Studio) para generar un subtítulo breve para eventos notables, por categoría detectada (la detección de objetos del punto 1).",
+    "captioningEnable": "Activar subtítulo automático",
+    "captioningEndpointPlaceholder": "URL del endpoint (ej: http://localhost:11434/v1)",
+    "captioningModelPlaceholder": "Nombre del modelo",
+    "captioningApiKeyPlaceholder": "Clave API (opcional, dejar en blanco para mantener)",
+    "captioningCategoriesLabel": "Generar subtítulo para:",
+    "toastCaptioningSaved": "Configuración de subtítulos guardada.",
+    "toastCaptioningSaveFailed": "Error al guardar la configuración de subtítulos.",
     "streamTitle": "Optimización de streaming (HLS)",
     "streamDescription": "Ajusta cómo MediaMTX genera el HLS y cómo el reproductor del navegador almacena el búfer - útil cuando el stream de la cámara ya está conectado pero el reproductor web sigue siendo lento o falla.",
     "streamVariantLabel": "Formato HLS",

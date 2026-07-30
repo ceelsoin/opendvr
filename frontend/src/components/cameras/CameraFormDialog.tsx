@@ -3,6 +3,7 @@ import axios from "axios";
 import { useTranslation } from "react-i18next";
 import type { Camera, CreateCameraInput, DiscoveredStream, UpdateCameraInput } from "../../api/types";
 import { useCreateCamera, useProbeCamera, useProbeOnvif, useUpdateCamera } from "../../api/cameras";
+import { DetectionZoneEditor } from "./DetectionZoneEditor";
 
 interface CameraFormDialogProps {
   camera?: Camera;
@@ -110,6 +111,10 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
   const [useVlcRelay, setUseVlcRelay] = useState(camera?.rtspCompatMode === "vlc-relay");
   const [hasPtz, setHasPtz] = useState(camera?.hasPtz ?? false);
   const [rotation, setRotation] = useState<Camera["rotation"]>(camera?.rotation ?? 0);
+  const [objectDetectionEnabled, setObjectDetectionEnabled] = useState(camera?.objectDetectionEnabled ?? false);
+  const [faceRecognitionEnabled, setFaceRecognitionEnabled] = useState(camera?.faceRecognitionEnabled ?? false);
+  const [detectionZone, setDetectionZone] = useState<Camera["detectionZone"]>(camera?.detectionZone ?? null);
+  const [zoneEditorOpen, setZoneEditorOpen] = useState(false);
 
   const [streams, setStreams] = useState<DiscoveredStream[]>(() => initialStreamsFromCamera(camera, t));
   const [mainToken, setMainToken] = useState<string>(camera?.onvifProfileToken ?? "");
@@ -212,6 +217,9 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
       // itself (see types/camera.ts's CameraSourceType), so "onvif" isn't a
       // valid choice here regardless of what's selected - always "video".
       motionDetectionSource: sourceType === "onvif" ? motionDetectionSource : "video",
+      objectDetectionEnabled,
+      faceRecognitionEnabled: objectDetectionEnabled && faceRecognitionEnabled,
+      detectionZone,
       retentionDays: Number(retentionDays) || 7,
     };
 
@@ -562,6 +570,45 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
             )}
           </div>
 
+          {motionDetectionSource === "video" && (motionRecording || recordingMode === "motion") && (
+            <div className="flex flex-col gap-2 rounded-md border border-neutral-800 p-3 text-sm">
+              <span className="text-xs text-neutral-500">{t("cameraForm.aiVisionLabel")}</span>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={objectDetectionEnabled}
+                  onChange={(e) => setObjectDetectionEnabled(e.target.checked)}
+                />
+                {t("cameraForm.objectDetectionCheckbox")}
+              </label>
+              <p className="text-[11px] text-neutral-500">{t("cameraForm.objectDetectionHint")}</p>
+              {objectDetectionEnabled && (
+                <>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={faceRecognitionEnabled}
+                      onChange={(e) => setFaceRecognitionEnabled(e.target.checked)}
+                    />
+                    {t("cameraForm.faceRecognitionCheckbox")}
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={!isEdit}
+                      onClick={() => setZoneEditorOpen(true)}
+                      className="rounded-md bg-neutral-800 px-3 py-1.5 text-xs hover:bg-neutral-700 disabled:opacity-50"
+                    >
+                      {t("cameraForm.detectionZoneButton")}
+                    </button>
+                    {detectionZone && <span className="text-[11px] text-neutral-500">{t("cameraForm.detectionZoneSet")}</span>}
+                    {!isEdit && <span className="text-[11px] text-neutral-500">{t("cameraForm.detectionZoneNeedsSave")}</span>}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           <div className="flex flex-col gap-2 rounded-md border border-neutral-800 p-3 text-sm">
             <label className="flex items-center gap-2">
               {t("cameraForm.retentionLabel")}
@@ -616,6 +663,14 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
           </div>
         </form>
       </div>
+      {zoneEditorOpen && camera && (
+        <DetectionZoneEditor
+          cameraId={camera.id}
+          initialZone={detectionZone}
+          onSave={setDetectionZone}
+          onClose={() => setZoneEditorOpen(false)}
+        />
+      )}
     </div>
   );
 }

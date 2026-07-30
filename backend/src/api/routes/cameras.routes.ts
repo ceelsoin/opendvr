@@ -13,6 +13,7 @@ import {
 import { discoverStreams } from "../../onvif/device.js";
 import { deleteCameraPath, getCameraPathStatus, subStreamPathName } from "../../media/mediamtx.js";
 import { provisionCamera } from "../../media/provisioning.js";
+import { captureFrameSnapshot } from "../../media/frameSnapshot.js";
 import { getVlcRelayUrl, stopVlcRelay } from "../../media/vlcRelay.js";
 import { stopMjpegBridge } from "../../media/mjpegBridge.js";
 import { stopWebpageBridge } from "../../media/webpageBridge.js";
@@ -29,6 +30,10 @@ const streamMetadataSchema = z.object({
   width: z.number().int().positive().nullable(),
   height: z.number().int().positive().nullable(),
   encoding: z.string().nullable(),
+});
+
+const detectionZoneSchema = z.object({
+  points: z.array(z.tuple([z.number().min(0).max(1), z.number().min(0).max(1)])).min(3),
 });
 
 const baseCameraSchema = z.object({
@@ -53,6 +58,9 @@ const baseCameraSchema = z.object({
   recordingMode: z.enum(["off", "continuous", "motion"]).optional(),
   motionRecording: z.boolean().optional(),
   motionDetectionSource: z.enum(["onvif", "video"]).optional(),
+  objectDetectionEnabled: z.boolean().optional(),
+  faceRecognitionEnabled: z.boolean().optional(),
+  detectionZone: detectionZoneSchema.nullable().optional(),
   retentionDays: z.number().int().positive().optional(),
 });
 
@@ -107,6 +115,28 @@ camerasRouter.get("/:id/stream-status", async (req, res) => {
     hlsUrl: `/hls/${camera.id}/index.m3u8`,
     relayUrl: camera.rtspCompatMode === "vlc-relay" ? getVlcRelayUrl(camera.id) : null,
   });
+});
+
+/**
+ * A single current JPEG frame, straight from MediaMTX's already-connected
+ * RTSP feed (same mechanism as events/cameraEvents.ts's fallback snapshot -
+ * see media/frameSnapshot.ts) - used as the background image for the
+ * "zone of interest" polygon editor (item 2) in the camera form, so the
+ * user draws the zone over what the camera actually sees right now.
+ */
+camerasRouter.get("/:id/snapshot", async (req, res) => {
+  const camera = getCameraById(req.params.id);
+  if (!camera) {
+    res.status(404).json({ error: t("errors.cameraNotFound") });
+    return;
+  }
+  const snapshot = await captureFrameSnapshot(camera.id);
+  if (!snapshot) {
+    res.status(502).json({ error: t("errors.snapshotFailed") });
+    return;
+  }
+  res.set("Content-Type", "image/jpeg");
+  res.send(snapshot);
 });
 
 const probeExistingCameraSchema = z.object({

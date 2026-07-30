@@ -5,6 +5,7 @@
     "timeline": "التسجيلات",
     "events": "الأحداث",
     "cameras": "الكاميرات",
+    "faces": "الوجوه",
     "onvifDebug": "تصحيح ONVIF",
     "settings": "الإعدادات",
     "logout": "تسجيل الخروج"
@@ -34,7 +35,11 @@
     "motionDetected": "تم اكتشاف حركة",
     "lineCrossingDetected": "تم اكتشاف عبور خط",
     "intrusionDetected": "تم اكتشاف تسلل إلى منطقة",
-    "occupancyDetected": "تم اكتشاف إشغال منطقة"
+    "occupancyDetected": "تم اكتشاف إشغال منطقة",
+    "personDetected": "تم اكتشاف شخص",
+    "vehicleDetected": "تم اكتشاف مركبة",
+    "animalDetected": "تم اكتشاف حيوان",
+    "objectDetected": "تم اكتشاف جسم"
   },
   "cameras": {
     "title": "الكاميرات المسجّلة",
@@ -162,7 +167,38 @@
     "streamUrlRequired": "رابط التدفق مطلوب",
     "onvifConnectionFailed": "تعذّر الاتصال بالكاميرا عبر ONVIF.",
     "saveFailed": "فشل حفظ الكاميرا. تحقق من البيانات وحاول مرة أخرى.",
-    "previouslySelected": "مُختار سابقًا"
+    "previouslySelected": "مُختار سابقًا",
+    "aiVisionLabel": "رؤية حاسوبية (ذكاء اصطناعي) — اختياري",
+    "objectDetectionCheckbox": "كشف الأجسام (شخص/مركبة/حيوان)",
+    "objectDetectionHint": "يشغّل نموذج YOLO خفيفًا فقط عند تفعيل كاشف الحركة أعلاه — يقلل من الإنذارات الكاذبة (الظلال والرياح وغيرها). يتطلب ملفات النموذج مهيأة على الخادم (راجع docs/configuration.md).",
+    "faceRecognitionCheckbox": "التعرف على الوجوه (الوجوه المعروفة)",
+    "detectionZoneButton": "تحديد منطقة الاهتمام",
+    "detectionZoneSet": "تم تحديد المنطقة",
+    "detectionZoneNeedsSave": "احفظ الكاميرا أولاً لتحديد المنطقة"
+  },
+  "detectionZone": {
+    "title": "منطقة الاهتمام",
+    "hint": "انقر على الصورة لرسم مضلع (3 نقاط على الأقل). فقط الاكتشافات داخلها تُنشئ أحداثًا.",
+    "loadingSnapshot": "جارٍ تحميل صورة الكاميرا...",
+    "snapshotFailed": "تعذّر تحميل صورة من الكاميرا.",
+    "undoPoint": "التراجع عن آخر نقطة",
+    "clear": "مسح",
+    "pointCount": "{{count}} نقطة",
+    "cancel": "إلغاء",
+    "save": "حفظ"
+  },
+  "facesPage": {
+    "title": "الوجوه المعروفة",
+    "description": "سجّل صور الوجوه المعروفة ليتمكن التعرف على الوجوه من تمييز الأشخاص المعروفين عن الغرباء في أحداث الكاميرات التي يُفعّل فيها هذا الخيار.",
+    "nameLabel": "الاسم",
+    "namePlaceholder": "مثال: أحمد",
+    "photoLabel": "صورة الوجه",
+    "saving": "جارٍ الحفظ...",
+    "addButton": "إضافة",
+    "saveFailed": "فشل حفظ الوجه. تأكد من أن الصورة تحتوي على وجه واضح.",
+    "loading": "جارٍ تحميل الوجوه...",
+    "none": "لم يتم تسجيل أي وجه بعد.",
+    "remove": "إزالة"
   },
   "onvifScan": {
     "title": "مسح الشبكة (ONVIF/RTSP)",
@@ -313,6 +349,15 @@
     "toastPushPermissionDenied": "تم رفض إذن الإشعارات في المتصفح.",
     "toastPushDisabled": "تم تعطيل إشعارات الدفع على هذا الجهاز.",
     "toastPushDisableFailed": "فشل تعطيل إشعارات الدفع.",
+    "captioningTitle": "وصف تلقائي (ذكاء اصطناعي)",
+    "captioningDescription": "يستخدم نقطة نهاية رؤية متوافقة مع OpenAI (مثل نسخة Ollama/LM Studio محلية) لإنشاء وصف قصير للأحداث المهمة حسب الفئة المكتشفة (كشف الأجسام من البند 1).",
+    "captioningEnable": "تفعيل الوصف التلقائي",
+    "captioningEndpointPlaceholder": "رابط نقطة النهاية (مثال: http://localhost:11434/v1)",
+    "captioningModelPlaceholder": "اسم النموذج",
+    "captioningApiKeyPlaceholder": "مفتاح API (اختياري، اتركه فارغًا للاحتفاظ بالقيمة)",
+    "captioningCategoriesLabel": "إنشاء الوصف لـ:",
+    "toastCaptioningSaved": "تم حفظ إعدادات الوصف.",
+    "toastCaptioningSaveFailed": "فشل حفظ إعدادات الوصف.",
     "streamTitle": "تحسين البث (HLS)",
     "streamDescription": "يضبط كيفية توليد MediaMTX لبث HLS وكيفية تخزين المشغّل في المتصفح للبيانات مؤقتًا - مفيد عندما يكون بث الكاميرا متصلاً بال‌فعل لكن مشغّل الويب لا يزال بطيئًا في التحميل أو يفشل.",
     "streamVariantLabel": "صيغة HLS",

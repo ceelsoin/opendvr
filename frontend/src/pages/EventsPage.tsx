@@ -116,6 +116,7 @@ export function EventsPage() {
               <div className="flex flex-1 flex-col">
                 <span className="font-medium">{cameraName(event.camera_id)}</span>
                 <span className="text-xs text-neutral-500">{friendlyEventType(event.type, t)}</span>
+                {event.caption && <span className="text-xs text-neutral-400">📝 {event.caption}</span>}
               </div>
               <span className="text-neutral-500">{new Date(event.occurred_at).toLocaleString(i18n.language)}</span>
               <div className="flex shrink-0 items-center gap-2">

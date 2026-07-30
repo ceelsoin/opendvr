@@ -5,6 +5,7 @@
     "timeline": "Rekaman",
     "events": "Peristiwa",
     "cameras": "Kamera",
+    "faces": "Wajah",
     "onvifDebug": "Debug ONVIF",
     "settings": "Pengaturan",
     "logout": "Keluar"
@@ -34,7 +35,11 @@
     "motionDetected": "Gerakan terdeteksi",
     "lineCrossingDetected": "Terdeteksi melintasi garis",
     "intrusionDetected": "Terdeteksi penyusupan area",
-    "occupancyDetected": "Terdeteksi keberadaan di area"
+    "occupancyDetected": "Terdeteksi keberadaan di area",
+    "personDetected": "Orang terdeteksi",
+    "vehicleDetected": "Kendaraan terdeteksi",
+    "animalDetected": "Hewan terdeteksi",
+    "objectDetected": "Objek terdeteksi"
   },
   "cameras": {
     "title": "Kamera terdaftar",
@@ -162,7 +167,38 @@
     "streamUrlRequired": "URL stream wajib diisi",
     "onvifConnectionFailed": "Tidak dapat terhubung ke kamera melalui ONVIF.",
     "saveFailed": "Gagal menyimpan kamera. Periksa data dan coba lagi.",
-    "previouslySelected": "Sebelumnya dipilih"
+    "previouslySelected": "Sebelumnya dipilih",
+    "aiVisionLabel": "Visi komputer (AI) — opsional",
+    "objectDetectionCheckbox": "Deteksi objek (orang/kendaraan/hewan)",
+    "objectDetectionHint": "Menjalankan model YOLO ringan hanya saat detektor gerakan (di atas) sudah terpicu — mengurangi positif palsu (bayangan, angin, dll). Membutuhkan file model yang dikonfigurasi di server (lihat docs/configuration.md).",
+    "faceRecognitionCheckbox": "Pengenalan wajah (wajah yang dikenal)",
+    "detectionZoneButton": "Atur zona minat",
+    "detectionZoneSet": "Zona telah diatur",
+    "detectionZoneNeedsSave": "Simpan kamera terlebih dahulu untuk mengatur zona"
+  },
+  "detectionZone": {
+    "title": "Zona minat",
+    "hint": "Klik gambar untuk menggambar poligon (min. 3 titik). Hanya deteksi di dalamnya yang menghasilkan peristiwa.",
+    "loadingSnapshot": "Memuat gambar kamera...",
+    "snapshotFailed": "Tidak dapat memuat gambar dari kamera.",
+    "undoPoint": "Batalkan titik terakhir",
+    "clear": "Bersihkan",
+    "pointCount": "{{count}} titik",
+    "cancel": "Batal",
+    "save": "Simpan"
+  },
+  "facesPage": {
+    "title": "Wajah dikenal",
+    "description": "Daftarkan foto wajah yang dikenal agar pengenalan wajah dapat membedakan orang yang dikenal dari orang asing pada peristiwa kamera dengan opsi ini diaktifkan.",
+    "nameLabel": "Nama",
+    "namePlaceholder": "Mis: Budi",
+    "photoLabel": "Foto wajah",
+    "saving": "Menyimpan...",
+    "addButton": "Tambah",
+    "saveFailed": "Gagal menyimpan wajah. Pastikan foto memiliki wajah yang terlihat jelas.",
+    "loading": "Memuat wajah...",
+    "none": "Belum ada wajah yang terdaftar.",
+    "remove": "Hapus"
   },
   "onvifScan": {
     "title": "Pemindaian jaringan (ONVIF/RTSP)",
@@ -313,6 +349,15 @@
     "toastPushPermissionDenied": "Izin notifikasi ditolak di browser.",
     "toastPushDisabled": "Notifikasi push dinonaktifkan di perangkat ini.",
     "toastPushDisableFailed": "Gagal menonaktifkan notifikasi push.",
+    "captioningTitle": "Keterangan otomatis (AI)",
+    "captioningDescription": "Menggunakan endpoint visi yang kompatibel dengan OpenAI (mis. instans Ollama/LM Studio lokal) untuk menghasilkan keterangan singkat untuk peristiwa penting, per kategori yang terdeteksi (deteksi objek pada item 1).",
+    "captioningEnable": "Aktifkan keterangan otomatis",
+    "captioningEndpointPlaceholder": "URL endpoint (mis: http://localhost:11434/v1)",
+    "captioningModelPlaceholder": "Nama model",
+    "captioningApiKeyPlaceholder": "Kunci API (opsional, biarkan kosong untuk mempertahankan)",
+    "captioningCategoriesLabel": "Buat keterangan untuk:",
+    "toastCaptioningSaved": "Pengaturan keterangan disimpan.",
+    "toastCaptioningSaveFailed": "Gagal menyimpan pengaturan keterangan.",
     "streamTitle": "Optimasi streaming (HLS)",
     "streamDescription": "Menyesuaikan cara MediaMTX menghasilkan HLS dan cara pemutar di browser melakukan buffering - berguna saat stream kamera sudah terhubung tetapi pemutar web masih lambat dimuat atau gagal.",
     "streamVariantLabel": "Format HLS",

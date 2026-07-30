@@ -26,7 +26,14 @@
     "webhookNotConfigured": "Generic webhook URL not configured.",
     "smtpNotConfigured": "SMTP not configured (host, sender, and recipient are required).",
     "pushNotConfigured": "No push subscriptions registered yet.",
-    "pushSendFailed": "Failed to send the test push notification."
+    "pushSendFailed": "Failed to send the test push notification.",
+    "noFaceDetected": "No face detected in the uploaded image.",
+    "faceModelNotAvailable": "Face recognition model is not available on the server.",
+    "faceNotFound": "Face not found",
+    "snapshotFailed": "Failed to capture a snapshot from the camera."
+  },
+  "captioning": {
+    "prompt": "Briefly describe, in one short sentence, what is happening in this security camera image."
   },
   "notifications": {
     "testMessage": "🔔 OpenDVR test notification",
@@ -36,6 +43,10 @@
     "lineCrossingDetected": "Line crossing detected",
     "intrusionDetected": "Area intrusion detected",
     "occupancyDetected": "Area occupancy detected",
+    "personDetected": "Person detected",
+    "vehicleDetected": "Vehicle detected",
+    "animalDetected": "Animal detected",
+    "objectDetected": "Object detected",
     "watchRecording": "Watch recording:",
     "eventMessage": "📷 {{camera}}: {{eventType}} at {{time}}",
     "cameraUnavailable": "⚠️ {{camera}} has been unavailable for {{duration}} (since {{since}}).",

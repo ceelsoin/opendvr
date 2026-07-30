@@ -26,7 +26,14 @@
     "webhookNotConfigured": "URL du webhook générique non configurée.",
     "smtpNotConfigured": "SMTP non configuré (hôte, expéditeur et destinataire requis).",
     "pushNotConfigured": "Aucun abonnement push enregistré pour le moment.",
-    "pushSendFailed": "Échec de l'envoi de la notification push de test."
+    "pushSendFailed": "Échec de l'envoi de la notification push de test.",
+    "noFaceDetected": "Aucun visage détecté dans l'image envoyée.",
+    "faceModelNotAvailable": "Le modèle de reconnaissance faciale n'est pas disponible sur le serveur.",
+    "faceNotFound": "Visage introuvable",
+    "snapshotFailed": "Échec de la capture d'une image de la caméra."
+  },
+  "captioning": {
+    "prompt": "Décrivez brièvement, en une courte phrase, ce qui se passe sur cette image de caméra de sécurité."
   },
   "notifications": {
     "testMessage": "🔔 Notification de test OpenDVR",
@@ -36,6 +43,10 @@
     "lineCrossingDetected": "Franchissement de ligne détecté",
     "intrusionDetected": "Intrusion dans la zone détectée",
     "occupancyDetected": "Occupation de la zone détectée",
+    "personDetected": "Personne détectée",
+    "vehicleDetected": "Véhicule détecté",
+    "animalDetected": "Animal détecté",
+    "objectDetected": "Objet détecté",
     "watchRecording": "Voir l'enregistrement :",
     "eventMessage": "📷 {{camera}} : {{eventType}} à {{time}}",
     "cameraUnavailable": "⚠️ {{camera}} est indisponible depuis {{duration}} (depuis {{since}}).",

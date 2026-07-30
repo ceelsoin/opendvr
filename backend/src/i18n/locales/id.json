@@ -26,7 +26,14 @@
     "webhookNotConfigured": "URL webhook umum belum dikonfigurasi.",
     "smtpNotConfigured": "SMTP belum dikonfigurasi (host, pengirim, dan penerima wajib diisi).",
     "pushNotConfigured": "Belum ada langganan push yang terdaftar.",
-    "pushSendFailed": "Gagal mengirim notifikasi push uji coba."
+    "pushSendFailed": "Gagal mengirim notifikasi push uji coba.",
+    "noFaceDetected": "Tidak ada wajah yang terdeteksi pada gambar yang diunggah.",
+    "faceModelNotAvailable": "Model pengenalan wajah tidak tersedia di server.",
+    "faceNotFound": "Wajah tidak ditemukan",
+    "snapshotFailed": "Gagal mengambil gambar snapshot dari kamera."
+  },
+  "captioning": {
+    "prompt": "Jelaskan secara singkat, dalam satu kalimat pendek, apa yang terjadi pada gambar kamera keamanan ini."
   },
   "notifications": {
     "testMessage": "🔔 Notifikasi uji coba OpenDVR",
@@ -36,6 +43,10 @@
     "lineCrossingDetected": "Pelintasan garis terdeteksi",
     "intrusionDetected": "Penyusupan area terdeteksi",
     "occupancyDetected": "Okupansi area terdeteksi",
+    "personDetected": "Orang terdeteksi",
+    "vehicleDetected": "Kendaraan terdeteksi",
+    "animalDetected": "Hewan terdeteksi",
+    "objectDetected": "Objek terdeteksi",
     "watchRecording": "Tonton rekaman:",
     "eventMessage": "📷 {{camera}}: {{eventType}} pada {{time}}",
     "cameraUnavailable": "⚠️ {{camera}} tidak tersedia selama {{duration}} (sejak {{since}}).",

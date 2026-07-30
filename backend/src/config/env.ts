@@ -38,6 +38,34 @@ export const env = {
   ffmpegPath: process.env.FFMPEG_PATH ?? "ffmpeg",
   ffprobePath: process.env.FFPROBE_PATH ?? "ffprobe",
 
+  // AI computer-vision (see media/visionWorker.ts, vision_worker.py): model
+  // weight files are NOT vendored in this repo (binary, tens of KB to tens
+  // of MB) - see docs/configuration.md for download instructions. Missing
+  // files just disable that specific capability (object detection/face
+  // recognition), the rest of the app is unaffected.
+  visionYoloModelPath: process.env.VISION_YOLO_MODEL_PATH || path.resolve(process.env.DATA_DIR ?? "./data", "models/yolov8n.onnx"),
+  visionYoloInputSize: Number(process.env.VISION_YOLO_INPUT_SIZE ?? 320),
+  visionFaceDetectModelPath:
+    process.env.VISION_FACE_DETECT_MODEL_PATH || path.resolve(process.env.DATA_DIR ?? "./data", "models/face_detection_yunet.onnx"),
+  visionFaceRecognizeModelPath:
+    process.env.VISION_FACE_RECOGNIZE_MODEL_PATH || path.resolve(process.env.DATA_DIR ?? "./data", "models/face_recognition_sface.onnx"),
+  // Cosine-similarity threshold above which a detected face is considered a
+  // match to a known face (SFace's own docs suggest ~0.363 at its default
+  // "L2" pairing threshold; cosine similarity uses a different scale, so a
+  // higher default here - 0.5 - errs on the side of fewer false matches).
+  faceMatchThreshold: Number(process.env.FACE_MATCH_THRESHOLD ?? 0.5),
+
+  // Optional VLM ("vision language model") auto-captioning of notable
+  // events (see notifications/captioning.ts) - any OpenAI-compatible
+  // `/chat/completions` vision endpoint works (a local Ollama/LM Studio
+  // instance, or a hosted API). Left unset, captioning is simply skipped -
+  // never required for the app to work. Also editable at runtime from the
+  // Settings page (persisted in the `settings` table, same convention as
+  // the notification channels).
+  captioningEndpoint: process.env.CAPTIONING_ENDPOINT || null,
+  captioningApiKey: process.env.CAPTIONING_API_KEY || null,
+  captioningModel: process.env.CAPTIONING_MODEL || null,
+
   mediamtxApiUrl: process.env.MEDIAMTX_API_URL ?? "http://127.0.0.1:9997",
   mediamtxRtspUrl: process.env.MEDIAMTX_RTSP_URL ?? "rtsp://127.0.0.1:8554",
   mediamtxHlsUrl: process.env.MEDIAMTX_HLS_URL ?? "http://127.0.0.1:8888",

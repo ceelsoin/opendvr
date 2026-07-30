@@ -1,5 +1,5 @@
 import type { Camera } from "../types/camera.js";
-import { insertEvent, updateEventSnapshot } from "../db/events.repository.js";
+import { insertEvent, updateEventSnapshot, updateEventCaption } from "../db/events.repository.js";
 import { emitEvent } from "../ws/index.js";
 import { captureSnapshot } from "../onvif/snapshot.js";
 import { captureFrameSnapshot } from "../media/frameSnapshot.js";
@@ -7,6 +7,7 @@ import { captureEventClip } from "../media/eventClip.js";
 import { uploadSnapshotToS3 } from "../lib/s3Storage.js";
 import { saveEventSnapshot } from "../lib/snapshotStorage.js";
 import { notifyEvent } from "../notifications/webhooks.js";
+import { captionImage } from "../notifications/captioning.js";
 import { triggerMotionRecording } from "../media/motionRecording.js";
 import { env } from "../config/env.js";
 import { logger } from "../lib/logger.js";
@@ -22,8 +23,8 @@ import { logger } from "../lib/logger.js";
  * motion-recording and best-effort snapshot capture + external webhooks.
  */
 
-/** Heuristic for "this event is a real motion/tamper/intrusion alert" vs. a routine status event. */
-const NOTABLE_TOPIC_PATTERN = /motion|tamper|linedetector|fielddetector|occupancy|intrusion/i;
+/** Heuristic for "this event is a real motion/tamper/intrusion alert" vs. a routine status event. Also matches this app's own object-detection topics ("object:person"/"object:vehicle"/"object:animal"/"object:other", see media/objectDetection.ts), which are always notable by construction (they only ever get emitted after a motion trigger already fired). */
+const NOTABLE_TOPIC_PATTERN = /motion|tamper|linedetector|fielddetector|occupancy|intrusion|^object:/i;
 export function isNotableEventTopic(topic: string): boolean {
   return NOTABLE_TOPIC_PATTERN.test(topic);
 }
@@ -142,13 +143,22 @@ export function recordCameraEvent(camera: Camera, topic: string, message: unknow
     // when the camera is recording at all - preferred over the snapshot as
     // the notification's attachment; the snapshot stays as the fallback
     // for channels/cases where no clip could be fetched (see
-    // media/eventClip.ts and notifyEvent below).
-    const clip = await captureEventClip(camera, occurredAt).catch((err) => {
-      logger.warn({ err, cameraId: camera.id, eventId }, "Failed to fetch event clip");
-      return null;
-    });
+    // media/eventClip.ts and notifyEvent below). Fetched in parallel with
+    // the optional VLM caption (item 4) below - both are independent,
+    // possibly-slow network calls.
+    const category = topic.startsWith("object:") ? topic.slice("object:".length) : null;
+    const [clip, caption] = await Promise.all([
+      captureEventClip(camera, occurredAt).catch((err) => {
+        logger.warn({ err, cameraId: camera.id, eventId }, "Failed to fetch event clip");
+        return null;
+      }),
+      category && snapshot ? captionImage(snapshot, category) : Promise.resolve(null),
+    ]);
+    if (caption) {
+      updateEventCaption(eventId, caption);
+    }
 
-    await notifyEvent(camera, topic, snapshot ?? undefined, recordingLink, snapshotUrl ?? undefined, clip ?? undefined);
+    await notifyEvent(camera, topic, snapshot ?? undefined, recordingLink, snapshotUrl ?? undefined, clip ?? undefined, caption ?? undefined);
   })().catch((err) => {
     logger.warn({ err, cameraId: camera.id }, "Failed to process event snapshot/notification");
   });

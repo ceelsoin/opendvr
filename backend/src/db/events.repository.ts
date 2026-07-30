@@ -29,6 +29,11 @@ export function updateEventSnapshot(id: string, snapshotPath: string): void {
   db.prepare("UPDATE events SET snapshot_path = ? WHERE id = ?").run(snapshotPath, id);
 }
 
+/** Attaches an auto-generated VLM caption to an already-inserted event (captioning happens asynchronously, after the snapshot is captured). */
+export function updateEventCaption(id: string, caption: string): void {
+  db.prepare("UPDATE events SET caption = ? WHERE id = ?").run(caption, id);
+}
+
 export function markEventRead(id: string, read: boolean): boolean {
   const result = db.prepare("UPDATE events SET read = ? WHERE id = ?").run(read ? 1 : 0, id);
   return result.changes > 0;

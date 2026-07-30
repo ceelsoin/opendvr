@@ -59,7 +59,14 @@ FROM node:22-alpine AS runtime
 # py3-opencv (Alpine's own prebuilt package, NOT pip's opencv-python -
 # manylinux wheels are glibc-only and won't run on musl/Alpine, and building
 # OpenCV from source is impractically heavy) powers the video-based motion
-# detector (media/motionDetector.ts spawns motion_worker.py per camera).
+# detector (media/motionDetector.ts spawns motion_worker.py per camera) AND
+# the shared AI vision worker (media/visionWorker.ts spawns ONE
+# vision_worker.py process for the whole app - see that script for object
+# detection/face recognition, both implemented via cv2.dnn/cv2.FaceDetectorYN/
+# cv2.FaceRecognizerSF, deliberately with NO extra Python ML dependency like
+# onnxruntime/torch - those don't ship musl-compatible wheels either).
+# Model weight files themselves are NOT bundled in this image (see
+# docs/configuration.md) - the features simply stay inactive without them.
 #
 # chromium + freetype/harfbuzz/ttf-freefont: headless browser used by the
 # "webpage" camera source type (media/webpageBridge.ts) to render an
@@ -81,6 +88,7 @@ COPY --from=backend-build /app/node_modules ./node_modules
 COPY --from=backend-build /app/dist ./dist
 COPY --from=frontend-build /frontend/dist ./dist/web
 COPY backend/motion_worker.py ./motion_worker.py
+COPY backend/vision_worker.py ./vision_worker.py
 
 EXPOSE 4000
 CMD ["node", "dist/index.js"]

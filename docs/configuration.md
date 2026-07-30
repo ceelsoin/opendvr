@@ -37,10 +37,35 @@ The backend reads env vars via [backend/src/config/env.ts](../backend/src/config
 | `PUBLIC_BASE_URL` | unset | Optional, e.g. `http://192.168.1.50:4000`. Used to build a clickable link back to the Timeline in notifications, for cameras that are recording (see [Features](./features.md)). Without it, notifications for recording cameras just omit the link. |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | unset (auto-generated) | Optional: pins a specific VAPID key pair for Web Push notifications (see [Features → Push notifications](./features.md#push-notifications-pwa)). Leave unset and a pair is generated automatically on first use and persisted in the database - only set these if you need a stable, pre-known identity (e.g. restoring to a fresh `app-data` volume without re-subscribing every device). |
 | `VAPID_SUBJECT` | `mailto:admin@opendvr.local` | Contact URI (mailto: or https:) sent to push services alongside VAPID-signed requests, per the Web Push spec. Cosmetic - only used if a push service ever needs to contact the sender about delivery issues. |
+| `VISION_YOLO_MODEL_PATH` | `<DATA_DIR>/models/yolov8n.onnx` | Path to a YOLOv8/YOLO11 nano ONNX model, used for AI object detection (see [Features → AI computer vision](./features.md#ai-computer-vision)). Not bundled in the image - see below for how to obtain it. |
+| `VISION_YOLO_INPUT_SIZE` | `320` | Square input resolution the YOLO model expects (must match how it was exported). |
+| `VISION_FACE_DETECT_MODEL_PATH` | `<DATA_DIR>/models/face_detection_yunet.onnx` | Path to OpenCV's YuNet face detection ONNX model, used for face recognition. |
+| `VISION_FACE_RECOGNIZE_MODEL_PATH` | `<DATA_DIR>/models/face_recognition_sface.onnx` | Path to OpenCV's SFace face embedding ONNX model. |
+| `FACE_MATCH_THRESHOLD` | `0.5` | Cosine-similarity threshold above which a detected face is considered a match to a known face - lower is more lenient (more false matches), higher is stricter (more "unknown" results). |
+| `CAPTIONING_ENDPOINT` | unset (disabled) | Base URL of an OpenAI-compatible vision `/chat/completions` endpoint (e.g. a local Ollama/LM Studio instance), used for automatic event captioning. |
+| `CAPTIONING_API_KEY` | unset | Optional bearer token for the endpoint above. |
+| `CAPTIONING_MODEL` | unset | Model name to request from the captioning endpoint. |
 | `HTTPS_PORT` | `4443` | Port for the optional local HTTPS listener (see below) - only used if `HTTPS_CERT_FILE`/`HTTPS_KEY_FILE` are both set. |
 | `HTTPS_CERT_FILE` / `HTTPS_KEY_FILE` | unset (disabled) | Optional: paths (inside the container) to a TLS cert/key pair. When both are set and readable, the backend starts a second listener on `HTTPS_PORT`, in addition to the normal HTTP one on `PORT` - see [Local HTTPS for Push notifications](#local-https-for-push-notifications) below. |
 
 > Each notification channel (Discord/Telegram/generic webhook/email) is entirely optional and independent - leaving its variables unset simply disables that channel; nothing else is affected. Every one of these (including the per-channel "attach snapshot" toggle) is also editable at runtime from the **Configurações** page in the UI, persisted in the database - values set there take precedence over these env vars, which remain just the deploy-time/first-boot defaults. Push notifications need no channel-specific env vars at all - just install-time HTTPS (or `localhost` for development) and, per browser/device, clicking "Ativar" on the Settings page.
+
+## AI computer vision: object detection, face recognition, auto-captioning
+
+Object detection and face recognition (items 1 and 3) run entirely on-device via OpenCV's own `dnn`/`objdetect` modules (`backend/vision_worker.py`, a single shared process for the whole app regardless of camera count - not one per camera) - no `onnxruntime`/`torch` dependency, deliberately, since neither ships musl-compatible (Alpine) wheels. Model weight files are binary and **not bundled in this repo**; download them once into `./app-data/models/` (mounted at `/data/models` in the container, matching the env vars' defaults):
+
+1. **YOLO object detection** - export a YOLOv8n or YOLO11n ONNX model at 320x320 (nano variant recommended for CPU-only hardware):
+   ```bash
+   pip install ultralytics
+   yolo export model=yolov8n.pt format=onnx imgsz=320
+   # copy the resulting yolov8n.onnx into ./app-data/models/
+   ```
+2. **Face detection/recognition** - download OpenCV Zoo's pretrained models (small, a few MB total):
+   - `face_detection_yunet_2023mar.onnx` from [opencv/opencv_zoo](https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet)
+   - `face_recognition_sface_2021dec.onnx` from [opencv/opencv_zoo](https://github.com/opencv/opencv_zoo/tree/main/models/face_recognition_sface)
+   - Rename/place them as `face_detection_yunet.onnx` / `face_recognition_sface.onnx` in `./app-data/models/` (or point `VISION_FACE_DETECT_MODEL_PATH`/`VISION_FACE_RECOGNIZE_MODEL_PATH` at whatever filenames you used).
+
+Missing any of these files simply disables that specific capability (the rest of the app, including plain motion detection, is unaffected) - object detection and face recognition are both opt-in per camera (camera form checkboxes), so nothing changes for existing cameras until explicitly enabled. Auto-captioning (item 4) is separate: it calls an *external* vision-capable LLM endpoint (any OpenAI-compatible `/chat/completions` API, e.g. a local Ollama/LM Studio instance) instead of running a model in-process - configured entirely from the Settings page (endpoint, model, API key, and which detected categories - person/vehicle/animal/other - should get a caption).
 
 ## Local HTTPS for Push notifications
 
@@ -69,6 +94,8 @@ To fix this **without** a separate reverse proxy, the backend can serve a second
 | `JWT_SECRET` | Passed through to the backend container; same caveat as above (unused today). |
 | `DISCORD_WEBHOOK_URL`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `GENERIC_WEBHOOK_URL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SECURE`, `EMAIL_FROM`, `EMAIL_TO`, `PUBLIC_BASE_URL` | Passed through if set, to enable notifications in the containerized deployment (all optional, same as above). |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Passed through if set, to pin push notifications' VAPID identity across deployments (all optional - auto-generated and persisted otherwise, same as above). |
+| `VISION_YOLO_MODEL_PATH`, `VISION_FACE_DETECT_MODEL_PATH`, `VISION_FACE_RECOGNIZE_MODEL_PATH` | Optional overrides for the AI model file paths (see [AI computer vision](#ai-computer-vision-object-detection-face-recognition-auto-captioning) above) - defaults already resolve inside the mounted `./app-data/models` volume, so usually left unset. |
+| `CAPTIONING_ENDPOINT`, `CAPTIONING_API_KEY`, `CAPTIONING_MODEL` | Passed through if set, for the optional VLM auto-captioning feature (also fully configurable from the Settings page instead). |
 
 Create a `.env` file next to `docker-compose.yml` (repo root) if you want to set any of these — `docker compose` picks it up automatically:
 

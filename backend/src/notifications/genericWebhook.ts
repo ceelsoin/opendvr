@@ -10,6 +10,8 @@ export interface GenericWebhookPayload {
   recordingLink?: string;
   /** Public URL of the snapshot (uploaded to S3-compatible storage, see lib/s3Storage.ts), when configured - sent alongside/instead of the base64 blob below. */
   snapshotUrl?: string;
+  /** Auto-generated VLM caption (item 4, see notifications/captioning.ts), when captioning is enabled for this event's category. */
+  caption?: string;
 }
 
 /**

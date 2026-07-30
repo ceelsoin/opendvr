@@ -26,7 +26,14 @@
     "webhookNotConfigured": "لم يتم تكوين عنوان URL لـ webhook العام.",
     "smtpNotConfigured": "لم يتم تكوين SMTP (المضيف والمرسل والمستلم مطلوبون).",
     "pushNotConfigured": "لا توجد اشتراكات دفع مسجلة بعد.",
-    "pushSendFailed": "فشل إرسال إشعار الدفع التجريبي."
+    "pushSendFailed": "فشل إرسال إشعار الدفع التجريبي.",
+    "noFaceDetected": "لم يتم اكتشاف أي وجه في الصورة المرفوعة.",
+    "faceModelNotAvailable": "نموذج التعرف على الوجه غير متوفر على الخادم.",
+    "faceNotFound": "الوجه غير موجود",
+    "snapshotFailed": "فشل التقاط لقطة من الكاميرا."
+  },
+  "captioning": {
+    "prompt": "صف باختصار، في جملة واحدة قصيرة، ما يحدث في صورة كاميرا المراقبة هذه."
   },
   "notifications": {
     "testMessage": "🔔 إشعار اختبار من OpenDVR",
@@ -36,6 +43,10 @@
     "lineCrossingDetected": "تم اكتشاف تجاوز خط",
     "intrusionDetected": "تم اكتشاف تسلل إلى المنطقة",
     "occupancyDetected": "تم اكتشاف إشغال المنطقة",
+    "personDetected": "تم اكتشاف شخص",
+    "vehicleDetected": "تم اكتشاف مركبة",
+    "animalDetected": "تم اكتشاف حيوان",
+    "objectDetected": "تم اكتشاف جسم",
     "watchRecording": "مشاهدة التسجيل:",
     "eventMessage": "📷 {{camera}}: {{eventType}} في {{time}}",
     "cameraUnavailable": "⚠️ {{camera}} غير متاحة منذ {{duration}} (منذ {{since}}).",

@@ -7,6 +7,7 @@ import {
   useUpdateNotificationSettings,
 } from "../api/settings";
 import { useStreamSettings, useUpdateStreamSettings, type HlsVariant } from "../api/streamSettings";
+import { useCaptionSettings, useUpdateCaptionSettings } from "../api/captioning";
 import { useSubscribePush, useUnsubscribePush, useVapidPublicKey } from "../api/push";
 import { getExistingPushSubscription, isPushSupported, subscribeToPush, unsubscribeFromPush } from "../lib/push";
 import { useToastStore } from "../store/toastStore";
@@ -55,6 +56,17 @@ export function SettingsPage() {
   const [preferSubStreamInGrid, setPreferSubStreamInGrid] = useState(false);
   const [playerLiveSyncDurationCount, setPlayerLiveSyncDurationCount] = useState("3");
   const [playerMaxBufferLength, setPlayerMaxBufferLength] = useState("10");
+
+  const { data: captionSettings } = useCaptionSettings();
+  const updateCaptionSettings = useUpdateCaptionSettings();
+  const [captionEnabled, setCaptionEnabled] = useState(false);
+  const [captionEndpoint, setCaptionEndpoint] = useState("");
+  const [captionApiKey, setCaptionApiKey] = useState("");
+  const [captionModel, setCaptionModel] = useState("");
+  const [captionPerson, setCaptionPerson] = useState(true);
+  const [captionVehicle, setCaptionVehicle] = useState(true);
+  const [captionAnimal, setCaptionAnimal] = useState(false);
+  const [captionOther, setCaptionOther] = useState(false);
 
   const pushSupported = isPushSupported();
   const [pushSubscription, setPushSubscription] = useState<PushSubscription | null>(null);
@@ -106,6 +118,18 @@ export function SettingsPage() {
     setPlayerMaxBufferLength(String(streamSettings.playerMaxBufferLength));
   }, [streamSettings]);
 
+  useEffect(() => {
+    if (!captionSettings) return;
+    setCaptionEnabled(captionSettings.enabled);
+    setCaptionEndpoint(captionSettings.endpoint ?? "");
+    setCaptionApiKey(captionSettings.apiKey ?? "");
+    setCaptionModel(captionSettings.model ?? "");
+    setCaptionPerson(captionSettings.categoryPerson);
+    setCaptionVehicle(captionSettings.categoryVehicle);
+    setCaptionAnimal(captionSettings.categoryAnimal);
+    setCaptionOther(captionSettings.categoryOther);
+  }, [captionSettings]);
+
   const extractErrorMessage = (err: unknown, fallback: string): string => {
     const data = axios.isAxiosError(err) ? (err.response?.data as { error?: string }) : undefined;
     return data?.error ?? fallback;
@@ -121,6 +145,25 @@ export function SettingsPage() {
       }
     } catch (err) {
       addToast("error", extractErrorMessage(err, t("settingsPage.toastTestFailed")));
+    }
+  };
+
+  const handleSaveCaptioning = async (e: FormEvent) => {
+    e.preventDefault();
+    try {
+      await updateCaptionSettings.mutateAsync({
+        enabled: captionEnabled,
+        endpoint: captionEndpoint || null,
+        apiKey: captionApiKey || null,
+        model: captionModel || null,
+        categoryPerson: captionPerson,
+        categoryVehicle: captionVehicle,
+        categoryAnimal: captionAnimal,
+        categoryOther: captionOther,
+      });
+      addToast("success", t("settingsPage.toastCaptioningSaved"));
+    } catch (err) {
+      addToast("error", extractErrorMessage(err, t("settingsPage.toastCaptioningSaveFailed")));
     }
   };
 
@@ -482,7 +525,62 @@ export function SettingsPage() {
         )}
       </div>
 
-      
+      {/* Auto-captioning (item 4: VLM) */}
+      <form onSubmit={handleSaveCaptioning} className="flex flex-col gap-2 rounded-lg border border-neutral-800 p-4">
+        <h3 className="text-sm font-medium">{t("settingsPage.captioningTitle")}</h3>
+        <p className="text-sm text-neutral-500">{t("settingsPage.captioningDescription")}</p>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={captionEnabled} onChange={(e) => setCaptionEnabled(e.target.checked)} />
+          {t("settingsPage.captioningEnable")}
+        </label>
+        <input
+          value={captionEndpoint}
+          onChange={(e) => setCaptionEndpoint(e.target.value)}
+          placeholder={t("settingsPage.captioningEndpointPlaceholder")}
+          className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+        />
+        <input
+          value={captionModel}
+          onChange={(e) => setCaptionModel(e.target.value)}
+          placeholder={t("settingsPage.captioningModelPlaceholder")}
+          className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+        />
+        <input
+          value={captionApiKey}
+          onChange={(e) => setCaptionApiKey(e.target.value)}
+          placeholder={t("settingsPage.captioningApiKeyPlaceholder")}
+          type="password"
+          className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+        />
+        <span className="text-xs text-neutral-500">{t("settingsPage.captioningCategoriesLabel")}</span>
+        <div className="flex flex-wrap gap-4 text-sm">
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={captionPerson} onChange={(e) => setCaptionPerson(e.target.checked)} />
+            {t("eventTypes.personDetected")}
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={captionVehicle} onChange={(e) => setCaptionVehicle(e.target.checked)} />
+            {t("eventTypes.vehicleDetected")}
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={captionAnimal} onChange={(e) => setCaptionAnimal(e.target.checked)} />
+            {t("eventTypes.animalDetected")}
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={captionOther} onChange={(e) => setCaptionOther(e.target.checked)} />
+            {t("eventTypes.objectDetected")}
+          </label>
+        </div>
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={updateCaptionSettings.isPending}
+            className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium hover:bg-blue-500 disabled:opacity-50"
+          >
+            {t("settingsPage.save")}
+          </button>
+        </div>
+      </form>
 
       {/* Discord */}
       <form onSubmit={handleSaveDiscord} className="flex flex-col gap-2 rounded-lg border border-neutral-800 p-4">

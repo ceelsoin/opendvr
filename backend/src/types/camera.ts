@@ -72,6 +72,16 @@ export interface StreamMetadata {
   encoding: string | null;
 }
 
+/**
+ * Optional "zone of interest" polygon for object-detection filtering (see
+ * media/objectDetection.ts), normalized to 0..1 on both axes so it stays
+ * valid regardless of the stream's actual resolution. Needs at least 3
+ * points to be meaningful; null means "no zone" (whole frame counts).
+ */
+export interface DetectionZone {
+  points: Array<[number, number]>;
+}
+
 export interface Camera {
   id: string;
   name: string;
@@ -99,6 +109,11 @@ export interface Camera {
   recordingMode: RecordingMode;
   motionRecording: boolean;
   motionDetectionSource: MotionDetectionSource;
+  /** AI object detection (YOLO), gated behind an existing motion signal - see media/objectDetection.ts. */
+  objectDetectionEnabled: boolean;
+  /** Face recognition (OpenCV YuNet+SFace), only ever runs on frames object detection already classified as "person". */
+  faceRecognitionEnabled: boolean;
+  detectionZone: DetectionZone | null;
   retentionDays: number;
   status: CameraStatus;
   /** Administrative on/off switch, independent of `status` (connectivity). See media/provisioning.ts callers in cameras.routes.ts's enable/disable actions. */
@@ -130,6 +145,9 @@ export interface CreateCameraInput {
   recordingMode?: RecordingMode;
   motionRecording?: boolean;
   motionDetectionSource?: MotionDetectionSource;
+  objectDetectionEnabled?: boolean;
+  faceRecognitionEnabled?: boolean;
+  detectionZone?: DetectionZone | null;
   retentionDays?: number;
 }
 
@@ -153,5 +171,8 @@ export interface UpdateCameraInput {
   recordingMode?: RecordingMode;
   motionRecording?: boolean;
   motionDetectionSource?: MotionDetectionSource;
+  objectDetectionEnabled?: boolean;
+  faceRecognitionEnabled?: boolean;
+  detectionZone?: DetectionZone | null;
   retentionDays?: number;
 }

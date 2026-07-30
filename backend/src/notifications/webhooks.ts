@@ -12,6 +12,10 @@ import { logger } from "../lib/logger.js";
 /** Human-friendly translation for common ONVIF event topic suffixes, in the admin's configured language (see backend/src/i18n/). */
 function friendlyEventType(topic: string): string {
   const lower = topic.toLowerCase();
+  if (lower === "object:person") return t("notifications.personDetected");
+  if (lower === "object:vehicle") return t("notifications.vehicleDetected");
+  if (lower === "object:animal") return t("notifications.animalDetected");
+  if (lower === "object:other") return t("notifications.objectDetected");
   if (lower.includes("tamper")) return t("notifications.tamperDetected");
   if (lower.includes("motion")) return t("notifications.motionDetected");
   if (lower.includes("linedetector")) return t("notifications.lineCrossingDetected");
@@ -20,9 +24,10 @@ function friendlyEventType(topic: string): string {
   return topic;
 }
 
-function buildMessage(camera: Pick<Camera, "name">, topic: string, occurredAt: Date): string {
+function buildMessage(camera: Pick<Camera, "name">, topic: string, occurredAt: Date, caption?: string): string {
   const time = occurredAt.toLocaleString(getBackendLanguage(), { timeZone: env.timezone });
-  return t("notifications.eventMessage", { camera: camera.name, eventType: friendlyEventType(topic), time });
+  const base = t("notifications.eventMessage", { camera: camera.name, eventType: friendlyEventType(topic), time });
+  return caption ? `${base}\n📝 ${caption}` : base;
 }
 
 /**
@@ -39,16 +44,17 @@ export async function notifyEvent(
   snapshot?: Buffer,
   recordingLink?: string,
   snapshotUrl?: string,
-  clip?: Buffer
+  clip?: Buffer,
+  caption?: string
 ): Promise<void> {
-  const message = buildMessage(camera, topic, new Date());
+  const message = buildMessage(camera, topic, new Date(), caption);
   const occurredAt = new Date().toISOString();
 
   const results = await Promise.allSettled([
     notifyDiscord(message, snapshot, recordingLink, snapshotUrl, clip),
     notifyTelegram(message, snapshot, recordingLink, snapshotUrl, clip),
     notifyGenericWebhook(
-      { cameraId: camera.id, cameraName: camera.name, topic, message, occurredAt, recordingLink, snapshotUrl },
+      { cameraId: camera.id, cameraName: camera.name, topic, message, occurredAt, recordingLink, snapshotUrl, caption },
       snapshot,
       clip
     ),

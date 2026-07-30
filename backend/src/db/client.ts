@@ -96,6 +96,16 @@ const MIGRATIONS: string[] = [
     auth TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
+  // Known faces for face recognition (see media/objectDetection.ts +
+  // media/visionWorker.ts). `embedding` is a JSON array of floats (SFace's
+  // 128-d output) computed once at enrollment time; matching happens
+  // in-process via cosine similarity, no vector DB needed at this scale.
+  `CREATE TABLE IF NOT EXISTS known_faces (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    embedding TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
 ];
 
 export function runMigrations(): void {
@@ -169,10 +179,31 @@ const COLUMN_MIGRATIONS: Record<string, string[]> = {
     // down. 0 = no rotation, no transcoding (unchanged direct pull/relay
     // behavior) - see media/rotationBridge.ts.
     "ALTER TABLE cameras ADD COLUMN rotation INTEGER NOT NULL DEFAULT 0",
+    // AI object detection (YOLO, via the shared media/visionWorker.ts
+    // process) gate: only runs on frames that already triggered the
+    // existing OpenCV motion detector (media/motionDetector.ts), and only
+    // for cameras that opt in here - keeps CPU cost bounded on weak
+    // hardware (see docs/configuration.md). Default 0 (off) so existing
+    // installs keep their current behavior unless explicitly enabled.
+    "ALTER TABLE cameras ADD COLUMN object_detection_enabled INTEGER NOT NULL DEFAULT 0",
+    // Face recognition (OpenCV YuNet+SFace) gate: only ever runs on frames
+    // where object detection already classified a "person", so this has no
+    // effect unless object_detection_enabled is also on.
+    "ALTER TABLE cameras ADD COLUMN face_recognition_enabled INTEGER NOT NULL DEFAULT 0",
+    // Optional "zone of interest" polygon (JSON: {"points":[[x,y],...]},
+    // normalized 0..1 so it's resolution-independent), used to ignore
+    // detections outside the area the user actually cares about (e.g. the
+    // public sidewalk visible through a gate). NULL = no zone, everything
+    // in-frame counts (unchanged behavior).
+    "ALTER TABLE cameras ADD COLUMN detection_zone TEXT",
   ],
   events: [
     "ALTER TABLE events ADD COLUMN read INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE events ADD COLUMN snapshot_path TEXT",
+    // Auto-generated caption text from the optional VLM captioning feature
+    // (see notifications/captioning.ts) - filled in asynchronously after
+    // the event row already exists, same pattern as snapshot_path.
+    "ALTER TABLE events ADD COLUMN caption TEXT",
   ],
 };
 

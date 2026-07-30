@@ -26,7 +26,14 @@
     "webhookNotConfigured": "URL общего webhook не настроен.",
     "smtpNotConfigured": "SMTP не настроен (требуются хост, отправитель и получатель).",
     "pushNotConfigured": "Пока нет зарегистрированных push-подписок.",
-    "pushSendFailed": "Не удалось отправить тестовое push-уведомление."
+    "pushSendFailed": "Не удалось отправить тестовое push-уведомление.",
+    "noFaceDetected": "На загруженном изображении лицо не обнаружено.",
+    "faceModelNotAvailable": "Модель распознавания лиц недоступна на сервере.",
+    "faceNotFound": "Лицо не найдено",
+    "snapshotFailed": "Не удалось получить снимок с камеры."
+  },
+  "captioning": {
+    "prompt": "Кратко опишите одним предложением, что происходит на этом изображении с камеры видеонаблюдения."
   },
   "notifications": {
     "testMessage": "🔔 Тестовое уведомление OpenDVR",
@@ -36,6 +43,10 @@
     "lineCrossingDetected": "Обнаружено пересечение линии",
     "intrusionDetected": "Обнаружено вторжение в зону",
     "occupancyDetected": "Обнаружено присутствие в зоне",
+    "personDetected": "Обнаружен человек",
+    "vehicleDetected": "Обнаружено транспортное средство",
+    "animalDetected": "Обнаружено животное",
+    "objectDetected": "Обнаружен объект",
     "watchRecording": "Смотреть запись:",
     "eventMessage": "📷 {{camera}}: {{eventType}} в {{time}}",
     "cameraUnavailable": "⚠️ {{camera}} недоступна уже {{duration}} (с {{since}}).",

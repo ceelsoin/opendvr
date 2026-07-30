@@ -5,6 +5,7 @@
     "timeline": "Enregistrements",
     "events": "Événements",
     "cameras": "Caméras",
+    "faces": "Visages",
     "onvifDebug": "Débogage ONVIF",
     "settings": "Paramètres",
     "logout": "Déconnexion"
@@ -34,7 +35,11 @@
     "motionDetected": "Mouvement détecté",
     "lineCrossingDetected": "Franchissement de ligne détecté",
     "intrusionDetected": "Intrusion dans une zone détectée",
-    "occupancyDetected": "Occupation de zone détectée"
+    "occupancyDetected": "Occupation de zone détectée",
+    "personDetected": "Personne détectée",
+    "vehicleDetected": "Véhicule détecté",
+    "animalDetected": "Animal détecté",
+    "objectDetected": "Objet détecté"
   },
   "cameras": {
     "title": "Caméras enregistrées",
@@ -162,7 +167,38 @@
     "streamUrlRequired": "L'URL du flux est requise",
     "onvifConnectionFailed": "Impossible de se connecter à la caméra via ONVIF.",
     "saveFailed": "Échec de l'enregistrement de la caméra. Vérifiez les données et réessayez.",
-    "previouslySelected": "Précédemment sélectionné"
+    "previouslySelected": "Précédemment sélectionné",
+    "aiVisionLabel": "Vision par ordinateur (IA) — optionnel",
+    "objectDetectionCheckbox": "Détection d'objets (personne/véhicule/animal)",
+    "objectDetectionHint": "Exécute un modèle YOLO léger uniquement lorsque le détecteur de mouvement (ci-dessus) s'est déjà déclenché — réduit les faux positifs (ombres, vent, etc). Nécessite les fichiers de modèle configurés sur le serveur (voir docs/configuration.md).",
+    "faceRecognitionCheckbox": "Reconnaissance faciale (visages connus)",
+    "detectionZoneButton": "Définir la zone d'intérêt",
+    "detectionZoneSet": "Zone définie",
+    "detectionZoneNeedsSave": "Enregistrez d'abord la caméra pour définir la zone"
+  },
+  "detectionZone": {
+    "title": "Zone d'intérêt",
+    "hint": "Cliquez sur l'image pour dessiner un polygone (min. 3 points). Seules les détections à l'intérieur génèrent des événements.",
+    "loadingSnapshot": "Chargement de l'image de la caméra...",
+    "snapshotFailed": "Impossible de charger une image de la caméra.",
+    "undoPoint": "Annuler le dernier point",
+    "clear": "Effacer",
+    "pointCount": "{{count}} point(s)",
+    "cancel": "Annuler",
+    "save": "Enregistrer"
+  },
+  "facesPage": {
+    "title": "Visages connus",
+    "description": "Enregistrez des photos de visages connus pour que la reconnaissance faciale distingue les personnes connues des inconnues dans les événements des caméras avec cette option activée.",
+    "nameLabel": "Nom",
+    "namePlaceholder": "Ex : Jean",
+    "photoLabel": "Photo du visage",
+    "saving": "Enregistrement...",
+    "addButton": "Ajouter",
+    "saveFailed": "Échec de l'enregistrement du visage. Assurez-vous que la photo contient un visage visible.",
+    "loading": "Chargement des visages...",
+    "none": "Aucun visage enregistré pour le moment.",
+    "remove": "Supprimer"
   },
   "onvifScan": {
     "title": "Scan réseau (ONVIF/RTSP)",
@@ -313,6 +349,15 @@
     "toastPushPermissionDenied": "L'autorisation de notification a été refusée dans le navigateur.",
     "toastPushDisabled": "Notifications push désactivées sur cet appareil.",
     "toastPushDisableFailed": "Échec de la désactivation des notifications push.",
+    "captioningTitle": "Légende automatique (IA)",
+    "captioningDescription": "Utilise un point de terminaison de vision compatible OpenAI (ex : une instance locale d'Ollama/LM Studio) pour générer une courte légende pour les événements notables, par catégorie détectée (la détection d'objets du point 1).",
+    "captioningEnable": "Activer la légende automatique",
+    "captioningEndpointPlaceholder": "URL du point de terminaison (ex : http://localhost:11434/v1)",
+    "captioningModelPlaceholder": "Nom du modèle",
+    "captioningApiKeyPlaceholder": "Clé API (optionnel, laisser vide pour conserver)",
+    "captioningCategoriesLabel": "Générer une légende pour :",
+    "toastCaptioningSaved": "Paramètres de légende enregistrés.",
+    "toastCaptioningSaveFailed": "Échec de l'enregistrement des paramètres de légende.",
     "streamTitle": "Optimisation du streaming (HLS)",
     "streamDescription": "Ajuste la façon dont MediaMTX génère le HLS et dont le lecteur du navigateur le met en mémoire tampon - utile quand le flux de la caméra est déjà connecté mais que le lecteur web reste lent à démarrer ou échoue.",
     "streamVariantLabel": "Format HLS",

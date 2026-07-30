@@ -5,6 +5,7 @@
     "timeline": "Aufnahmen",
     "events": "Ereignisse",
     "cameras": "Kameras",
+    "faces": "Gesichter",
     "onvifDebug": "ONVIF-Debug",
     "settings": "Einstellungen",
     "logout": "Abmelden"
@@ -34,7 +35,11 @@
     "motionDetected": "Bewegung erkannt",
     "lineCrossingDetected": "Linienüberschreitung erkannt",
     "intrusionDetected": "Bereichseindringung erkannt",
-    "occupancyDetected": "Bereichsbelegung erkannt"
+    "occupancyDetected": "Bereichsbelegung erkannt",
+    "personDetected": "Person erkannt",
+    "vehicleDetected": "Fahrzeug erkannt",
+    "animalDetected": "Tier erkannt",
+    "objectDetected": "Objekt erkannt"
   },
   "cameras": {
     "title": "Registrierte Kameras",
@@ -162,7 +167,38 @@
     "streamUrlRequired": "Stream-URL ist erforderlich",
     "onvifConnectionFailed": "Verbindung zur Kamera über ONVIF fehlgeschlagen.",
     "saveFailed": "Speichern der Kamera fehlgeschlagen. Daten prüfen und erneut versuchen.",
-    "previouslySelected": "Zuvor ausgewählt"
+    "previouslySelected": "Zuvor ausgewählt",
+    "aiVisionLabel": "Computer Vision (KI) — optional",
+    "objectDetectionCheckbox": "Objekterkennung (Person/Fahrzeug/Tier)",
+    "objectDetectionHint": "Führt ein leichtes YOLO-Modell nur aus, wenn der Bewegungsmelder (oben) bereits ausgelöst hat — reduziert Fehlalarme (Schatten, Wind usw.). Erfordert die auf dem Server konfigurierten Modelldateien (siehe docs/configuration.md).",
+    "faceRecognitionCheckbox": "Gesichtserkennung (bekannte Gesichter)",
+    "detectionZoneButton": "Interessenbereich festlegen",
+    "detectionZoneSet": "Bereich festgelegt",
+    "detectionZoneNeedsSave": "Speichere die Kamera zuerst, um den Bereich festzulegen"
+  },
+  "detectionZone": {
+    "title": "Interessenbereich",
+    "hint": "Klicke auf das Bild, um ein Polygon zu zeichnen (mind. 3 Punkte). Nur Erkennungen darin erzeugen Ereignisse.",
+    "loadingSnapshot": "Kamerabild wird geladen...",
+    "snapshotFailed": "Es konnte kein Bild von der Kamera geladen werden.",
+    "undoPoint": "Letzten Punkt rückgängig machen",
+    "clear": "Löschen",
+    "pointCount": "{{count}} Punkt(e)",
+    "cancel": "Abbrechen",
+    "save": "Speichern"
+  },
+  "facesPage": {
+    "title": "Bekannte Gesichter",
+    "description": "Registriere Fotos bekannter Gesichter, damit die Gesichtserkennung (Punkt 3) bekannte Personen von Fremden in Ereignissen von Kameras mit dieser Option unterscheiden kann.",
+    "nameLabel": "Name",
+    "namePlaceholder": "z. B. Max",
+    "photoLabel": "Gesichtsfoto",
+    "saving": "Wird gespeichert...",
+    "addButton": "Hinzufügen",
+    "saveFailed": "Speichern des Gesichts fehlgeschlagen. Stelle sicher, dass das Foto ein deutlich sichtbares Gesicht zeigt.",
+    "loading": "Gesichter werden geladen...",
+    "none": "Noch keine Gesichter registriert.",
+    "remove": "Entfernen"
   },
   "onvifScan": {
     "title": "Netzwerkscan (ONVIF/RTSP)",
@@ -313,6 +349,15 @@
     "toastPushPermissionDenied": "Die Benachrichtigungsberechtigung wurde im Browser verweigert.",
     "toastPushDisabled": "Push-Benachrichtigungen auf diesem Gerät deaktiviert.",
     "toastPushDisableFailed": "Deaktivieren der Push-Benachrichtigungen fehlgeschlagen.",
+    "captioningTitle": "Automatische Bildunterschrift (KI)",
+    "captioningDescription": "Verwendet einen OpenAI-kompatiblen Vision-Endpunkt (z. B. eine lokale Ollama/LM-Studio-Instanz), um für bemerkenswerte Ereignisse je nach erkannter Kategorie (Objekterkennung aus Punkt 1) eine kurze Bildunterschrift zu erzeugen.",
+    "captioningEnable": "Automatische Bildunterschrift aktivieren",
+    "captioningEndpointPlaceholder": "Endpunkt-URL (z. B. http://localhost:11434/v1)",
+    "captioningModelPlaceholder": "Modellname",
+    "captioningApiKeyPlaceholder": "API-Schlüssel (optional, leer lassen zum Beibehalten)",
+    "captioningCategoriesLabel": "Bildunterschrift erzeugen für:",
+    "toastCaptioningSaved": "Einstellungen für Bildunterschriften gespeichert.",
+    "toastCaptioningSaveFailed": "Speichern der Einstellungen für Bildunterschriften fehlgeschlagen.",
     "streamTitle": "Streaming-Optimierung (HLS)",
     "streamDescription": "Passt an, wie MediaMTX HLS erzeugt und wie der Browser-Player puffert - nützlich, wenn der Kamerastream bereits verbunden ist, der Web-Player aber weiterhin langsam startet oder fehlschlägt.",
     "streamVariantLabel": "HLS-Format",

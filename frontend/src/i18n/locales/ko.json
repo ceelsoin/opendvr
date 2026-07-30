@@ -5,6 +5,7 @@
     "timeline": "녹화",
     "events": "이벤트",
     "cameras": "카메라",
+    "faces": "얼굴",
     "onvifDebug": "ONVIF 디버그",
     "settings": "설정",
     "logout": "로그아웃"
@@ -34,7 +35,11 @@
     "motionDetected": "움직임이 감지되었습니다",
     "lineCrossingDetected": "선 넘기가 감지되었습니다",
     "intrusionDetected": "구역 침입이 감지되었습니다",
-    "occupancyDetected": "구역 점유가 감지되었습니다"
+    "occupancyDetected": "구역 점유가 감지되었습니다",
+    "personDetected": "사람 감지됨",
+    "vehicleDetected": "차량 감지됨",
+    "animalDetected": "동물 감지됨",
+    "objectDetected": "물체 감지됨"
   },
   "cameras": {
     "title": "등록된 카메라",
@@ -162,7 +167,38 @@
     "streamUrlRequired": "스트림 URL은 필수입니다",
     "onvifConnectionFailed": "ONVIF를 통해 카메라에 연결할 수 없습니다.",
     "saveFailed": "카메라 저장에 실패했습니다. 데이터를 확인하고 다시 시도하세요.",
-    "previouslySelected": "이전에 선택됨"
+    "previouslySelected": "이전에 선택됨",
+    "aiVisionLabel": "컴퓨터 비전(AI) — 선택 사항",
+    "objectDetectionCheckbox": "객체 감지(사람/차량/동물)",
+    "objectDetectionHint": "위의 동작 감지기가 이미 트리거된 경우에만 경량 YOLO 모델을 실행합니다 — 오탐(그림자, 바람 등)을 줄입니다. 서버에 모델 파일이 구성되어 있어야 합니다(docs/configuration.md 참조).",
+    "faceRecognitionCheckbox": "얼굴 인식(등록된 얼굴)",
+    "detectionZoneButton": "관심 영역 설정",
+    "detectionZoneSet": "영역 설정됨",
+    "detectionZoneNeedsSave": "영역을 설정하려면 먼저 카메라를 저장하세요"
+  },
+  "detectionZone": {
+    "title": "관심 영역",
+    "hint": "이미지를 클릭하여 다각형을 그리세요(최소 3개 점). 영역 내부의 감지만 이벤트를 생성합니다.",
+    "loadingSnapshot": "카메라 이미지를 불러오는 중...",
+    "snapshotFailed": "카메라에서 이미지를 불러올 수 없습니다.",
+    "undoPoint": "마지막 점 취소",
+    "clear": "지우기",
+    "pointCount": "{{count}}개 점",
+    "cancel": "취소",
+    "save": "저장"
+  },
+  "facesPage": {
+    "title": "등록된 얼굴",
+    "description": "이 옵션이 활성화된 카메라의 이벤트에서 아는 사람과 낯선 사람을 구분할 수 있도록 등록된 얼굴 사진을 추가하세요.",
+    "nameLabel": "이름",
+    "namePlaceholder": "예: 홍길동",
+    "photoLabel": "얼굴 사진",
+    "saving": "저장 중...",
+    "addButton": "추가",
+    "saveFailed": "얼굴 저장에 실패했습니다. 사진에 얼굴이 명확하게 보이는지 확인하세요.",
+    "loading": "얼굴을 불러오는 중...",
+    "none": "아직 등록된 얼굴이 없습니다.",
+    "remove": "삭제"
   },
   "onvifScan": {
     "title": "네트워크 스캔 (ONVIF/RTSP)",
@@ -313,6 +349,15 @@
     "toastPushPermissionDenied": "브라우저에서 알림 권한이 거부되었습니다.",
     "toastPushDisabled": "이 기기에서 푸시 알림이 비활성화되었습니다.",
     "toastPushDisableFailed": "푸시 알림 비활성화에 실패했습니다.",
+    "captioningTitle": "자동 자막(AI)",
+    "captioningDescription": "OpenAI 호환 비전 엔드포인트(예: 로컬 Ollama/LM Studio 인스턴스)를 사용하여 감지된 카테고리(항목 1의 객체 감지)별로 주목할 만한 이벤트에 대한 짧은 자막을 생성합니다.",
+    "captioningEnable": "자동 자막 활성화",
+    "captioningEndpointPlaceholder": "엔드포인트 URL(예: http://localhost:11434/v1)",
+    "captioningModelPlaceholder": "모델 이름",
+    "captioningApiKeyPlaceholder": "API 키(선택 사항, 유지하려면 비워두세요)",
+    "captioningCategoriesLabel": "다음에 대해 자막 생성:",
+    "toastCaptioningSaved": "자막 설정이 저장되었습니다.",
+    "toastCaptioningSaveFailed": "자막 설정 저장에 실패했습니다.",
     "streamTitle": "스트리밍(HLS) 최적화",
     "streamDescription": "MediaMTX가 HLS를 생성하는 방식과 브라우저 플레이어의 버퍼링 방식을 조정합니다 - 카메라 스트림은 이미 연결되어 있지만 웹 플레이어가 여전히 느리게 로드되거나 실패할 때 유용합니다.",
     "streamVariantLabel": "HLS 형식",

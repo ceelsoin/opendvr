@@ -14,6 +14,7 @@ interface EventRow {
   metadata: string | null;
   read: number;
   snapshot_path: string | null;
+  caption: string | null;
 }
 
 function serializeEvent(row: EventRow) {
@@ -25,6 +26,7 @@ function serializeEvent(row: EventRow) {
     metadata: row.metadata ? JSON.parse(row.metadata) : null,
     read: Boolean(row.read),
     snapshotUrl: row.snapshot_path,
+    caption: row.caption,
   };
 }
 

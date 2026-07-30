@@ -11,6 +11,7 @@ import { systemRouter } from "./system.routes.js";
 import { authRouter } from "./auth.routes.js";
 import { maintenanceRouter } from "./maintenance.routes.js";
 import { pushRouter } from "./push.routes.js";
+import { facesRouter } from "./faces.routes.js";
 
 export const apiRouter = Router();
 
@@ -30,3 +31,4 @@ apiRouter.use("/settings", settingsRouter);
 apiRouter.use("/system", systemRouter);
 apiRouter.use("/maintenance", maintenanceRouter);
 apiRouter.use("/push", pushRouter);
+apiRouter.use("/faces", facesRouter);

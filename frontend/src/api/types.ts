@@ -42,6 +42,11 @@ export interface StreamMetadata {
   encoding: string | null;
 }
 
+/** Optional "zone of interest" polygon for object-detection filtering, normalized 0..1 on both axes. */
+export interface DetectionZone {
+  points: Array<[number, number]>;
+}
+
 export interface Camera {
   id: string;
   name: string;
@@ -66,6 +71,11 @@ export interface Camera {
   recordingMode: RecordingMode;
   motionRecording: boolean;
   motionDetectionSource: MotionDetectionSource;
+  /** AI object detection (YOLO), gated behind an existing motion signal. */
+  objectDetectionEnabled: boolean;
+  /** Face recognition, only ever runs on frames already classified as "person" by object detection. */
+  faceRecognitionEnabled: boolean;
+  detectionZone: DetectionZone | null;
   retentionDays: number;
   status: CameraStatus;
   /** Administrative on/off switch, independent of `status` (connectivity). */
@@ -94,6 +104,9 @@ export interface CreateCameraInput {
   recordingMode?: RecordingMode;
   motionRecording?: boolean;
   motionDetectionSource?: MotionDetectionSource;
+  objectDetectionEnabled?: boolean;
+  faceRecognitionEnabled?: boolean;
+  detectionZone?: DetectionZone | null;
   retentionDays?: number;
 }
 
@@ -140,6 +153,7 @@ export interface CameraEvent {
   metadata: Record<string, unknown> | null;
   read: boolean;
   snapshotUrl: string | null;
+  caption: string | null;
 }
 
 /** A user-defined camera grid: column count ("formato") + an ordered list of camera IDs ("ordem"/"câmeras"). */

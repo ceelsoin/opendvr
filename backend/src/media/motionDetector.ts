@@ -4,6 +4,7 @@ import readline from "node:readline";
 import { env } from "../config/env.js";
 import type { Camera } from "../types/camera.js";
 import { recordCameraEvent } from "../events/cameraEvents.js";
+import { classifyMotionFrame } from "./objectDetection.js";
 import { logger } from "../lib/logger.js";
 
 /**
@@ -31,6 +32,8 @@ const detectors = new Map<string, MotionDetectorHandle>();
 interface MotionWorkerEvent {
   type: string;
   areaRatio?: number;
+  /** Base64 JPEG of the triggering frame, used for object detection - see objectDetection.ts. */
+  frame?: string;
 }
 
 export function isDetectingMotion(cameraId: string): boolean {
@@ -54,9 +57,34 @@ export function startMotionDetector(camera: Camera): void {
     } catch {
       return;
     }
-    if (parsed.type === "motion") {
-      recordCameraEvent(camera, "video:motion", { areaRatio: parsed.areaRatio });
+    if (parsed.type !== "motion") {
+      return;
     }
+
+    // Object detection (item 1) is opt-in per camera and only ever kicks
+    // in on frames that already triggered MOG2 above - it never runs on
+    // every frame, keeping CPU cost bounded (see media/objectDetection.ts).
+    if (camera.objectDetectionEnabled && parsed.frame) {
+      const frameBuffer = Buffer.from(parsed.frame, "base64");
+      void classifyMotionFrame(camera, frameBuffer, parsed.areaRatio ?? 0)
+        .then((classified) => {
+          if (classified) {
+            recordCameraEvent(camera, classified.topic, classified.metadata);
+          }
+          // classified === null means either the feature is unavailable
+          // (model missing/worker down - fall back to the plain signal
+          // below) or detection ran but found nothing relevant after zone
+          // filtering (a real false positive - suppress entirely, do NOT
+          // fall back to the generic "video:motion" event in that case).
+        })
+        .catch((err) => {
+          logger.debug({ err, cameraId: camera.id }, "Object detection failed; falling back to plain motion event");
+          recordCameraEvent(camera, "video:motion", { areaRatio: parsed.areaRatio });
+        });
+      return;
+    }
+
+    recordCameraEvent(camera, "video:motion", { areaRatio: parsed.areaRatio });
   });
 
   readline.createInterface({ input: child.stderr }).on("line", (line) => {

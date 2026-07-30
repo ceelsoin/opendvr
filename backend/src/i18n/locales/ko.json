@@ -26,7 +26,14 @@
     "webhookNotConfigured": "일반 웹훅 URL이 설정되지 않았습니다.",
     "smtpNotConfigured": "SMTP가 설정되지 않았습니다(호스트, 발신자, 수신자가 필요합니다).",
     "pushNotConfigured": "아직 등록된 푸시 구독이 없습니다.",
-    "pushSendFailed": "테스트 푸시 알림 전송에 실패했습니다."
+    "pushSendFailed": "테스트 푸시 알림 전송에 실패했습니다.",
+    "noFaceDetected": "업로드된 이미지에서 얼굴을 감지하지 못했습니다.",
+    "faceModelNotAvailable": "서버에서 얼굴 인식 모델을 사용할 수 없습니다.",
+    "faceNotFound": "얼굴을 찾을 수 없습니다",
+    "snapshotFailed": "카메라에서 스냅샷을 가져오지 못했습니다."
+  },
+  "captioning": {
+    "prompt": "이 보안 카메라 이미지에서 무슨 일이 일어나고 있는지 한 문장으로 간단히 설명하세요."
   },
   "notifications": {
     "testMessage": "🔔 OpenDVR 테스트 알림",
@@ -36,6 +43,10 @@
     "lineCrossingDetected": "라인 교차가 감지되었습니다",
     "intrusionDetected": "구역 침입이 감지되었습니다",
     "occupancyDetected": "구역 점유가 감지되었습니다",
+    "personDetected": "사람 감지됨",
+    "vehicleDetected": "차량 감지됨",
+    "animalDetected": "동물 감지됨",
+    "objectDetected": "물체 감지됨",
     "watchRecording": "녹화 보기:",
     "eventMessage": "📷 {{camera}}: {{eventType}} ({{time}})",
     "cameraUnavailable": "⚠️ {{camera}}이(가) {{duration}} 동안 연결되지 않고 있습니다 ({{since}}부터).",

@@ -9,6 +9,7 @@ import { OnvifDebugPage } from "./pages/OnvifDebugPage";
 import { CustomGridViewPage } from "./pages/CustomGridViewPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { MaintenancePage } from "./pages/MaintenancePage";
+import { FacesPage } from "./pages/FacesPage";
 import { LoginPage } from "./pages/LoginPage";
 import { SetupPage } from "./pages/SetupPage";
 
@@ -27,6 +28,7 @@ function App() {
           <Route path="timeline" element={<TimelinePage />} />
           <Route path="events" element={<EventsPage />} />
           <Route path="cameras" element={<CamerasPage />} />
+          <Route path="faces" element={<FacesPage />} />
           <Route path="onvif-debug" element={<OnvifDebugPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="maintenance" element={<MaintenancePage />} />

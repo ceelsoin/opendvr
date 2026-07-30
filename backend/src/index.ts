@@ -10,6 +10,7 @@ import { initWebSocket } from "./ws/index.js";
 import { stopAllRecordings } from "./media/recorder.js";
 import { startMotionListening, shouldDetectMotion } from "./media/motionOrchestrator.js";
 import { stopAllMotionDetectors } from "./media/motionDetector.js";
+import { startVisionWorker } from "./media/visionWorker.js";
 import { provisionCamera } from "./media/provisioning.js";
 import { getCameraPathStatus } from "./media/mediamtx.js";
 import { applyStreamSettingsToMediaMtx } from "./media/streamSettings.js";
@@ -56,6 +57,14 @@ if (env.httpsCertFile && env.httpsKeyFile) {
     );
   }
 }
+
+// Shared object-detection/face-recognition process (items 1 and 3, see
+// media/visionWorker.ts) - a SINGLE instance for the whole app, regardless
+// of camera count, so its model(s) are only ever loaded once. Started
+// unconditionally (it's cheap to have running - it does nothing until a
+// camera with object detection enabled actually sends it a frame); missing
+// model files just make individual requests fail gracefully, not this.
+startVisionWorker();
 
 // MediaMTX paths - AND its global HLS config, see media/streamSettings.ts -
 // only exist in-memory (set via its Control API), so they're lost whenever

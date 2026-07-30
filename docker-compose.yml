@@ -2,7 +2,7 @@ services:
   mediamtx:
     image: bluenviron/mediamtx:latest
     container_name: ipcam-mediamtx
-    restart: unless-stopped
+    restart: always
     ports:
       - "8554:8554" # RTSP (útil para testar com VLC/ffplay diretamente)
       - "8889:8889" # WebRTC
@@ -22,7 +22,7 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     container_name: ipcam-backend
-    restart: unless-stopped
+    restart: always
     depends_on:
       - mediamtx
     ports:
@@ -96,6 +96,21 @@ services:
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      # Optional AI computer vision (object detection/face recognition, see
+      # backend/src/media/visionWorker.ts) - model weight files are NOT
+      # bundled in the image; download them into ./app-data/models (see
+      # docs/configuration.md) for these paths' defaults to resolve. Leave
+      # unset/missing and the features simply stay inactive (opt-in per
+      # camera in the camera form).
+      VISION_YOLO_MODEL_PATH: ${VISION_YOLO_MODEL_PATH:-}
+      VISION_FACE_DETECT_MODEL_PATH: ${VISION_FACE_DETECT_MODEL_PATH:-}
+      VISION_FACE_RECOGNIZE_MODEL_PATH: ${VISION_FACE_RECOGNIZE_MODEL_PATH:-}
+      # Optional VLM auto-captioning (see backend/src/notifications/captioning.ts) -
+      # any OpenAI-compatible vision `/chat/completions` endpoint (e.g. a
+      # local Ollama/LM Studio instance). Also editable from the Settings page.
+      CAPTIONING_ENDPOINT: ${CAPTIONING_ENDPOINT:-}
+      CAPTIONING_API_KEY: ${CAPTIONING_API_KEY:-}
+      CAPTIONING_MODEL: ${CAPTIONING_MODEL:-}
     volumes:
       - ./app-data:/data
       - ./recordings:/recordings

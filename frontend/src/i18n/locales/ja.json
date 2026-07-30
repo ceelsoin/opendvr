@@ -5,6 +5,7 @@
     "timeline": "録画",
     "events": "イベント",
     "cameras": "カメラ",
+    "faces": "顔",
     "onvifDebug": "ONVIFデバッグ",
     "settings": "設定",
     "logout": "ログアウト"
@@ -34,7 +35,11 @@
     "motionDetected": "動きを検知しました",
     "lineCrossingDetected": "ライン通過を検知しました",
     "intrusionDetected": "エリアへの侵入を検知しました",
-    "occupancyDetected": "エリアの占有を検知しました"
+    "occupancyDetected": "エリアの占有を検知しました",
+    "personDetected": "人物を検知しました",
+    "vehicleDetected": "車両を検知しました",
+    "animalDetected": "動物を検知しました",
+    "objectDetected": "物体を検知しました"
   },
   "cameras": {
     "title": "登録済みカメラ",
@@ -162,7 +167,38 @@
     "streamUrlRequired": "ストリームURLは必須です",
     "onvifConnectionFailed": "ONVIF経由でカメラに接続できませんでした。",
     "saveFailed": "カメラの保存に失敗しました。内容を確認して再試行してください。",
-    "previouslySelected": "以前に選択済み"
+    "previouslySelected": "以前に選択済み",
+    "aiVisionLabel": "コンピュータービジョン（AI）— オプション",
+    "objectDetectionCheckbox": "物体検知（人物/車両/動物）",
+    "objectDetectionHint": "上の動体検知が既に発火した場合のみ軽量なYOLOモデルを実行します — 誤検知（影、風など）を減らします。サーバー上のモデルファイルの設定が必要です（docs/configuration.md参照）。",
+    "faceRecognitionCheckbox": "顔認識（登録済みの顔）",
+    "detectionZoneButton": "関心領域を設定",
+    "detectionZoneSet": "領域設定済み",
+    "detectionZoneNeedsSave": "領域を設定するには先にカメラを保存してください"
+  },
+  "detectionZone": {
+    "title": "関心領域",
+    "hint": "画像をクリックして多角形を描きます（最低3点）。領域内の検知のみがイベントを生成します。",
+    "loadingSnapshot": "カメラ画像を読み込み中...",
+    "snapshotFailed": "カメラの画像を読み込めませんでした。",
+    "undoPoint": "最後の点を取り消す",
+    "clear": "クリア",
+    "pointCount": "{{count}}点",
+    "cancel": "キャンセル",
+    "save": "保存"
+  },
+  "facesPage": {
+    "title": "登録済みの顔",
+    "description": "この機能を有効にしたカメラのイベントで、既知の人物と未知の人物を区別できるように、既知の顔写真を登録します。",
+    "nameLabel": "名前",
+    "namePlaceholder": "例：山田太郎",
+    "photoLabel": "顔写真",
+    "saving": "保存中...",
+    "addButton": "追加",
+    "saveFailed": "顔の保存に失敗しました。写真に顔がはっきり写っているかを確認してください。",
+    "loading": "顔を読み込み中...",
+    "none": "まだ顔が登録されていません。",
+    "remove": "削除"
   },
   "onvifScan": {
     "title": "ネットワークスキャン（ONVIF/RTSP）",
@@ -313,6 +349,15 @@
     "toastPushPermissionDenied": "ブラウザで通知の許可が拒否されました。",
     "toastPushDisabled": "このデバイスでプッシュ通知を無効にしました。",
     "toastPushDisableFailed": "プッシュ通知の無効化に失敗しました。",
+    "captioningTitle": "自動キャプション（AI）",
+    "captioningDescription": "OpenAI互換のビジョンエンドポイント（例：ローカルのOllama/LM Studio）を使用して、検知されたカテゴリ（項目1の物体検知）ごとに重要なイベントの簡潔なキャプションを生成します。",
+    "captioningEnable": "自動キャプションを有効にする",
+    "captioningEndpointPlaceholder": "エンドポイントURL（例：http://localhost:11434/v1）",
+    "captioningModelPlaceholder": "モデル名",
+    "captioningApiKeyPlaceholder": "APIキー（任意、維持する場合は空白）",
+    "captioningCategoriesLabel": "キャプションを生成する対象：",
+    "toastCaptioningSaved": "キャプション設定を保存しました。",
+    "toastCaptioningSaveFailed": "キャプション設定の保存に失敗しました。",
     "streamTitle": "ストリーミング（HLS）の最適化",
     "streamDescription": "MediaMTX が HLS を生成する方法とブラウザプレーヤーのバッファリング方法を調整します - カメラのストリームはすでに接続されているのに、Web プレーヤーの読み込みが遅い、または失敗する場合に役立ちます。",
     "streamVariantLabel": "HLS 形式",

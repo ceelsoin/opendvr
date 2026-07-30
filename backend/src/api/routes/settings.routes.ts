@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { getNotificationSettings, updateNotificationSettings } from "../../notifications/notificationSettings.js";
 import { sendTestNotification } from "../../notifications/webhooks.js";
+import { getCaptionSettings, updateCaptionSettings } from "../../notifications/captionSettings.js";
 import { hasPushSubscriptions } from "../../lib/webPush.js";
 import { applyStreamSettingsToMediaMtx, getStreamSettings, updateStreamSettings } from "../../media/streamSettings.js";
 import { getBackendLanguage, setBackendLanguage, SUPPORTED_BACKEND_LANGUAGES, t } from "../../i18n/index.js";
@@ -152,5 +153,31 @@ settingsRouter.put("/stream", async (req, res) => {
   }
   const updated = updateStreamSettings(parsed.data);
   await applyStreamSettingsToMediaMtx();
+  res.json(updated);
+});
+
+/** Item 4: VLM auto-captioning config (see notifications/captionSettings.ts) - global, applies across all cameras with object detection enabled. */
+settingsRouter.get("/captioning", (_req, res) => {
+  res.json(getCaptionSettings());
+});
+
+const updateCaptionSettingsSchema = z.object({
+  enabled: z.boolean().optional(),
+  endpoint: z.string().nullable().optional(),
+  apiKey: z.string().nullable().optional(),
+  model: z.string().nullable().optional(),
+  categoryPerson: z.boolean().optional(),
+  categoryVehicle: z.boolean().optional(),
+  categoryAnimal: z.boolean().optional(),
+  categoryOther: z.boolean().optional(),
+});
+
+settingsRouter.put("/captioning", (req, res) => {
+  const parsed = updateCaptionSettingsSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: t("errors.invalidPayload"), details: parsed.error.flatten() });
+    return;
+  }
+  const updated = updateCaptionSettings(parsed.data);
   res.json(updated);
 });

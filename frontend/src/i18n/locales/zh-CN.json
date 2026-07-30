@@ -5,6 +5,7 @@
     "timeline": "录像",
     "events": "事件",
     "cameras": "摄像头",
+    "faces": "人脸",
     "onvifDebug": "ONVIF 调试",
     "settings": "设置",
     "logout": "退出登录"
@@ -34,7 +35,11 @@
     "motionDetected": "检测到移动",
     "lineCrossingDetected": "检测到越线",
     "intrusionDetected": "检测到区域入侵",
-    "occupancyDetected": "检测到区域占用"
+    "occupancyDetected": "检测到区域占用",
+    "personDetected": "检测到人员",
+    "vehicleDetected": "检测到车辆",
+    "animalDetected": "检测到动物",
+    "objectDetected": "检测到物体"
   },
   "cameras": {
     "title": "已注册的摄像头",
@@ -162,7 +167,38 @@
     "streamUrlRequired": "流地址为必填项",
     "onvifConnectionFailed": "无法通过 ONVIF 连接到摄像头。",
     "saveFailed": "保存摄像头失败。请检查数据并重试。",
-    "previouslySelected": "先前已选择"
+    "previouslySelected": "先前已选择",
+    "aiVisionLabel": "计算机视觉（AI）— 可选",
+    "objectDetectionCheckbox": "物体检测（人员/车辆/动物）",
+    "objectDetectionHint": "仅在上方的移动侦测已经触发时才运行一个轻量级 YOLO 模型 — 可减少误报（阴影、风等）。需要在服务器上配置模型文件（参见 docs/configuration.md）。",
+    "faceRecognitionCheckbox": "人脸识别（已知人脸）",
+    "detectionZoneButton": "设置感兴趣区域",
+    "detectionZoneSet": "已设置区域",
+    "detectionZoneNeedsSave": "请先保存摄像头以设置区域"
+  },
+  "detectionZone": {
+    "title": "感兴趣区域",
+    "hint": "点击图片绘制多边形（至少3个点）。只有区域内的检测才会生成事件。",
+    "loadingSnapshot": "正在加载摄像头图像...",
+    "snapshotFailed": "无法加载摄像头图像。",
+    "undoPoint": "撤销最后一个点",
+    "clear": "清除",
+    "pointCount": "{{count}} 个点",
+    "cancel": "取消",
+    "save": "保存"
+  },
+  "facesPage": {
+    "title": "已知人脸",
+    "description": "上传已知人脸的照片，以便人脸识别功能在启用该选项的摄像头事件中区分熟悉的人和陷生人。",
+    "nameLabel": "姓名",
+    "namePlaceholder": "例如：张三",
+    "photoLabel": "人脸照片",
+    "saving": "保存中...",
+    "addButton": "添加",
+    "saveFailed": "保存人脸失败，请确保照片中包含清晰可见的人脸。",
+    "loading": "正在加载人脸...",
+    "none": "尚未添加任何人脸。",
+    "remove": "删除"
   },
   "onvifScan": {
     "title": "网络扫描（ONVIF/RTSP）",
@@ -313,6 +349,15 @@
     "toastPushPermissionDenied": "浏览器中的通知权限被拒绝。",
     "toastPushDisabled": "已在此设备上禁用推送通知。",
     "toastPushDisableFailed": "禁用推送通知失败。",
+    "captioningTitle": "自动生成描述（AI）",
+    "captioningDescription": "使用兼容 OpenAI 的视觉接口（例如本地 Ollama/LM Studio 实例），根据检测到的类别（项目1的物体检测）为重要事件生成简短描述。",
+    "captioningEnable": "启用自动生成描述",
+    "captioningEndpointPlaceholder": "接口地址（例如 http://localhost:11434/v1）",
+    "captioningModelPlaceholder": "模型名称",
+    "captioningApiKeyPlaceholder": "API 密钥（可选，留空以保留现有值）",
+    "captioningCategoriesLabel": "为以下类别生成描述：",
+    "toastCaptioningSaved": "描述设置已保存。",
+    "toastCaptioningSaveFailed": "保存描述设置失败。",
     "streamTitle": "流媒体（HLS）优化",
     "streamDescription": "调整 MediaMTX 生成 HLS 的方式以及浏览器播放器的缓冲方式 - 当摄像头的流已经连接但网页播放器仍加载缓慢或失败时很有用。",
     "streamVariantLabel": "HLS 格式",
