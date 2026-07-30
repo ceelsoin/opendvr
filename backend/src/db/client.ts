@@ -196,6 +196,11 @@ const COLUMN_MIGRATIONS: Record<string, string[]> = {
     // public sidewalk visible through a gate). NULL = no zone, everything
     // in-frame counts (unchanged behavior).
     "ALTER TABLE cameras ADD COLUMN detection_zone TEXT",
+    // Which detected categories ('person'/'vehicle'/'animal'/'other', JSON
+    // string array) actually generate an event - e.g. ignore "animal" to
+    // stop pets/wildlife from triggering alerts. NULL/empty = all
+    // categories count (unchanged behavior).
+    "ALTER TABLE cameras ADD COLUMN detection_categories TEXT",
   ],
   events: [
     "ALTER TABLE events ADD COLUMN read INTEGER NOT NULL DEFAULT 0",

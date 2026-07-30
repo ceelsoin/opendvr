@@ -47,6 +47,9 @@ export interface DetectionZone {
   points: Array<[number, number]>;
 }
 
+/** The 4 categories the shared YOLO worker can classify a detection as. */
+export type DetectionCategory = "person" | "vehicle" | "animal" | "other";
+
 export interface Camera {
   id: string;
   name: string;
@@ -76,6 +79,8 @@ export interface Camera {
   /** Face recognition, only ever runs on frames already classified as "person" by object detection. */
   faceRecognitionEnabled: boolean;
   detectionZone: DetectionZone | null;
+  /** Which detected categories actually generate an event - null/empty means all of them. */
+  detectionCategories: DetectionCategory[] | null;
   retentionDays: number;
   status: CameraStatus;
   /** Administrative on/off switch, independent of `status` (connectivity). */
@@ -107,6 +112,7 @@ export interface CreateCameraInput {
   objectDetectionEnabled?: boolean;
   faceRecognitionEnabled?: boolean;
   detectionZone?: DetectionZone | null;
+  detectionCategories?: DetectionCategory[] | null;
   retentionDays?: number;
 }
 

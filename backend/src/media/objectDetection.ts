@@ -82,6 +82,14 @@ export async function classifyMotionFrame(
     });
   }
 
+  // Per-camera opt-out of specific categories (e.g. ignore "animal" to stop
+  // pets/wildlife from triggering events) - empty/null means all categories
+  // count, same as before this filter existed.
+  if (camera.detectionCategories && camera.detectionCategories.length > 0) {
+    const allowedCategories = new Set(camera.detectionCategories);
+    objects = objects.filter((obj) => allowedCategories.has(obj.category));
+  }
+
   if (objects.length === 0) {
     // Detection ran fine but found nothing relevant (after zone
     // filtering) - a real false positive (shadow/wind/compression noise).

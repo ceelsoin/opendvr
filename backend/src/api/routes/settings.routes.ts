@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getNotificationSettings, updateNotificationSettings } from "../../notifications/notificationSettings.js";
 import { sendTestNotification } from "../../notifications/webhooks.js";
 import { getCaptionSettings, updateCaptionSettings } from "../../notifications/captionSettings.js";
+import { syncLlamaCppBridge } from "../../media/llamaCppBridge.js";
 import { hasPushSubscriptions } from "../../lib/webPush.js";
 import { applyStreamSettingsToMediaMtx, getStreamSettings, updateStreamSettings } from "../../media/streamSettings.js";
 import { getBackendLanguage, setBackendLanguage, SUPPORTED_BACKEND_LANGUAGES, t } from "../../i18n/index.js";
@@ -163,6 +164,7 @@ settingsRouter.get("/captioning", (_req, res) => {
 
 const updateCaptionSettingsSchema = z.object({
   enabled: z.boolean().optional(),
+  provider: z.enum(["external", "local"]).optional(),
   endpoint: z.string().nullable().optional(),
   apiKey: z.string().nullable().optional(),
   model: z.string().nullable().optional(),
@@ -170,6 +172,13 @@ const updateCaptionSettingsSchema = z.object({
   categoryVehicle: z.boolean().optional(),
   categoryAnimal: z.boolean().optional(),
   categoryOther: z.boolean().optional(),
+  localModelPath: z.string().nullable().optional(),
+  localMmprojPath: z.string().nullable().optional(),
+  localAcceleration: z.enum(["cpu", "gpu"]).optional(),
+  localThreads: z.number().int().min(1).max(64).optional(),
+  localGpuLayers: z.number().int().min(0).max(999).optional(),
+  localContextSize: z.number().int().min(256).max(32768).optional(),
+  localPort: z.number().int().min(1024).max(65535).optional(),
 });
 
 settingsRouter.put("/captioning", (req, res) => {
@@ -179,5 +188,6 @@ settingsRouter.put("/captioning", (req, res) => {
     return;
   }
   const updated = updateCaptionSettings(parsed.data);
+  syncLlamaCppBridge();
   res.json(updated);
 });

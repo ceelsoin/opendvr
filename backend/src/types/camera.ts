@@ -73,14 +73,19 @@ export interface StreamMetadata {
 }
 
 /**
- * Optional "zone of interest" polygon for object-detection filtering (see
- * media/objectDetection.ts), normalized to 0..1 on both axes so it stays
- * valid regardless of the stream's actual resolution. Needs at least 3
- * points to be meaningful; null means "no zone" (whole frame counts).
+ * Optional "zone of interest" polygon for detection filtering (see
+ * motion_worker.py and media/objectDetection.ts - applies to plain motion
+ * detection as well as object/face detection), normalized to 0..1 on both
+ * axes so it stays valid regardless of the stream's actual resolution.
+ * Needs at least 3 points to be meaningful; null means "no zone" (whole
+ * frame counts).
  */
 export interface DetectionZone {
   points: Array<[number, number]>;
 }
+
+/** The 4 categories the shared YOLO worker (media/visionWorker.ts) can classify a detection as. */
+export type DetectionCategory = "person" | "vehicle" | "animal" | "other";
 
 export interface Camera {
   id: string;
@@ -114,6 +119,8 @@ export interface Camera {
   /** Face recognition (OpenCV YuNet+SFace), only ever runs on frames object detection already classified as "person". */
   faceRecognitionEnabled: boolean;
   detectionZone: DetectionZone | null;
+  /** Which detected categories actually generate an event (see media/objectDetection.ts) - null/empty means all of them (unchanged default behavior). */
+  detectionCategories: DetectionCategory[] | null;
   retentionDays: number;
   status: CameraStatus;
   /** Administrative on/off switch, independent of `status` (connectivity). See media/provisioning.ts callers in cameras.routes.ts's enable/disable actions. */
@@ -148,6 +155,7 @@ export interface CreateCameraInput {
   objectDetectionEnabled?: boolean;
   faceRecognitionEnabled?: boolean;
   detectionZone?: DetectionZone | null;
+  detectionCategories?: DetectionCategory[] | null;
   retentionDays?: number;
 }
 
@@ -174,5 +182,6 @@ export interface UpdateCameraInput {
   objectDetectionEnabled?: boolean;
   faceRecognitionEnabled?: boolean;
   detectionZone?: DetectionZone | null;
+  detectionCategories?: DetectionCategory[] | null;
   retentionDays?: number;
 }

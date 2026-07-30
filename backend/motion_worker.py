@@ -25,7 +25,13 @@ and full resolution) so Node can optionally forward it to the shared YOLO
 for object classification/zone filtering/face matching - entirely optional,
 see that module for the fallback behavior when it's disabled/unavailable.
 
-Usage: python3 motion_worker.py <rtsp_url>
+Usage: python3 motion_worker.py <rtsp_url> [zone_json]
+
+Optional `zone_json` is the camera's DetectionZone ({"points": [[x,y],...]},
+normalized 0..1) - when present, only motion whose contour centroid falls
+inside the polygon is reported at all, so plain motion detection (not just
+the downstream object/face detection layer in objectDetection.ts) respects
+the same zone of interest.
 """
 import sys
 import json
@@ -62,12 +68,35 @@ def log(message: str) -> None:
     print(message, file=sys.stderr, flush=True)
 
 
+def point_in_polygon(x: float, y: float, points) -> bool:
+    """Ray-casting point-in-polygon test - mirrors backend/src/lib/geometry.ts's pointInPolygon exactly."""
+    if len(points) < 3:
+        return True
+    inside = False
+    j = len(points) - 1
+    for i in range(len(points)):
+        xi, yi = points[i]
+        xj, yj = points[j]
+        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
+            inside = not inside
+        j = i
+    return inside
+
+
 def main() -> int:
     if len(sys.argv) < 2:
-        log("usage: motion_worker.py <rtsp_url>")
+        log("usage: motion_worker.py <rtsp_url> [zone_json]")
         return 2
 
     rtsp_url = sys.argv[1]
+    zone_points = None
+    if len(sys.argv) > 2 and sys.argv[2]:
+        try:
+            zone_points = json.loads(sys.argv[2])["points"]
+        except (json.JSONDecodeError, KeyError, TypeError):
+            log(f"Ignoring invalid zone_json argument: {sys.argv[2]!r}")
+            zone_points = None
+
     cap = cv2.VideoCapture(rtsp_url)
     if not cap.isOpened():
         log(f"Failed to open RTSP stream: {rtsp_url}")
@@ -104,6 +133,19 @@ def main() -> int:
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if not contours:
             continue
+
+        if zone_points:
+            resized_height, resized_width = resized.shape[:2]
+            def centroid_in_zone(contour) -> bool:
+                moments = cv2.moments(contour)
+                if moments["m00"] == 0:
+                    return False
+                cx = (moments["m10"] / moments["m00"]) / resized_width
+                cy = (moments["m01"] / moments["m00"]) / resized_height
+                return point_in_polygon(cx, cy, zone_points)
+            contours = [c for c in contours if centroid_in_zone(c)]
+            if not contours:
+                continue
 
         frame_area = resized.shape[0] * resized.shape[1]
         largest_area = max(cv2.contourArea(c) for c in contours)

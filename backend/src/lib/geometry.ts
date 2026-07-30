@@ -1,11 +1,12 @@
 import type { DetectionZone } from "../types/camera.js";
 
 /**
- * Point-in-polygon test (ray casting), used to filter object detections
- * against a camera's optional "zone of interest" (see
- * media/objectDetection.ts). Both `point` and the zone's `points` are
- * normalized 0..1 coordinates, so this works regardless of stream
- * resolution.
+ * Point-in-polygon test (ray casting), used to filter detections against a
+ * camera's optional "zone of interest" - object detections here (see
+ * media/objectDetection.ts), and mirrored in Python for plain motion
+ * detection (see motion_worker.py's point_in_polygon). Both `point` and the
+ * zone's `points` are normalized 0..1 coordinates, so this works regardless
+ * of stream resolution.
  */
 export function pointInPolygon(point: [number, number], zone: DetectionZone): boolean {
   const { points } = zone;

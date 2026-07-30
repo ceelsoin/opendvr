@@ -62,9 +62,40 @@ export const env = {
   // never required for the app to work. Also editable at runtime from the
   // Settings page (persisted in the `settings` table, same convention as
   // the notification channels).
+  captioningProvider: (process.env.CAPTIONING_PROVIDER as "external" | "local") || "external",
   captioningEndpoint: process.env.CAPTIONING_ENDPOINT || null,
   captioningApiKey: process.env.CAPTIONING_API_KEY || null,
   captioningModel: process.env.CAPTIONING_MODEL || null,
+
+  // Local captioning provider: a llama.cpp `llama-server` process spawned
+  // and managed directly by this backend (see media/llamaCppBridge.ts),
+  // running a small GGUF vision model (e.g. SmolVLM-500M) entirely
+  // in-container - no external API/network call needed. All of these are
+  // also editable at runtime from the Settings page; env vars here are
+  // just deploy-time defaults (mainly useful for headless first boot).
+  // Default paths match where the Dockerfile's "ai-models" stage +
+  // docker-entrypoint.sh auto-seed the bundled SmolVLM-500M GGUF files (see
+  // THIRD-PARTY-NOTICES.md) - the "local" provider works out of the box
+  // with zero manual downloads, same as face recognition's models.
+  captioningLocalModelPath:
+    process.env.CAPTIONING_LOCAL_MODEL_PATH ||
+    path.resolve(process.env.DATA_DIR ?? "./data", "models/llm/SmolVLM-500M-Instruct-Q8_0.gguf"),
+  captioningLocalMmprojPath:
+    process.env.CAPTIONING_LOCAL_MMPROJ_PATH ||
+    path.resolve(process.env.DATA_DIR ?? "./data", "models/llm/mmproj-SmolVLM-500M-Instruct-Q8_0.gguf"),
+  // "cpu" (default, always available - see Dockerfile) or "gpu" (only takes
+  // effect if LLAMACPP_SERVER_PATH points at a GPU-capable build - CUDA's
+  // toolchain doesn't support musl/Alpine, so the bundled binary is CPU-only).
+  captioningLocalAcceleration: (process.env.CAPTIONING_LOCAL_ACCELERATION as "cpu" | "gpu") || "cpu",
+  captioningLocalThreads: Number(process.env.CAPTIONING_LOCAL_THREADS ?? 2),
+  captioningLocalGpuLayers: Number(process.env.CAPTIONING_LOCAL_GPU_LAYERS ?? 0),
+  captioningLocalContextSize: Number(process.env.CAPTIONING_LOCAL_CONTEXT_SIZE ?? 2048),
+  // Loopback-only - never published/exposed outside the container.
+  captioningLocalPort: Number(process.env.CAPTIONING_LOCAL_PORT ?? 8090),
+  // Path to the llama.cpp server binary - built from source into the image
+  // (CPU-only, see Dockerfile) at this default path. Override to point at a
+  // different (e.g. GPU-capable) binary/mounted volume.
+  llamaCppServerPath: process.env.LLAMACPP_SERVER_PATH || "/usr/local/bin/llama-server",
 
   mediamtxApiUrl: process.env.MEDIAMTX_API_URL ?? "http://127.0.0.1:9997",
   mediamtxRtspUrl: process.env.MEDIAMTX_RTSP_URL ?? "rtsp://127.0.0.1:8554",

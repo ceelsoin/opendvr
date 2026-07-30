@@ -97,20 +97,53 @@ services:
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-}
       # Optional AI computer vision (object detection/face recognition, see
-      # backend/src/media/visionWorker.ts) - model weight files are NOT
-      # bundled in the image; download them into ./app-data/models (see
-      # docs/configuration.md) for these paths' defaults to resolve. Leave
-      # unset/missing and the features simply stay inactive (opt-in per
-      # camera in the camera form).
+      # backend/src/media/visionWorker.ts). Face detection/recognition
+      # models (YuNet/SFace) are baked into the image and auto-seeded into
+      # ./app-data/models on first boot (see backend/Dockerfile's
+      # "ai-models" stage + docker-entrypoint.sh) - nothing to do for those.
+      # YOLO object detection is NOT bundled (its weights are AGPL-3.0
+      # licensed - see docs/configuration.md) and must be downloaded
+      # manually into ./app-data/models for that one feature. Leave
+      # unset/missing and the corresponding feature simply stays inactive
+      # (both are opt-in per camera in the camera form).
       VISION_YOLO_MODEL_PATH: ${VISION_YOLO_MODEL_PATH:-}
       VISION_FACE_DETECT_MODEL_PATH: ${VISION_FACE_DETECT_MODEL_PATH:-}
       VISION_FACE_RECOGNIZE_MODEL_PATH: ${VISION_FACE_RECOGNIZE_MODEL_PATH:-}
-      # Optional VLM auto-captioning (see backend/src/notifications/captioning.ts) -
-      # any OpenAI-compatible vision `/chat/completions` endpoint (e.g. a
-      # local Ollama/LM Studio instance). Also editable from the Settings page.
+      # Optional VLM auto-captioning (item 4, see
+      # backend/src/notifications/captioning.ts and media/llamaCppBridge.ts) -
+      # "external" (default) calls any OpenAI-compatible vision endpoint you
+      # configure (hosted API, a remote Ollama/LM Studio instance, or the
+      # optional `llamacpp-gpu` service below if you have an NVIDIA GPU).
+      # "local" instead spawns/manages a CPU-only llama.cpp server IN this
+      # container (see Dockerfile), running a small GGUF vision model (e.g.
+      # SmolVLM-500M) you download yourself into ./app-data/models/llm/ (see
+      # docs/configuration.md). All of this - including provider choice - is
+      # also fully editable at runtime from the Settings page (takes
+      # precedence over these env vars).
+      CAPTIONING_PROVIDER: ${CAPTIONING_PROVIDER:-external}
       CAPTIONING_ENDPOINT: ${CAPTIONING_ENDPOINT:-}
       CAPTIONING_API_KEY: ${CAPTIONING_API_KEY:-}
       CAPTIONING_MODEL: ${CAPTIONING_MODEL:-}
+      CAPTIONING_LOCAL_MODEL_PATH: ${CAPTIONING_LOCAL_MODEL_PATH:-}
+      CAPTIONING_LOCAL_MMPROJ_PATH: ${CAPTIONING_LOCAL_MMPROJ_PATH:-}
+      # "cpu" (default, always works - see the bundled llama-server binary in
+      # Dockerfile) or "gpu". Real GPU acceleration can't run inside THIS
+      # (Alpine/musl) container at all - CUDA requires glibc and NVIDIA's
+      # userspace driver libs, neither available here. For GPU, run the
+      # separate optional `llamacpp-gpu` service below instead (official
+      # CUDA-enabled llama.cpp image) and set provider to "external" pointing
+      # at it - this "local"/"gpu" combination is only for advanced setups
+      # where you supply your own GPU-capable binary + matching CUDA
+      # runtime libs via a custom LLAMACPP_SERVER_PATH (rare, not supported
+      # out of the box).
+      CAPTIONING_LOCAL_ACCELERATION: ${CAPTIONING_LOCAL_ACCELERATION:-cpu}
+      CAPTIONING_LOCAL_THREADS: ${CAPTIONING_LOCAL_THREADS:-2}
+      CAPTIONING_LOCAL_GPU_LAYERS: ${CAPTIONING_LOCAL_GPU_LAYERS:-0}
+      CAPTIONING_LOCAL_CONTEXT_SIZE: ${CAPTIONING_LOCAL_CONTEXT_SIZE:-2048}
+      CAPTIONING_LOCAL_PORT: ${CAPTIONING_LOCAL_PORT:-8090}
+      # Override only if using a different (e.g. GPU-capable) llama-server
+      # binary than the CPU-only one built into this image by default.
+      LLAMACPP_SERVER_PATH: ${LLAMACPP_SERVER_PATH:-}
     volumes:
       - ./app-data:/data
       - ./recordings:/recordings
@@ -120,3 +153,38 @@ services:
       # set those two env vars and this file exists on the host -
       # otherwise this volume line is simply unused.
       - ./certs:/certs:ro
+
+  # Optional GPU-accelerated captioning (item 4) - runs the OFFICIAL
+  # llama.cpp CUDA-enabled server image as a SEPARATE container, entirely
+  # independent of the (Alpine/CPU-only) backend image above - no rebuild,
+  # no risk to it. Requires an NVIDIA GPU + the NVIDIA Container Toolkit
+  # (https://github.com/NVIDIA/nvidia-container-toolkit) installed on the
+  # host. Not started by `docker compose up` by default - opt in with:
+  #   docker compose --profile gpu up -d
+  # Then, in Settings -> "Legenda automática", set Provider = "Externo",
+  # Endpoint = http://llamacpp-gpu:8080/v1, Model = (any non-empty value).
+  #
+  # Requires downloading the same 2 GGUF files as the CPU "local" provider
+  # (model + mmproj, e.g. SmolVLM-500M) into ./app-data/models/llm/ first -
+  # see docs/configuration.md. Check the llama.cpp docs for the current
+  # image tag/flags before relying on this - both move fast.
+  llamacpp-gpu:
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda
+    container_name: ipcam-llamacpp-gpu
+    restart: unless-stopped
+    profiles: ["gpu"]
+    command: >
+      -m /models/SmolVLM-500M-Instruct-Q8_0.gguf
+      --mmproj /models/mmproj-SmolVLM-500M-Instruct-Q8_0.gguf
+      --host 0.0.0.0 --port 8080 -c 2048 --n-gpu-layers 99
+    volumes:
+      - ./app-data/models/llm:/models:ro
+    # Internal-network only (reached by the backend at
+    # http://llamacpp-gpu:8080), never published to the host/LAN.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

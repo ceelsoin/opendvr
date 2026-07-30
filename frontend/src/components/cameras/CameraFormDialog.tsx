@@ -10,6 +10,8 @@ interface CameraFormDialogProps {
   onClose: () => void;
 }
 
+const ALL_DETECTION_CATEGORIES: NonNullable<Camera["detectionCategories"]> = ["person", "vehicle", "animal", "other"];
+
 function directSourceInfo(t: (key: string) => string): Record<Exclude<Camera["sourceType"], "onvif">, { label: string; placeholder: string }> {
   return {
     rtsp: {
@@ -114,6 +116,14 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
   const [objectDetectionEnabled, setObjectDetectionEnabled] = useState(camera?.objectDetectionEnabled ?? false);
   const [faceRecognitionEnabled, setFaceRecognitionEnabled] = useState(camera?.faceRecognitionEnabled ?? false);
   const [detectionZone, setDetectionZone] = useState<Camera["detectionZone"]>(camera?.detectionZone ?? null);
+  // null/empty (existing cameras predating this feature) behaves as "all categories" - normalize to the explicit list so the checkboxes below start all checked.
+  const [detectionCategories, setDetectionCategories] = useState<NonNullable<Camera["detectionCategories"]>>(
+    camera?.detectionCategories && camera.detectionCategories.length > 0 ? camera.detectionCategories : ALL_DETECTION_CATEGORIES
+  );
+
+  const toggleDetectionCategory = (category: NonNullable<Camera["detectionCategories"]>[number]) => {
+    setDetectionCategories((prev) => (prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]));
+  };
   const [zoneEditorOpen, setZoneEditorOpen] = useState(false);
 
   const [streams, setStreams] = useState<DiscoveredStream[]>(() => initialStreamsFromCamera(camera, t));
@@ -220,6 +230,7 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
       objectDetectionEnabled,
       faceRecognitionEnabled: objectDetectionEnabled && faceRecognitionEnabled,
       detectionZone,
+      detectionCategories,
       retentionDays: Number(retentionDays) || 7,
     };
 
@@ -592,20 +603,37 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
                     />
                     {t("cameraForm.faceRecognitionCheckbox")}
                   </label>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      disabled={!isEdit}
-                      onClick={() => setZoneEditorOpen(true)}
-                      className="rounded-md bg-neutral-800 px-3 py-1.5 text-xs hover:bg-neutral-700 disabled:opacity-50"
-                    >
-                      {t("cameraForm.detectionZoneButton")}
-                    </button>
-                    {detectionZone && <span className="text-[11px] text-neutral-500">{t("cameraForm.detectionZoneSet")}</span>}
-                    {!isEdit && <span className="text-[11px] text-neutral-500">{t("cameraForm.detectionZoneNeedsSave")}</span>}
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-neutral-500">{t("cameraForm.detectionCategoriesLabel")}</span>
+                    <div className="flex flex-wrap gap-3">
+                      {ALL_DETECTION_CATEGORIES.map((category) => (
+                        <label key={category} className="flex items-center gap-1.5 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={detectionCategories.includes(category)}
+                            onChange={() => toggleDetectionCategory(category)}
+                          />
+                          {t(`cameraForm.detectionCategory${category.charAt(0).toUpperCase()}${category.slice(1)}`)}
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </>
               )}
+              {/* Applies to plain motion detection too (backend/motion_worker.py), not just object/face detection - shown whenever this video-analysis section is visible. */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={!isEdit}
+                  onClick={() => setZoneEditorOpen(true)}
+                  className="rounded-md bg-neutral-800 px-3 py-1.5 text-xs hover:bg-neutral-700 disabled:opacity-50"
+                >
+                  {t("cameraForm.detectionZoneButton")}
+                </button>
+                {detectionZone && <span className="text-[11px] text-neutral-500">{t("cameraForm.detectionZoneSet")}</span>}
+                {!isEdit && <span className="text-[11px] text-neutral-500">{t("cameraForm.detectionZoneNeedsSave")}</span>}
+              </div>
+              <p className="text-[11px] text-neutral-500">{t("cameraForm.detectionZoneHint")}</p>
             </div>
           )}
 

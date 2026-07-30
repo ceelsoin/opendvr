@@ -1,8 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "./client";
 
+export type CaptioningProvider = "external" | "local";
+export type CaptioningAcceleration = "cpu" | "gpu";
+
 export interface CaptionSettings {
   enabled: boolean;
+  provider: CaptioningProvider;
   endpoint: string | null;
   apiKey: string | null;
   model: string | null;
@@ -10,6 +14,13 @@ export interface CaptionSettings {
   categoryVehicle: boolean;
   categoryAnimal: boolean;
   categoryOther: boolean;
+  localModelPath: string | null;
+  localMmprojPath: string | null;
+  localAcceleration: CaptioningAcceleration;
+  localThreads: number;
+  localGpuLayers: number;
+  localContextSize: number;
+  localPort: number;
 }
 
 const CAPTIONING_KEY = ["settings", "captioning"] as const;

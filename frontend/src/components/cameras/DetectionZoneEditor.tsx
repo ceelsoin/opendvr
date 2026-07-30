@@ -15,7 +15,9 @@ interface DetectionZoneEditorProps {
  * over a live snapshot of the camera (GET /cameras/:id/snapshot). Points are
  * stored normalized 0..1 relative to the image's natural size, so the zone
  * stays valid regardless of the actual stream resolution (see backend's
- * lib/geometry.ts). Deliberately simple - click to add a vertex, no drag-
+ * lib/geometry.ts). Applies to every video-based detection method (plain
+ * motion detection, object detection, face recognition alike), not just
+ * object detection. Deliberately simple - click to add a vertex, no drag-
  * to-reposition/curve editing - a straight polygon is enough to exclude
  * areas like a public sidewalk visible through a gate.
  */

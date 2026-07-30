@@ -11,6 +11,7 @@ import { stopAllRecordings } from "./media/recorder.js";
 import { startMotionListening, shouldDetectMotion } from "./media/motionOrchestrator.js";
 import { stopAllMotionDetectors } from "./media/motionDetector.js";
 import { startVisionWorker } from "./media/visionWorker.js";
+import { syncLlamaCppBridge } from "./media/llamaCppBridge.js";
 import { provisionCamera } from "./media/provisioning.js";
 import { getCameraPathStatus } from "./media/mediamtx.js";
 import { applyStreamSettingsToMediaMtx } from "./media/streamSettings.js";
@@ -65,6 +66,11 @@ if (env.httpsCertFile && env.httpsKeyFile) {
 // camera with object detection enabled actually sends it a frame); missing
 // model files just make individual requests fail gracefully, not this.
 startVisionWorker();
+
+// Local llama.cpp captioning server (item 4's "local" provider, see
+// media/llamaCppBridge.ts) - only actually starts a process if Settings has
+// it configured as the active provider with model paths set; otherwise a no-op.
+syncLlamaCppBridge();
 
 // MediaMTX paths - AND its global HLS config, see media/streamSettings.ts -
 // only exist in-memory (set via its Control API), so they're lost whenever

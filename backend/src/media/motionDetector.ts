@@ -46,7 +46,14 @@ export function startMotionDetector(camera: Camera): void {
   }
 
   const rtspUrl = `${env.mediamtxRtspUrl}/${camera.id}`;
-  const child = spawn("python3", [WORKER_SCRIPT_PATH, rtspUrl], { stdio: ["ignore", "pipe", "pipe"] });
+  // Zone of interest (item 2) is passed straight through as a CLI arg so
+  // plain MOG2 motion detection itself respects it too, not just the
+  // downstream object/face detection layer (see objectDetection.ts) - the
+  // zone only ever changes via a camera edit, which already restarts this
+  // process (see cameras.routes.ts's PATCH handler), so a fresh spawn here
+  // always picks up the current value.
+  const zoneArg = camera.detectionZone ? JSON.stringify(camera.detectionZone) : "";
+  const child = spawn("python3", [WORKER_SCRIPT_PATH, rtspUrl, zoneArg], { stdio: ["ignore", "pipe", "pipe"] });
   const handle: MotionDetectorHandle = { process: child, stopping: false };
   detectors.set(camera.id, handle);
 

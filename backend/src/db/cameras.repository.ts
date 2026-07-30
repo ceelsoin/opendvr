@@ -30,6 +30,7 @@ interface CameraRow {
   object_detection_enabled: number;
   face_recognition_enabled: number;
   detection_zone: string | null;
+  detection_categories: string | null;
   retention_days: number;
   status: Camera["status"];
   enabled: number;
@@ -66,6 +67,7 @@ function toCamera(row: CameraRow): Camera {
     objectDetectionEnabled: Boolean(row.object_detection_enabled),
     faceRecognitionEnabled: Boolean(row.face_recognition_enabled),
     detectionZone: row.detection_zone ? JSON.parse(row.detection_zone) : null,
+    detectionCategories: row.detection_categories ? JSON.parse(row.detection_categories) : null,
     retentionDays: row.retention_days,
     status: row.status,
     enabled: Boolean(row.enabled),
@@ -98,14 +100,14 @@ export function createCamera(input: CreateCameraInput): Camera {
       rtsp_compat_mode, main_stream_width, main_stream_height, main_stream_encoding,
       sub_stream_width, sub_stream_height, sub_stream_encoding, has_ptz, rotation,
       recording_mode, motion_recording, motion_detection_source,
-      object_detection_enabled, face_recognition_enabled, detection_zone, retention_days
+      object_detection_enabled, face_recognition_enabled, detection_zone, detection_categories, retention_days
     ) VALUES (
       @id, @name, @sourceType, @host, @port, @onvifPath, @username, @password,
       @rtspMainUri, @rtspSubUri, @mainProfileToken, @subProfileToken,
       @rtspCompatMode, @mainStreamWidth, @mainStreamHeight, @mainStreamEncoding,
       @subStreamWidth, @subStreamHeight, @subStreamEncoding, @hasPtz, @rotation,
       @recordingMode, @motionRecording, @motionDetectionSource,
-      @objectDetectionEnabled, @faceRecognitionEnabled, @detectionZone, @retentionDays
+      @objectDetectionEnabled, @faceRecognitionEnabled, @detectionZone, @detectionCategories, @retentionDays
     )`
   ).run({
     id,
@@ -140,6 +142,7 @@ export function createCamera(input: CreateCameraInput): Camera {
     objectDetectionEnabled: input.objectDetectionEnabled ? 1 : 0,
     faceRecognitionEnabled: input.faceRecognitionEnabled ? 1 : 0,
     detectionZone: input.detectionZone ? JSON.stringify(input.detectionZone) : null,
+    detectionCategories: input.detectionCategories ? JSON.stringify(input.detectionCategories) : null,
     retentionDays: input.retentionDays ?? 7,
   });
   const camera = getCameraById(id);
@@ -190,6 +193,12 @@ export function updateCamera(id: string, input: UpdateCameraInput): Camera | nul
   if (input.detectionZone !== undefined) {
     fields.push("detection_zone = @detectionZone");
     params.detectionZone = input.detectionZone ? JSON.stringify(input.detectionZone) : null;
+  }
+
+  // Same reason as detectionZone above (array/null needs JSON (de)serialization).
+  if (input.detectionCategories !== undefined) {
+    fields.push("detection_categories = @detectionCategories");
+    params.detectionCategories = input.detectionCategories ? JSON.stringify(input.detectionCategories) : null;
   }
 
   // Stream metadata is one input object mapping to 3 columns each, so it
