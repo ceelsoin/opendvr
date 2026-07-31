@@ -16,6 +16,8 @@ import { useCameraEventStore } from "../../store/cameraEventStore";
 import { usePtzTargetStore } from "../../store/ptzTargetStore";
 import { useToastStore } from "../../store/toastStore";
 import { CameraFormDialog } from "./CameraFormDialog";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
+import { LogModal } from "../ui/LogModal";
 
 function extractErrorMessage(err: unknown, fallback: string): string {
   const data = axios.isAxiosError(err) ? (err.response?.data as { error?: string; details?: string } | undefined) : undefined;
@@ -60,6 +62,12 @@ export function CameraTile({ camera, fillHeight = false }: { camera: Camera; fil
   const [showStatus, setShowStatus] = useState(false);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [confirmDisable, setConfirmDisable] = useState(false);
+  // Mirrors CamerasPage.tsx's restartLogCamera/testLogCamera - show the same
+  // live log-tailing modal here too, instead of the context menu firing the
+  // action with only a toast and no visibility into what's happening.
+  const [showRestartLog, setShowRestartLog] = useState(false);
+  const [showTestLog, setShowTestLog] = useState(false);
   // Bumped to force the HlsPlayer below to fully unmount/remount (via its
   // `key`), tearing down and recreating the hls.js instance - the "refresh"
   // action asked for by users when the player gets stuck without the whole
@@ -211,25 +219,31 @@ export function CameraTile({ camera, fillHeight = false }: { camera: Camera; fil
   const handleToggleEnabled = () => {
     setContextMenuPos(null);
     if (camera.enabled) {
-      disableCamera.mutate(camera.id, {
-        onSuccess: () => addToast("success", `${camera.name}: ${t("cameras.toastDisabled")}`),
-        onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, t("cameras.toastDisableFailed"))}`),
-      });
-    } else {
-      enableCamera.mutate(camera.id, {
-        onSuccess: (data) => {
-          addToast(
-            data.status === "online" ? "success" : "error",
-            `${camera.name}: ${t("cameras.toastEnabled")}${data.status !== "online" ? t("cameras.toastEnabledOfflineSuffix") : ""}`
-          );
-        },
-        onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, t("cameras.toastEnableFailed"))}`),
-      });
+      setConfirmDisable(true);
+      return;
     }
+    enableCamera.mutate(camera.id, {
+      onSuccess: (data) => {
+        addToast(
+          data.status === "online" ? "success" : "error",
+          `${camera.name}: ${t("cameras.toastEnabled")}${data.status !== "online" ? t("cameras.toastEnabledOfflineSuffix") : ""}`
+        );
+      },
+      onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, t("cameras.toastEnableFailed"))}`),
+    });
+  };
+
+  const handleConfirmedDisable = () => {
+    setConfirmDisable(false);
+    disableCamera.mutate(camera.id, {
+      onSuccess: () => addToast("success", `${camera.name}: ${t("cameras.toastDisabled")}`),
+      onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, t("cameras.toastDisableFailed"))}`),
+    });
   };
 
   const handleRestart = () => {
     setContextMenuPos(null);
+    setShowRestartLog(true);
     restartCamera.mutate(camera.id, {
       onSuccess: (data) => {
         addToast(
@@ -243,6 +257,7 @@ export function CameraTile({ camera, fillHeight = false }: { camera: Camera; fil
 
   const handleTestConnection = () => {
     setContextMenuPos(null);
+    setShowTestLog(true);
     testConnection.mutate(camera.id, {
       onSuccess: (data) => addToast("success", `${camera.name}: ${t("cameras.toastConnected", { count: data.streams?.length ?? 0 })}`),
       onError: (err) => addToast("error", `${camera.name}: ${extractErrorMessage(err, t("cameras.testConnectionFailed"))}`),
@@ -442,6 +457,33 @@ export function CameraTile({ camera, fillHeight = false }: { camera: Camera; fil
           </div>,
           document.body
         )}
+      {confirmDisable && (
+        <ConfirmDialog
+          title={t("cameras.confirmDisableTitle")}
+          message={t("cameras.confirmDisableMessage", { name: camera.name })}
+          confirmLabel={t("cameras.turnOff")}
+          cancelLabel={t("cameras.confirmCancel")}
+          isConfirming={disableCamera.isPending}
+          onCancel={() => setConfirmDisable(false)}
+          onConfirm={handleConfirmedDisable}
+        />
+      )}
+      {showRestartLog && (
+        <LogModal
+          title={t("cameras.restartLogTitle", { name: camera.name })}
+          cameraId={camera.id}
+          isRunning={restartCamera.isPending}
+          onClose={() => setShowRestartLog(false)}
+        />
+      )}
+      {showTestLog && (
+        <LogModal
+          title={t("cameras.testLogTitle", { name: camera.name })}
+          cameraId={camera.id}
+          isRunning={testConnection.isPending}
+          onClose={() => setShowTestLog(false)}
+        />
+      )}
     </div>
   );
 }
