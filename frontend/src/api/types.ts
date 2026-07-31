@@ -168,6 +168,10 @@ export interface CameraEvent {
   read: boolean;
   snapshotUrl: string | null;
   caption: string | null;
+  /** Which detection pipelines produced this event (e.g. "video_motion", "object_detection", "face_recognition", "captioning", "onvif_event") - see backend/src/events/cameraEvents.ts. */
+  pipelines: string[];
+  /** Each pipeline's raw output, keyed by pipeline name - same keys as `pipelines`. */
+  pipelineOutputs: Record<string, unknown> | null;
 }
 
 /** A user-defined camera grid: column count ("formato") + an ordered list of camera IDs ("ordem"/"câmeras"). */

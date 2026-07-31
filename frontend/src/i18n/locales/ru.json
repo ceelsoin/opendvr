@@ -448,7 +448,14 @@
     "none": "За этот период событий не зарегистрировано.",
     "snapshotAlt": "Снимок события",
     "markRead": "Отметить как прочитанное",
-    "delete": "Удалить"
+    "delete": "Удалить",
+    "pipelineOnvifEvent": "Событие ONVIF",
+    "pipelineVideoMotion": "Движение (видео)",
+    "pipelineObjectDetection": "Обнаружение объектов",
+    "pipelineFaceRecognition": "Распознавание лиц",
+    "pipelineCaptioning": "Подпись ИИ",
+    "showDetails": "Подробности",
+    "hideDetails": "Скрыть подробности"
   },
   "dashboard": {
     "loading": "Загрузка статистики...",

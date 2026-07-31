@@ -448,7 +448,14 @@
     "none": "Tidak ada peristiwa yang tercatat dalam periode ini.",
     "snapshotAlt": "Snapshot peristiwa",
     "markRead": "Tandai sudah dibaca",
-    "delete": "Hapus"
+    "delete": "Hapus",
+    "pipelineOnvifEvent": "Peristiwa ONVIF",
+    "pipelineVideoMotion": "Gerakan (video)",
+    "pipelineObjectDetection": "Deteksi objek",
+    "pipelineFaceRecognition": "Pengenalan wajah",
+    "pipelineCaptioning": "Keterangan AI",
+    "showDetails": "Detail",
+    "hideDetails": "Sembunyikan detail"
   },
   "dashboard": {
     "loading": "Memuat statistik...",

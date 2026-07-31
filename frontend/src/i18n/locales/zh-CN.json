@@ -448,7 +448,14 @@
     "none": "此时间段内没有记录的事件。",
     "snapshotAlt": "事件快照",
     "markRead": "标记为已读",
-    "delete": "删除"
+    "delete": "删除",
+    "pipelineOnvifEvent": "ONVIF 事件",
+    "pipelineVideoMotion": "运动（视频）",
+    "pipelineObjectDetection": "物体检测",
+    "pipelineFaceRecognition": "人脸识别",
+    "pipelineCaptioning": "AI 描述",
+    "showDetails": "详情",
+    "hideDetails": "隐藏详情"
   },
   "dashboard": {
     "loading": "正在加载统计信息...",

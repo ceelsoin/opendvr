@@ -12,3 +12,21 @@ export function friendlyEventType(topic: string, t: (key: string) => string): st
   if (lower.includes("occupancy")) return t("eventTypes.occupancyDetected");
   return topic;
 }
+
+/** Human-friendly translation for a pipeline tag (see backend/src/events/cameraEvents.ts's buildPipelineInfo). */
+export function pipelineLabel(pipeline: string, t: (key: string) => string): string {
+  switch (pipeline) {
+    case "onvif_event":
+      return t("events.pipelineOnvifEvent");
+    case "video_motion":
+      return t("events.pipelineVideoMotion");
+    case "object_detection":
+      return t("events.pipelineObjectDetection");
+    case "face_recognition":
+      return t("events.pipelineFaceRecognition");
+    case "captioning":
+      return t("events.pipelineCaptioning");
+    default:
+      return pipeline;
+  }
+}

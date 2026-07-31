@@ -6,20 +6,26 @@ export interface CreateEventInput {
   type: string;
   occurredAt?: string;
   metadata?: unknown;
+  /** Which detection pipelines produced this event (e.g. "video_motion", "object_detection", "face_recognition", "onvif_event") - see events/cameraEvents.ts's buildPipelineInfo. */
+  pipelines?: string[];
+  /** Each pipeline's raw output, keyed by pipeline name - same keys as `pipelines`. */
+  pipelineOutputs?: Record<string, unknown>;
 }
 
 /** Inserts a new event row and returns its generated id (used to later attach a snapshot). */
 export function insertEvent(input: CreateEventInput): string {
   const id = randomUUID();
   db.prepare(
-    `INSERT INTO events (id, camera_id, type, occurred_at, metadata)
-     VALUES (@id, @cameraId, @type, @occurredAt, @metadata)`
+    `INSERT INTO events (id, camera_id, type, occurred_at, metadata, pipelines, pipeline_outputs)
+     VALUES (@id, @cameraId, @type, @occurredAt, @metadata, @pipelines, @pipelineOutputs)`
   ).run({
     id,
     cameraId: input.cameraId,
     type: input.type,
     occurredAt: input.occurredAt ?? new Date().toISOString(),
     metadata: input.metadata !== undefined ? JSON.stringify(input.metadata) : null,
+    pipelines: JSON.stringify(input.pipelines ?? []),
+    pipelineOutputs: input.pipelineOutputs ? JSON.stringify(input.pipelineOutputs) : null,
   });
   return id;
 }
@@ -32,6 +38,33 @@ export function updateEventSnapshot(id: string, snapshotPath: string): void {
 /** Attaches an auto-generated VLM caption to an already-inserted event (captioning happens asynchronously, after the snapshot is captured). */
 export function updateEventCaption(id: string, caption: string): void {
   db.prepare("UPDATE events SET caption = ? WHERE id = ?").run(caption, id);
+}
+
+/**
+ * Adds a pipeline (if not already tagged) and its output to an already-
+ * inserted event - used for pipelines that only resolve asynchronously
+ * after the initial insert (currently just "captioning", see
+ * events/cameraEvents.ts). Safe to call on an event that no longer exists
+ * (e.g. deleted in the meantime) - just a no-op.
+ */
+export function appendEventPipelineOutput(id: string, pipeline: string, output: unknown): void {
+  const row = db.prepare("SELECT pipelines, pipeline_outputs FROM events WHERE id = ?").get(id) as
+    | { pipelines: string; pipeline_outputs: string | null }
+    | undefined;
+  if (!row) return;
+
+  const pipelines: string[] = JSON.parse(row.pipelines || "[]");
+  if (!pipelines.includes(pipeline)) {
+    pipelines.push(pipeline);
+  }
+  const outputs: Record<string, unknown> = row.pipeline_outputs ? JSON.parse(row.pipeline_outputs) : {};
+  outputs[pipeline] = output;
+
+  db.prepare("UPDATE events SET pipelines = ?, pipeline_outputs = ? WHERE id = ?").run(
+    JSON.stringify(pipelines),
+    JSON.stringify(outputs),
+    id
+  );
 }
 
 export function markEventRead(id: string, read: boolean): boolean {

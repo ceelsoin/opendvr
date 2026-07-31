@@ -459,7 +459,14 @@
     "none": "No events recorded in this period.",
     "snapshotAlt": "Event snapshot",
     "markRead": "Mark as read",
-    "delete": "Delete"
+    "delete": "Delete",
+    "pipelineOnvifEvent": "ONVIF event",
+    "pipelineVideoMotion": "Video motion",
+    "pipelineObjectDetection": "Object detection",
+    "pipelineFaceRecognition": "Face recognition",
+    "pipelineCaptioning": "AI caption",
+    "showDetails": "Details",
+    "hideDetails": "Hide details"
   },
   "dashboard": {
     "loading": "Loading stats...",

@@ -448,7 +448,14 @@
     "none": "この期間に記録されたイベントはありません。",
     "snapshotAlt": "イベントのスナップショット",
     "markRead": "既読にする",
-    "delete": "削除"
+    "delete": "削除",
+    "pipelineOnvifEvent": "ONVIFイベント",
+    "pipelineVideoMotion": "動き（動画）",
+    "pipelineObjectDetection": "物体検知",
+    "pipelineFaceRecognition": "顔認識",
+    "pipelineCaptioning": "AIキャプション",
+    "showDetails": "詳細",
+    "hideDetails": "詳細を隠す"
   },
   "dashboard": {
     "loading": "統計情報を読み込み中...",

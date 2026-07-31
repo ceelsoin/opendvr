@@ -1,5 +1,5 @@
 import type { Camera } from "../types/camera.js";
-import { insertEvent, updateEventSnapshot, updateEventCaption } from "../db/events.repository.js";
+import { insertEvent, updateEventSnapshot, updateEventCaption, appendEventPipelineOutput } from "../db/events.repository.js";
 import { emitEvent } from "../ws/index.js";
 import { captureSnapshot } from "../onvif/snapshot.js";
 import { captureFrameSnapshot } from "../media/frameSnapshot.js";
@@ -27,6 +27,48 @@ import { logger } from "../lib/logger.js";
 const NOTABLE_TOPIC_PATTERN = /motion|tamper|linedetector|fielddetector|occupancy|intrusion|^object:/i;
 export function isNotableEventTopic(topic: string): boolean {
   return NOTABLE_TOPIC_PATTERN.test(topic);
+}
+
+interface PipelineInfo {
+  pipelines: string[];
+  pipelineOutputs: Record<string, unknown>;
+}
+
+/**
+ * Determines which detection pipeline(s) actually produced this event and
+ * captures each one's raw output, purely from the topic string + message
+ * shape already available at the call site - no new plumbing needed from
+ * onvif/events.ts or media/objectDetection.ts. "object:*" topics only ever
+ * come from media/objectDetection.ts's classifyMotionFrame (see that file),
+ * which itself is only ever invoked after the video motion pipeline
+ * (media/motionDetector.ts) triggers - so both are always tagged together,
+ * plus "face_recognition" when a person's face was matched. Plain
+ * "video:motion" is the video pipeline's own fallback when object
+ * detection is disabled/unavailable. Anything else is a raw ONVIF
+ * PullPoint topic (see onvif/events.ts).
+ */
+function buildPipelineInfo(topic: string, message: unknown): PipelineInfo {
+  const pipelines: string[] = [];
+  const pipelineOutputs: Record<string, unknown> = {};
+
+  if (topic.startsWith("object:")) {
+    const meta = message as { areaRatio?: unknown; category?: unknown; objects?: unknown; faces?: unknown } | null;
+    pipelines.push("video_motion", "object_detection");
+    pipelineOutputs.video_motion = { areaRatio: meta?.areaRatio };
+    pipelineOutputs.object_detection = { category: meta?.category, objects: meta?.objects };
+    if (meta?.faces) {
+      pipelines.push("face_recognition");
+      pipelineOutputs.face_recognition = { faces: meta.faces };
+    }
+  } else if (topic === "video:motion") {
+    pipelines.push("video_motion");
+    pipelineOutputs.video_motion = { areaRatio: (message as { areaRatio?: unknown } | null)?.areaRatio };
+  } else {
+    pipelines.push("onvif_event");
+    pipelineOutputs.onvif_event = message;
+  }
+
+  return { pipelines, pipelineOutputs };
 }
 
 /**
@@ -89,7 +131,15 @@ export function recordCameraEvent(camera: Camera, topic: string, message: unknow
   }
 
   const occurredAt = new Date();
-  const eventId = insertEvent({ cameraId: camera.id, type: topic, occurredAt: occurredAt.toISOString(), metadata: message });
+  const { pipelines, pipelineOutputs } = buildPipelineInfo(topic, message);
+  const eventId = insertEvent({
+    cameraId: camera.id,
+    type: topic,
+    occurredAt: occurredAt.toISOString(),
+    metadata: message,
+    pipelines,
+    pipelineOutputs,
+  });
   emitEvent(camera.id, topic, { metadata: message, eventId });
 
   if (!notable) {
@@ -156,6 +206,7 @@ export function recordCameraEvent(camera: Camera, topic: string, message: unknow
     ]);
     if (caption) {
       updateEventCaption(eventId, caption);
+      appendEventPipelineOutput(eventId, "captioning", caption);
     }
 
     await notifyEvent(camera, topic, snapshot ?? undefined, recordingLink, snapshotUrl ?? undefined, clip ?? undefined, caption ?? undefined);

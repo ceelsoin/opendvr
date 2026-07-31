@@ -459,7 +459,14 @@
     "none": "Nenhum evento registrado neste período.",
     "snapshotAlt": "Snapshot do evento",
     "markRead": "Marcar como lido",
-    "delete": "Excluir"
+    "delete": "Excluir",
+    "pipelineOnvifEvent": "Evento ONVIF",
+    "pipelineVideoMotion": "Movimento (vídeo)",
+    "pipelineObjectDetection": "Detecção de objeto",
+    "pipelineFaceRecognition": "Reconhecimento facial",
+    "pipelineCaptioning": "Legenda IA",
+    "showDetails": "Detalhes",
+    "hideDetails": "Ocultar detalhes"
   },
   "dashboard": {
     "loading": "Carregando estatísticas...",

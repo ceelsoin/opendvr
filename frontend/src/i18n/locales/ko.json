@@ -448,7 +448,14 @@
     "none": "이 기간에 기록된 이벤트가 없습니다.",
     "snapshotAlt": "이벤트 스냅샷",
     "markRead": "읽음으로 표시",
-    "delete": "삭제"
+    "delete": "삭제",
+    "pipelineOnvifEvent": "ONVIF 이벤트",
+    "pipelineVideoMotion": "움직임(영상)",
+    "pipelineObjectDetection": "객체 감지",
+    "pipelineFaceRecognition": "얼굴 인식",
+    "pipelineCaptioning": "AI 자막",
+    "showDetails": "세부 정보",
+    "hideDetails": "세부 정보 숨기기"
   },
   "dashboard": {
     "loading": "통계를 불러오는 중...",

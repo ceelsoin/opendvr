@@ -15,6 +15,8 @@ interface EventRow {
   read: number;
   snapshot_path: string | null;
   caption: string | null;
+  pipelines: string;
+  pipeline_outputs: string | null;
 }
 
 function serializeEvent(row: EventRow) {
@@ -27,6 +29,8 @@ function serializeEvent(row: EventRow) {
     read: Boolean(row.read),
     snapshotUrl: row.snapshot_path,
     caption: row.caption,
+    pipelines: row.pipelines ? JSON.parse(row.pipelines) : [],
+    pipelineOutputs: row.pipeline_outputs ? JSON.parse(row.pipeline_outputs) : null,
   };
 }
 

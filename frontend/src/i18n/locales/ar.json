@@ -448,7 +448,14 @@
     "none": "لا توجد أحداث مسجّلة في هذه الفترة.",
     "snapshotAlt": "لقطة الحدث",
     "markRead": "تحديد كمقروء",
-    "delete": "حذف"
+    "delete": "حذف",
+    "pipelineOnvifEvent": "حدث ONVIF",
+    "pipelineVideoMotion": "حركة (فيديو)",
+    "pipelineObjectDetection": "كشف الأجسام",
+    "pipelineFaceRecognition": "التعرف على الوجوه",
+    "pipelineCaptioning": "وصف بالذكاء الاصطناعي",
+    "showDetails": "التفاصيل",
+    "hideDetails": "إخفاء التفاصيل"
   },
   "dashboard": {
     "loading": "جارٍ تحميل الإحصاءات...",

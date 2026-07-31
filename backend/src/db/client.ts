@@ -221,6 +221,14 @@ const COLUMN_MIGRATIONS: Record<string, string[]> = {
     // (see notifications/captioning.ts) - filled in asynchronously after
     // the event row already exists, same pattern as snapshot_path.
     "ALTER TABLE events ADD COLUMN caption TEXT",
+    // Which detection pipelines actually produced this event (JSON array of
+    // strings, e.g. ["video_motion","object_detection","face_recognition"])
+    // and each one's raw output (JSON object keyed by pipeline name) - see
+    // events/cameraEvents.ts's buildPipelineInfo + appendEventPipelineOutput.
+    // Lets the Events UI show exactly what ran for a given event instead of
+    // just its final topic string.
+    "ALTER TABLE events ADD COLUMN pipelines TEXT NOT NULL DEFAULT '[]'",
+    "ALTER TABLE events ADD COLUMN pipeline_outputs TEXT",
   ],
   grids: [
     // Lets a grid opt out of requireAuth for its viewing endpoints (see

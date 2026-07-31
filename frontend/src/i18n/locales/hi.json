@@ -448,7 +448,14 @@
     "none": "इस अवधि में कोई इवेंट दर्ज नहीं हुआ।",
     "snapshotAlt": "इवेंट स्नैपशॉट",
     "markRead": "पढ़ा गया चिह्नित करें",
-    "delete": "हटाएं"
+    "delete": "हटाएं",
+    "pipelineOnvifEvent": "ONVIF इवेंट",
+    "pipelineVideoMotion": "मोशन (वीडियो)",
+    "pipelineObjectDetection": "वस्तु पहचान",
+    "pipelineFaceRecognition": "चेहरा पहचान",
+    "pipelineCaptioning": "AI कैप्शन",
+    "showDetails": "विवरण",
+    "hideDetails": "विवरण छिपाएं"
   },
   "dashboard": {
     "loading": "आंकड़े लोड हो रहे हैं...",

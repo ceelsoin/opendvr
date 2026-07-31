@@ -448,7 +448,14 @@
     "none": "Keine Ereignisse in diesem Zeitraum aufgezeichnet.",
     "snapshotAlt": "Ereignis-Schnappschuss",
     "markRead": "Als gelesen markieren",
-    "delete": "Löschen"
+    "delete": "Löschen",
+    "pipelineOnvifEvent": "ONVIF-Ereignis",
+    "pipelineVideoMotion": "Bewegung (Video)",
+    "pipelineObjectDetection": "Objekterkennung",
+    "pipelineFaceRecognition": "Gesichtserkennung",
+    "pipelineCaptioning": "KI-Bildunterschrift",
+    "showDetails": "Details",
+    "hideDetails": "Details ausblenden"
   },
   "dashboard": {
     "loading": "Statistiken werden geladen...",
