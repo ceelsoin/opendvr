@@ -140,3 +140,18 @@ export function stopAllMjpegBridges(): void {
     void stopMjpegBridge(cameraId);
   }
 }
+
+export interface MjpegBridgeStatus {
+  cameraId: string;
+  running: boolean;
+  pid: number | null;
+}
+
+/** Snapshot of every currently-tracked MJPEG bridge process, for the Dashboard's process-health view. */
+export function listMjpegBridgeStatuses(): MjpegBridgeStatus[] {
+  return [...activeBridges.entries()].map(([cameraId, handle]) => ({
+    cameraId,
+    running: handle.process.exitCode === null && !handle.process.killed,
+    pid: handle.process.pid ?? null,
+  }));
+}

@@ -226,6 +226,11 @@ const COLUMN_MIGRATIONS: Record<string, string[]> = {
     // Lets a grid opt out of requireAuth for its viewing endpoints (see
     // db/grids.repository.ts's isCameraInPublicGrid + auth/requireAuth.ts).
     "ALTER TABLE grids ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0",
+    // Optional single-stream broadcast (mosaic or rotation) for VLC/smart-TV
+    // clients - see media/gridBroadcastBridge.ts + auth/requireAuth.ts's
+    // separate HLS bypass for the `grid_<id>` MediaMTX path.
+    "ALTER TABLE grids ADD COLUMN broadcast_mode TEXT NOT NULL DEFAULT 'off'",
+    "ALTER TABLE grids ADD COLUMN broadcast_interval_seconds INTEGER NOT NULL DEFAULT 10",
   ],
 };
 

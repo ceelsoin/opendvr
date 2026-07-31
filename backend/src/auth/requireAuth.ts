@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { getCookie, verifyAuthToken } from "../auth/token.js";
-import { getGridById, isCameraInPublicGrid } from "../db/grids.repository.js";
+import { getGridById, isCameraInPublicGrid, isGridBroadcastEnabled } from "../db/grids.repository.js";
 
 /**
  * Paths that never require a valid session - the auth endpoints themselves
@@ -14,6 +14,10 @@ const PUBLIC_GRID_PATH_RE = /^\/api\/grids\/([^/]+)\/public$/;
 // (see media/mediamtx.ts's subStreamPathName) - strip that suffix so it
 // still matches the underlying camera's id when checking grid membership.
 const HLS_CAMERA_PATH_RE = /^\/hls\/([^/]+?)(?:_sub)?\//;
+// A grid's broadcast stream (see media/gridBroadcastBridge.ts) lives at its
+// own `grid_<id>` MediaMTX path - distinct from HLS_CAMERA_PATH_RE above,
+// which only ever matches actual camera ids.
+const HLS_GRID_BROADCAST_PATH_RE = /^\/hls\/grid_([^/]+)\//;
 
 /**
  * Lets an anonymous viewer through for a grid marked `isPublic` (see
@@ -27,6 +31,18 @@ function isPublicGridRequest(req: Request): boolean {
   const gridMatch = PUBLIC_GRID_PATH_RE.exec(req.path);
   if (gridMatch) {
     return getGridById(gridMatch[1])?.isPublic ?? false;
+  }
+
+  // Checked before HLS_CAMERA_PATH_RE - grid broadcast paths are prefixed
+  // `grid_`, which would otherwise also match that pattern (and always
+  // fail its camera-id lookup) since both target `/hls/<segment>/...`.
+  const broadcastMatch = HLS_GRID_BROADCAST_PATH_RE.exec(req.path);
+  if (broadcastMatch) {
+    // Enabling broadcast mode IS the explicit consent to expose this one
+    // stream without a session - independent of the grid's own `isPublic`
+    // (interactive page) setting, since there's no other way to
+    // authenticate a TV/VLC/Orange Pi pointed at a bare HLS URL.
+    return isGridBroadcastEnabled(broadcastMatch[1]);
   }
 
   const hlsMatch = HLS_CAMERA_PATH_RE.exec(req.path);

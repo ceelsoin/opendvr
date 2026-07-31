@@ -184,6 +184,22 @@ export async function getRecordingClip(pathName: string, start: string, duration
   return Buffer.from(await res.arrayBuffer());
 }
 
+export interface MediaMtxHealth {
+  reachable: boolean;
+  latencyMs: number | null;
+}
+
+/** Lightweight reachability/latency check against the Control API, for the Dashboard's process-health view - MediaMTX itself runs as a separate container/process, not something this backend spawns, so "is it up" needs an actual request rather than an in-memory flag. */
+export async function checkMediaMtxHealth(): Promise<MediaMtxHealth> {
+  const start = Date.now();
+  try {
+    await requestJson("/v3/paths/list");
+    return { reachable: true, latencyMs: Date.now() - start };
+  } catch {
+    return { reachable: false, latencyMs: null };
+  }
+}
+
 /** Subset of MediaMTX's global config relevant to HLS delivery tuning - see media/streamSettings.ts, which is the source of truth for the persisted values (this is just the shape of the PATCH body). */
 export interface GlobalHlsConfig {
   hlsVariant?: "mpegts" | "fmp4" | "lowLatency";

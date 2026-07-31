@@ -2,6 +2,7 @@ import { Route, Routes } from "react-router-dom";
 import { AppLayout } from "./components/layout/AppLayout";
 import { AuthGate } from "./components/auth/AuthGate";
 import { GridPage } from "./pages/GridPage";
+import { DashboardPage } from "./pages/DashboardPage";
 import { TimelinePage } from "./pages/TimelinePage";
 import { EventsPage } from "./pages/EventsPage";
 import { CamerasPage } from "./pages/CamerasPage";
@@ -24,7 +25,7 @@ function App() {
         <Route path="g/:id" element={<CustomGridViewPage />} />
         <Route element={<AppLayout />}>
           <Route index element={<GridPage />} />
-          {/* <Route path="dashboard" element={<DashboardPage />} /> */}
+          <Route path="dashboard" element={<DashboardPage />} />
           <Route path="timeline" element={<TimelinePage />} />
           <Route path="events" element={<EventsPage />} />
           <Route path="cameras" element={<CamerasPage />} />

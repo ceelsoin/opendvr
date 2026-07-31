@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useCameras } from "../../api/cameras";
 import { useCreateGrid, useUpdateGrid } from "../../api/grids";
-import type { CustomGrid } from "../../api/types";
+import type { CustomGrid, GridBroadcastMode } from "../../api/types";
 
 interface GridBuilderDialogProps {
   open: boolean;
@@ -24,6 +24,8 @@ export function GridBuilderDialog({ open, onClose, grid }: GridBuilderDialogProp
   const [columns, setColumns] = useState(3);
   const [cameraIds, setCameraIds] = useState<string[]>([]);
   const [isPublic, setIsPublic] = useState(false);
+  const [broadcastMode, setBroadcastMode] = useState<GridBroadcastMode>("off");
+  const [broadcastIntervalSeconds, setBroadcastIntervalSeconds] = useState(10);
 
   useEffect(() => {
     if (open) {
@@ -31,6 +33,8 @@ export function GridBuilderDialog({ open, onClose, grid }: GridBuilderDialogProp
       setColumns(grid?.columns ?? 3);
       setCameraIds(grid?.cameraIds ?? []);
       setIsPublic(grid?.isPublic ?? false);
+      setBroadcastMode(grid?.broadcastMode ?? "off");
+      setBroadcastIntervalSeconds(grid?.broadcastIntervalSeconds ?? 10);
     }
   }, [open, grid]);
 
@@ -58,7 +62,7 @@ export function GridBuilderDialog({ open, onClose, grid }: GridBuilderDialogProp
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    const input = { name: trimmedName, columns, cameraIds, isPublic };
+    const input = { name: trimmedName, columns, cameraIds, isPublic, broadcastMode, broadcastIntervalSeconds };
     if (grid) {
       await updateGrid.mutateAsync({ id: grid.id, input });
     } else {
@@ -105,6 +109,33 @@ export function GridBuilderDialog({ open, onClose, grid }: GridBuilderDialogProp
             {t("grid.publicAccessLabel")}
           </label>
           {isPublic && <p className="-mt-2 text-xs text-amber-400">{t("grid.publicAccessHint")}</p>}
+
+          <label className="flex flex-col gap-1 text-sm">
+            {t("grid.broadcastModeLabel")}
+            <select
+              value={broadcastMode}
+              onChange={(e) => setBroadcastMode(e.target.value as GridBroadcastMode)}
+              className="rounded border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+            >
+              <option value="off">{t("grid.broadcastModeOff")}</option>
+              <option value="mosaic">{t("grid.broadcastModeMosaic")}</option>
+              <option value="rotation">{t("grid.broadcastModeRotation")}</option>
+            </select>
+          </label>
+          {broadcastMode !== "off" && <p className="-mt-2 text-xs text-neutral-400">{t("grid.broadcastHint")}</p>}
+          {broadcastMode === "rotation" && (
+            <label className="-mt-2 flex flex-col gap-1 text-sm">
+              {t("grid.broadcastIntervalLabel")}
+              <input
+                type="number"
+                min={3}
+                max={300}
+                value={broadcastIntervalSeconds}
+                onChange={(e) => setBroadcastIntervalSeconds(Number(e.target.value))}
+                className="w-32 rounded border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+              />
+            </label>
+          )}
 
           <div>
             <p className="mb-2 text-sm text-neutral-300">{t("grid.availableCameras")}</p>

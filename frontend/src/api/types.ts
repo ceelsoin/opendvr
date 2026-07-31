@@ -171,12 +171,16 @@ export interface CameraEvent {
 }
 
 /** A user-defined camera grid: column count ("formato") + an ordered list of camera IDs ("ordem"/"câmeras"). */
+export type GridBroadcastMode = "off" | "mosaic" | "rotation";
+
 export interface CustomGrid {
   id: string;
   name: string;
   columns: number;
   cameraIds: string[];
   isPublic: boolean;
+  broadcastMode: GridBroadcastMode;
+  broadcastIntervalSeconds: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -186,6 +190,8 @@ export interface CreateGridInput {
   columns?: number;
   cameraIds: string[];
   isPublic?: boolean;
+  broadcastMode?: GridBroadcastMode;
+  broadcastIntervalSeconds?: number;
 }
 
 export type UpdateGridInput = Partial<CreateGridInput>;

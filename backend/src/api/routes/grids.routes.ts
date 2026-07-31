@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { createGrid, deleteGrid, getGridById, listGrids, updateGrid } from "../../db/grids.repository.js";
 import { getCameraById } from "../../db/cameras.repository.js";
+import { stopGridBroadcastCompletely, syncGridBroadcast } from "../../media/gridBroadcastBridge.js";
 import type { PublicGridCamera } from "../../types/grid.js";
 import { t } from "../../i18n/index.js";
 
@@ -12,6 +13,10 @@ const createGridSchema = z.object({
   columns: z.number().int().min(1).max(8).optional(),
   cameraIds: z.array(z.string()).default([]),
   isPublic: z.boolean().optional(),
+  broadcastMode: z.enum(["off", "mosaic", "rotation"]).optional(),
+  // Lower bound avoids thrashing ffmpeg/MediaMTX with near-instant camera
+  // switches; upper bound is just a sane cap, not a technical limit.
+  broadcastIntervalSeconds: z.number().int().min(3).max(300).optional(),
 });
 
 const updateGridSchema = createGridSchema.partial();
@@ -61,6 +66,7 @@ gridsRouter.post("/", (req, res) => {
     return;
   }
   const grid = createGrid(parsed.data);
+  void syncGridBroadcast(grid);
   res.status(201).json(grid);
 });
 
@@ -76,6 +82,9 @@ gridsRouter.patch("/:id", (req, res) => {
     return;
   }
   const updated = updateGrid(req.params.id, parsed.data);
+  if (updated) {
+    void syncGridBroadcast(updated);
+  }
   res.json(updated);
 });
 
@@ -85,5 +94,6 @@ gridsRouter.delete("/:id", (req, res) => {
     res.status(404).json({ error: t("errors.gridNotFound") });
     return;
   }
+  void stopGridBroadcastCompletely(req.params.id);
   res.status(204).send();
 });

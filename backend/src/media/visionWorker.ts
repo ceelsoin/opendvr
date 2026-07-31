@@ -146,3 +146,19 @@ export function embedSingleFace(image: Buffer): Promise<{ embedding: number[] }>
 export function isVisionWorkerRunning(): boolean {
   return child !== null;
 }
+
+export interface VisionWorkerStatus {
+  running: boolean;
+  pid: number | null;
+  /** Requests waiting on a reply - a persistently non-zero value suggests the worker is stuck/overloaded, not just momentarily busy. */
+  pendingRequests: number;
+}
+
+/** Snapshot of the single shared vision_worker.py process, for the Dashboard's process-health view. */
+export function getVisionWorkerStatus(): VisionWorkerStatus {
+  return {
+    running: child !== null,
+    pid: child?.pid ?? null,
+    pendingRequests: pending.size,
+  };
+}

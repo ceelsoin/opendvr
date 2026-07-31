@@ -229,3 +229,22 @@ export function stopAllRotationBridges(): void {
     void stopRotationBridge(cameraId);
   }
 }
+
+export interface RotationBridgeStatus {
+  cameraId: string;
+  running: boolean;
+  pid: number | null;
+  rotation: CameraRotation;
+  resolution: TranscodeResolution;
+}
+
+/** Snapshot of every currently-tracked transcode bridge process, for the Dashboard's process-health view. */
+export function listRotationBridgeStatuses(): RotationBridgeStatus[] {
+  return [...activeBridges.entries()].map(([cameraId, handle]) => ({
+    cameraId,
+    running: handle.process.exitCode === null && !handle.process.killed,
+    pid: handle.process.pid ?? null,
+    rotation: handle.rotation,
+    resolution: handle.resolution,
+  }));
+}

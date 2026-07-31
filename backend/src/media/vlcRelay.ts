@@ -189,3 +189,20 @@ export function stopAllVlcRelays(): void {
   }
 }
 
+export interface VlcRelayStatus {
+  cameraId: string;
+  port: number;
+  running: boolean;
+  pid: number | null;
+}
+
+/** Snapshot of every currently-tracked VLC relay process, for the Dashboard's process-health view (see api/routes/system.routes.ts). */
+export function listVlcRelayStatuses(): VlcRelayStatus[] {
+  return [...activeRelays.entries()].map(([cameraId, handle]) => ({
+    cameraId,
+    port: handle.port,
+    running: handle.process.exitCode === null && !handle.process.killed,
+    pid: handle.process.pid ?? null,
+  }));
+}
+

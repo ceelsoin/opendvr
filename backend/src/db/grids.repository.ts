@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { db } from "./client.js";
-import type { CreateGridInput, Grid, UpdateGridInput } from "../types/grid.js";
+import type { CreateGridInput, Grid, GridBroadcastMode, UpdateGridInput } from "../types/grid.js";
 
 interface GridRow {
   id: string;
@@ -8,6 +8,8 @@ interface GridRow {
   columns: number;
   camera_ids: string;
   is_public: number;
+  broadcast_mode: string;
+  broadcast_interval_seconds: number;
   created_at: string;
   updated_at: string;
 }
@@ -19,6 +21,8 @@ function toGrid(row: GridRow): Grid {
     columns: row.columns,
     cameraIds: JSON.parse(row.camera_ids) as string[],
     isPublic: row.is_public === 1,
+    broadcastMode: row.broadcast_mode as GridBroadcastMode,
+    broadcastIntervalSeconds: row.broadcast_interval_seconds,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -37,13 +41,16 @@ export function getGridById(id: string): Grid | null {
 export function createGrid(input: CreateGridInput): Grid {
   const id = randomUUID();
   db.prepare(
-    `INSERT INTO grids (id, name, columns, camera_ids, is_public) VALUES (@id, @name, @columns, @cameraIds, @isPublic)`
+    `INSERT INTO grids (id, name, columns, camera_ids, is_public, broadcast_mode, broadcast_interval_seconds)
+     VALUES (@id, @name, @columns, @cameraIds, @isPublic, @broadcastMode, @broadcastIntervalSeconds)`
   ).run({
     id,
     name: input.name,
     columns: input.columns ?? 3,
     cameraIds: JSON.stringify(input.cameraIds ?? []),
     isPublic: input.isPublic ? 1 : 0,
+    broadcastMode: input.broadcastMode ?? "off",
+    broadcastIntervalSeconds: input.broadcastIntervalSeconds ?? 10,
   });
   const grid = getGridById(id);
   if (!grid) {
@@ -72,6 +79,14 @@ export function updateGrid(id: string, input: UpdateGridInput): Grid | null {
     fields.push("is_public = @isPublic");
     params.isPublic = input.isPublic ? 1 : 0;
   }
+  if (input.broadcastMode !== undefined) {
+    fields.push("broadcast_mode = @broadcastMode");
+    params.broadcastMode = input.broadcastMode;
+  }
+  if (input.broadcastIntervalSeconds !== undefined) {
+    fields.push("broadcast_interval_seconds = @broadcastIntervalSeconds");
+    params.broadcastIntervalSeconds = input.broadcastIntervalSeconds;
+  }
 
   if (fields.length === 0) {
     return getGridById(id);
@@ -94,4 +109,16 @@ export function deleteGrid(id: string): boolean {
 export function isCameraInPublicGrid(cameraId: string): boolean {
   const rows = db.prepare("SELECT camera_ids FROM grids WHERE is_public = 1").all() as { camera_ids: string }[];
   return rows.some((row) => (JSON.parse(row.camera_ids) as string[]).includes(cameraId));
+}
+
+/**
+ * Used by requireAuth to decide whether an unauthenticated request for a
+ * grid's broadcast HLS stream (`/hls/grid_<id>/...`, see
+ * media/gridBroadcastBridge.ts) is allowed through: enabling broadcast mode
+ * IS the explicit consent to expose that one stream without a session,
+ * independent of the grid's own `isPublic` (interactive page) setting.
+ */
+export function isGridBroadcastEnabled(id: string): boolean {
+  const row = db.prepare("SELECT broadcast_mode FROM grids WHERE id = ?").get(id) as { broadcast_mode: string } | undefined;
+  return row ? row.broadcast_mode !== "off" : false;
 }

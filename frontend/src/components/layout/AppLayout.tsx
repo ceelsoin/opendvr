@@ -10,7 +10,7 @@ import { Footer } from "./Footer";
 
 const navItems: Array<{ to: string; key: string; end?: boolean }> = [
   { to: "/", key: "nav.grid", end: true },
-//   { to: "/dashboard", key: "nav.dashboard" },
+  { to: "/dashboard", key: "nav.dashboard" },
   { to: "/timeline", key: "nav.timeline" },
   { to: "/events", key: "nav.events" },
   { to: "/cameras", key: "nav.cameras" },

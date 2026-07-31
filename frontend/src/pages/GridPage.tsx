@@ -17,6 +17,11 @@ function customGridUrl(id: string): string {
   return new URL(`g/${id}`, window.location.origin + import.meta.env.BASE_URL).toString();
 }
 
+/** Builds the absolute HLS URL for a grid's broadcast stream (see backend/src/media/gridBroadcastBridge.ts) - a bare stream URL for VLC/smart-TV/Orange Pi clients, NOT under the /web/ base path (the /hls proxy is mounted at the app root regardless of frontend base). */
+function gridBroadcastUrl(id: string): string {
+  return `${window.location.origin}/hls/grid_${id}/index.m3u8`;
+}
+
 function CustomGridsSection() {
   const { t } = useTranslation();
   const { data: grids, isLoading } = useGrids();
@@ -24,6 +29,7 @@ function CustomGridsSection() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingGrid, setEditingGrid] = useState<CustomGrid | undefined>(undefined);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copiedBroadcastId, setCopiedBroadcastId] = useState<string | null>(null);
 
   const openCreateDialog = () => {
     setEditingGrid(undefined);
@@ -40,6 +46,16 @@ function CustomGridsSection() {
       await navigator.clipboard.writeText(customGridUrl(id));
       setCopiedId(id);
       setTimeout(() => setCopiedId((current) => (current === id ? null : current)), 2000);
+    } catch {
+      // Clipboard API can fail (permissions, insecure context) - non-critical, URL is still visible/openable.
+    }
+  };
+
+  const handleCopyBroadcastUrl = async (id: string) => {
+    try {
+      await navigator.clipboard.writeText(gridBroadcastUrl(id));
+      setCopiedBroadcastId(id);
+      setTimeout(() => setCopiedBroadcastId((current) => (current === id ? null : current)), 2000);
     } catch {
       // Clipboard API can fail (permissions, insecure context) - non-critical, URL is still visible/openable.
     }
@@ -98,6 +114,16 @@ function CustomGridsSection() {
                 >
                   {copiedId === grid.id ? t("grid.urlCopied") : t("grid.copyUrl")}
                 </button>
+                {grid.broadcastMode !== "off" && (
+                  <button
+                    type="button"
+                    onClick={() => handleCopyBroadcastUrl(grid.id)}
+                    title={t("grid.broadcastHint")}
+                    className="rounded px-2 py-1 text-neutral-300 hover:bg-neutral-800"
+                  >
+                    {copiedBroadcastId === grid.id ? t("grid.broadcastUrlCopied") : t("grid.copyBroadcastUrl")}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => openEditDialog(grid)}

@@ -41,3 +41,66 @@ export function useSystemStats() {
     refetchInterval: 5000,
   });
 }
+
+export type CaptioningHealthProvider = "external" | "cpu" | "gpu";
+
+export interface CaptioningHealth {
+  provider: CaptioningHealthProvider;
+  enabled: boolean;
+  configured: boolean;
+  reachable: boolean | null;
+  latencyMs: number | null;
+}
+
+export interface MediaMtxHealth {
+  reachable: boolean;
+  latencyMs: number | null;
+}
+
+export interface VisionWorkerStatus {
+  running: boolean;
+  pid: number | null;
+  pendingRequests: number;
+}
+
+export type TranscodeBridgeKind = "rotation" | "timestamp" | "mjpeg" | "webpage";
+
+export interface CameraProcessStatus {
+  id: string;
+  name: string;
+  sourceType: string;
+  vlcRelay: { running: boolean; pid: number | null; port: number } | null;
+  transcodeBridge: { kind: TranscodeBridgeKind; running: boolean; pid: number | null } | null;
+  motionWorker: { running: boolean; pid: number | null } | null;
+}
+
+export interface GridBroadcastProcessStatus {
+  gridId: string;
+  name: string;
+  mode: "mosaic" | "rotation";
+  running: boolean;
+  pid: number | null;
+  cameraCount: number;
+  currentIndex: number | null;
+}
+
+export interface ProcessHealth {
+  mediamtx: MediaMtxHealth;
+  captioning: CaptioningHealth;
+  visionWorker: VisionWorkerStatus;
+  webpageBrowserRunning: boolean;
+  cameras: CameraProcessStatus[];
+  gridBroadcasts: GridBroadcastProcessStatus[];
+}
+
+/** Process/health visibility for VLC relay, MediaMTX, ffmpeg bridges, motion workers, the vision worker, grid broadcasts, and the captioning provider (see backend/src/lib/processHealth.ts). Polled a bit less aggressively than system stats - this involves live network checks (MediaMTX, captioning endpoint), not just a cheap local read. */
+export function useProcessHealth() {
+  return useQuery({
+    queryKey: ["system-processes"],
+    queryFn: async () => {
+      const { data } = await apiClient.get<ProcessHealth>("/system/processes");
+      return data;
+    },
+    refetchInterval: 10000,
+  });
+}

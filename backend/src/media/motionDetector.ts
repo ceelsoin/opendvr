@@ -132,3 +132,18 @@ export function stopAllMotionDetectors(): void {
     stopMotionDetector(cameraId);
   }
 }
+
+export interface MotionDetectorStatus {
+  cameraId: string;
+  running: boolean;
+  pid: number | null;
+}
+
+/** Snapshot of every currently-tracked motion_worker.py process, for the Dashboard's process-health view. */
+export function listMotionDetectorStatuses(): MotionDetectorStatus[] {
+  return [...detectors.entries()].map(([cameraId, handle]) => ({
+    cameraId,
+    running: handle.process.exitCode === null && !handle.process.killed,
+    pid: handle.process.pid ?? null,
+  }));
+}

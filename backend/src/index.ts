@@ -6,6 +6,7 @@ import { env } from "./config/env.js";
 import { createApp } from "./app.js";
 import { runMigrations } from "./db/client.js";
 import { listCameras } from "./db/cameras.repository.js";
+import { listGrids } from "./db/grids.repository.js";
 import { initWebSocket } from "./ws/index.js";
 import { stopAllRecordings } from "./media/recorder.js";
 import { startMotionListening, shouldDetectMotion } from "./media/motionOrchestrator.js";
@@ -13,6 +14,7 @@ import { stopAllMotionDetectors } from "./media/motionDetector.js";
 import { startVisionWorker } from "./media/visionWorker.js";
 import { provisionCamera } from "./media/provisioning.js";
 import { getCameraPathStatus } from "./media/mediamtx.js";
+import { gridBroadcastPathName, stopAllGridBroadcasts, syncGridBroadcast } from "./media/gridBroadcastBridge.js";
 import { applyStreamSettingsToMediaMtx } from "./media/streamSettings.js";
 import { stopAllVlcRelays } from "./media/vlcRelay.js";
 import { stopAllMjpegBridges } from "./media/mjpegBridge.js";
@@ -80,6 +82,15 @@ for (const camera of listCameras()) {
   }
   if (camera.hasPtz) {
     void warmPtzConnection(camera);
+  }
+}
+
+// Resumes any grid broadcast streams (see media/gridBroadcastBridge.ts)
+// configured before the last restart - same rationale as the camera loop
+// above.
+for (const grid of listGrids()) {
+  if (grid.broadcastMode !== "off") {
+    void syncGridBroadcast(grid);
   }
 }
 
@@ -197,6 +208,22 @@ setInterval(() => {
       }
     });
   }
+
+  // Grid broadcast streams (see media/gridBroadcastBridge.ts) only exist
+  // as a MediaMTX path in-memory, same constraint as camera paths above -
+  // re-sync (which re-registers the path AND restarts the ffmpeg pipeline)
+  // if MediaMTX forgot about it. Doesn't replicate the "stuck bytes" retry
+  // for cameras above - just the "path missing after a MediaMTX restart"
+  // case, the most likely failure mode for this simpler feature.
+  for (const grid of listGrids()) {
+    if (grid.broadcastMode === "off") continue;
+    void getCameraPathStatus(gridBroadcastPathName(grid.id)).then((status) => {
+      if (!status.configured) {
+        logger.warn({ gridId: grid.id }, "Grid broadcast MediaMTX path missing (likely restarted); re-syncing");
+        void syncGridBroadcast(grid);
+      }
+    });
+  }
 }, RECONCILE_INTERVAL_MS).unref();
 
 // Daily retention cleanup: deletes event rows + snapshot files older than
@@ -215,6 +242,7 @@ function shutdown(signal: string) {
   void stopAllWebpageBridges();
   stopAllRotationBridges();
   stopAllTimestampBridges();
+  stopAllGridBroadcasts();
   stopAllMotionDetectors();
   httpsServer?.close();
   httpServer.close(() => process.exit(0));

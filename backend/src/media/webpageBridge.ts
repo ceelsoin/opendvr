@@ -205,3 +205,23 @@ export async function stopAllWebpageBridges(): Promise<void> {
     sharedBrowserPromise = null;
   }
 }
+
+export interface WebpageBridgeStatus {
+  cameraId: string;
+  running: boolean;
+  pid: number | null;
+}
+
+/** Snapshot of every currently-tracked webpage-capture bridge process, for the Dashboard's process-health view. */
+export function listWebpageBridgeStatuses(): WebpageBridgeStatus[] {
+  return [...activeBridges.entries()].map(([cameraId, handle]) => ({
+    cameraId,
+    running: handle.ffmpeg.exitCode === null && !handle.ffmpeg.killed,
+    pid: handle.ffmpeg.pid ?? null,
+  }));
+}
+
+/** Whether the single shared headless Chromium instance (used by every webpage-source camera) is currently connected. */
+export function isSharedBrowserRunning(): boolean {
+  return Boolean(sharedBrowser?.isConnected());
+}
