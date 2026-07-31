@@ -35,6 +35,9 @@ export type CameraSourceType = "onvif" | "rtsp" | "rtmp" | "hls" | "srt" | "mjpe
 /** Clockwise video rotation applied before the stream reaches MediaMTX (0 = no rotation, no transcoding). */
 export type CameraRotation = 0 | 90 | 180 | 270;
 
+/** Optional downscale applied by the same transcode bridge used for rotation/forced-H.264, "original" = no scaling. Only has an effect while that bridge is running. */
+export type TranscodeResolution = "original" | "720" | "480" | "360";
+
 /** ONVIF-discovered resolution/codec info for a stream, saved so the edit form can show it again without re-probing. */
 export interface StreamMetadata {
   width: number | null;
@@ -71,6 +74,9 @@ export interface Camera {
   subStreamEncoding: string | null;
   hasPtz: boolean;
   rotation: CameraRotation;
+  /** Forces the transcode bridge to re-encode this camera's video as H.264, e.g. for clients that can't decode a source that's actually H.265/HEVC. */
+  transcodeToH264: boolean;
+  transcodeResolution: TranscodeResolution;
   recordingMode: RecordingMode;
   motionRecording: boolean;
   motionDetectionSource: MotionDetectionSource;
@@ -106,6 +112,8 @@ export interface CreateCameraInput {
   subStreamMetadata?: StreamMetadata;
   hasPtz?: boolean;
   rotation?: CameraRotation;
+  transcodeToH264?: boolean;
+  transcodeResolution?: TranscodeResolution;
   recordingMode?: RecordingMode;
   motionRecording?: boolean;
   motionDetectionSource?: MotionDetectionSource;

@@ -113,6 +113,10 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
   const [useVlcRelay, setUseVlcRelay] = useState(camera?.rtspCompatMode === "vlc-relay");
   const [hasPtz, setHasPtz] = useState(camera?.hasPtz ?? false);
   const [rotation, setRotation] = useState<Camera["rotation"]>(camera?.rotation ?? 0);
+  const [transcodeToH264, setTranscodeToH264] = useState(camera?.transcodeToH264 ?? false);
+  const [transcodeResolution, setTranscodeResolution] = useState<Camera["transcodeResolution"]>(
+    camera?.transcodeResolution ?? "original"
+  );
   const [objectDetectionEnabled, setObjectDetectionEnabled] = useState(camera?.objectDetectionEnabled ?? false);
   const [faceRecognitionEnabled, setFaceRecognitionEnabled] = useState(camera?.faceRecognitionEnabled ?? false);
   const [detectionZone, setDetectionZone] = useState<Camera["detectionZone"]>(camera?.detectionZone ?? null);
@@ -221,6 +225,8 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
       rtspCompatMode: useVlcRelay ? "vlc-relay" : null,
       hasPtz,
       rotation,
+      transcodeToH264,
+      transcodeResolution,
       recordingMode,
       motionRecording,
       // Non-ONVIF sources have no PullPoint events for the video connection
@@ -504,6 +510,29 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
               <option value={270}>{t("cameraForm.rotation270")}</option>
             </select>
             {rotation !== 0 && <span className="text-xs text-neutral-500">{t("cameraForm.rotationHint")}</span>}
+          </div>
+
+          <div className="flex flex-col gap-2 rounded-md border border-neutral-800 p-3 text-sm">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={transcodeToH264} onChange={(e) => setTranscodeToH264(e.target.checked)} />
+              {t("cameraForm.transcodeToH264Label")}
+            </label>
+            <span className="text-xs text-neutral-500">{t("cameraForm.transcodeToH264Hint")}</span>
+            {transcodeToH264 && (
+              <>
+                <span className="text-xs text-neutral-500">{t("cameraForm.transcodeResolutionLabel")}</span>
+                <select
+                  value={transcodeResolution}
+                  onChange={(e) => setTranscodeResolution(e.target.value as Camera["transcodeResolution"])}
+                  className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+                >
+                  <option value="original">{t("cameraForm.transcodeResolutionOriginal")}</option>
+                  <option value="720">720p</option>
+                  <option value="480">480p</option>
+                  <option value="360">360p</option>
+                </select>
+              </>
+            )}
           </div>
 
           <div className="flex flex-col gap-2 rounded-md border border-neutral-800 p-3 text-sm">

@@ -55,6 +55,8 @@ const baseCameraSchema = z.object({
   subStreamMetadata: streamMetadataSchema.optional(),
   hasPtz: z.boolean().optional(),
   rotation: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]).optional(),
+  transcodeToH264: z.boolean().optional(),
+  transcodeResolution: z.enum(["original", "720", "480", "360"]).optional(),
   recordingMode: z.enum(["off", "continuous", "motion"]).optional(),
   motionRecording: z.boolean().optional(),
   motionDetectionSource: z.enum(["onvif", "video"]).optional(),

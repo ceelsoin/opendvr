@@ -71,7 +71,7 @@ async function provisionDirectSourceCamera(camera: Camera): Promise<Camera["stat
           ? withRtspCredentials(camera.rtspMainUri, camera.username, camera.password)
           : camera.rtspMainUri;
 
-    if (camera.rotation !== 0) {
+    if (camera.rotation !== 0 || camera.transcodeToH264) {
       await stopTimestampBridge(camera.id);
       await upsertCameraPath(camera.id, {
         source: "publisher",
@@ -83,6 +83,7 @@ async function provisionDirectSourceCamera(camera: Camera): Promise<Camera["stat
         camera.id,
         sourceUri,
         camera.rotation,
+        camera.transcodeResolution,
         camera.sourceType === "rtsp" && camera.rtspCompatMode === "vlc-relay" ? "udp" : "tcp"
       );
       updateCameraConnection(camera.id, { status: "online" });
@@ -205,7 +206,7 @@ async function provisionOnvifCamera(camera: Camera, options: { forceRefresh?: bo
         ? await ensureVlcRelay(camera, rtspUri)
         : withRtspCredentials(rtspUri, camera.username, camera.password);
 
-    if (camera.rotation !== 0) {
+    if (camera.rotation !== 0 || camera.transcodeToH264) {
       await stopTimestampBridge(camera.id);
       await upsertCameraPath(camera.id, {
         source: "publisher",
@@ -217,6 +218,7 @@ async function provisionOnvifCamera(camera: Camera, options: { forceRefresh?: bo
         camera.id,
         sourceUri,
         camera.rotation,
+        camera.transcodeResolution,
         camera.rtspCompatMode === "vlc-relay" ? "udp" : "tcp"
       );
       updateCameraConnection(camera.id, {

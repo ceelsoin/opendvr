@@ -65,6 +65,16 @@ export type CameraSourceType = "onvif" | "rtsp" | "rtmp" | "hls" | "srt" | "mjpe
  */
 export type CameraRotation = 0 | 90 | 180 | 270;
 
+/**
+ * Optional downscale applied by the same transcode bridge used for
+ * rotation/forced-H.264 (media/rotationBridge.ts), to cut ffmpeg's CPU cost
+ * on weak hardware. "original" keeps the source resolution untouched. Has
+ * no effect unless the bridge is actually running (rotation !== 0 or
+ * transcodeToH264 is on) - it's a modifier of that pipeline, not its own
+ * trigger.
+ */
+export type TranscodeResolution = "original" | "720" | "480" | "360";
+
 /** ONVIF-discovered resolution/codec info for a stream, saved so the edit form can show it again without re-probing. */
 export interface StreamMetadata {
   width: number | null;
@@ -111,6 +121,10 @@ export interface Camera {
   subStreamEncoding: string | null;
   hasPtz: boolean;
   rotation: CameraRotation;
+  /** Forces the same ffmpeg transcode bridge used for rotation to re-encode this camera's video as H.264, e.g. for clients that can't decode a source that's actually H.265/HEVC. */
+  transcodeToH264: boolean;
+  /** Downscale applied by the transcode bridge, only meaningful when it's actually running (rotation !== 0 or transcodeToH264). */
+  transcodeResolution: TranscodeResolution;
   recordingMode: RecordingMode;
   motionRecording: boolean;
   motionDetectionSource: MotionDetectionSource;
@@ -149,6 +163,8 @@ export interface CreateCameraInput {
   subStreamMetadata?: StreamMetadata;
   hasPtz?: boolean;
   rotation?: CameraRotation;
+  transcodeToH264?: boolean;
+  transcodeResolution?: TranscodeResolution;
   recordingMode?: RecordingMode;
   motionRecording?: boolean;
   motionDetectionSource?: MotionDetectionSource;
@@ -176,6 +192,8 @@ export interface UpdateCameraInput {
   subStreamMetadata?: StreamMetadata;
   hasPtz?: boolean;
   rotation?: CameraRotation;
+  transcodeToH264?: boolean;
+  transcodeResolution?: TranscodeResolution;
   recordingMode?: RecordingMode;
   motionRecording?: boolean;
   motionDetectionSource?: MotionDetectionSource;

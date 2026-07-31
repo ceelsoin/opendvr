@@ -203,6 +203,16 @@ const COLUMN_MIGRATIONS: Record<string, string[]> = {
     // stop pets/wildlife from triggering alerts. NULL/empty = all
     // categories count (unchanged behavior).
     "ALTER TABLE cameras ADD COLUMN detection_categories TEXT",
+    // Forces the rotation transcode bridge (media/rotationBridge.ts) to run
+    // even when rotation is 0, purely to re-encode a source that's actually
+    // H.265/HEVC into H.264 - some clients (older TVs, open-source Chromium
+    // builds with no licensed HEVC decoder) can't play HEVC at all. Default
+    // 0 (off): unchanged direct pull/relay behavior.
+    "ALTER TABLE cameras ADD COLUMN transcode_to_h264 INTEGER NOT NULL DEFAULT 0",
+    // Optional downscale applied by that same bridge, to cut ffmpeg's CPU
+    // cost on weak hardware. Only has an effect while the bridge is running
+    // (rotation != 0 or transcode_to_h264 is on).
+    "ALTER TABLE cameras ADD COLUMN transcode_resolution TEXT NOT NULL DEFAULT 'original'",
   ],
   events: [
     "ALTER TABLE events ADD COLUMN read INTEGER NOT NULL DEFAULT 0",

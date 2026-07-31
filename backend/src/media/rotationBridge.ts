@@ -1,23 +1,30 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { env } from "../config/env.js";
 import { logger } from "../lib/logger.js";
-import type { CameraRotation } from "../types/camera.js";
+import type { CameraRotation, TranscodeResolution } from "../types/camera.js";
 
 /**
- * Rotates a camera's video before it reaches MediaMTX, for cameras mounted
- * in a physical orientation other than upright (e.g. sideways or upside
- * down). MediaMTX itself is a pure media server/relay - it has no
- * transcoding or video-filter capability at all, so rotation can only
- * happen by decoding, applying a filter, and re-encoding somewhere in
- * front of it. This spawns an ffmpeg process that reads from whatever
- * source URI the camera would otherwise have used directly (a plain RTSP
- * URL, an ONVIF-resolved RTSP URI, a VLC-relay URL, or an RTMP/HLS/SRT
- * URL - anything ffmpeg can demux), applies the rotation filter, and
- * PUBLISHES (pushes) the result to the camera's own MediaMTX path -
- * provisioning.ts configures that path with `source: "publisher"` whenever
- * rotation is enabled, same push-mode pattern as media/mjpegBridge.ts and
- * media/webpageBridge.ts (MediaMTX just waits for this process to connect,
- * instead of pulling from anywhere itself).
+ * Transcodes a camera's video before it reaches MediaMTX, for two
+ * independent reasons that share the same ffmpeg pipeline: (1) rotation,
+ * for cameras mounted in a physical orientation other than upright, and
+ * (2) a per-camera "force H.264" override, for cameras whose actual codec
+ * (typically H.265/HEVC) some clients can't decode (open-source Chromium
+ * builds have no licensed HEVC decoder at all, regardless of hardware).
+ * MediaMTX itself is a pure media server/relay - it has no transcoding or
+ * video-filter capability at all, so either of these requires decoding,
+ * optionally filtering, and re-encoding somewhere in front of it. This
+ * spawns an ffmpeg process that reads from whatever source URI the camera
+ * would otherwise have used directly (a plain RTSP URL, an ONVIF-resolved
+ * RTSP URI, a VLC-relay URL, or an RTMP/HLS/SRT URL - anything ffmpeg can
+ * demux), applies the rotation filter and/or a resolution downscale if
+ * configured, and PUBLISHES (pushes) the result to the camera's own
+ * MediaMTX path - provisioning.ts configures that path with
+ * `source: "publisher"` whenever this bridge is enabled, same push-mode
+ * pattern as media/mjpegBridge.ts and media/webpageBridge.ts (MediaMTX just
+ * waits for this process to connect, instead of pulling from anywhere
+ * itself). Re-encoding also happens to produce fresh, monotonic
+ * timestamps, so this bridge doubles as a replacement for
+ * media/timestampBridge.ts whenever it runs (see provisioning.ts).
  *
  * Only used for "onvif"/"rtsp"/"rtmp"/"hls"/"srt" source types. The
  * "mjpeg-http" and "webpage" source types already run their own ffmpeg
@@ -31,7 +38,8 @@ const RESPAWN_DELAY_MS = 3000;
 interface BridgeHandle {
   process: ChildProcess;
   sourceUri: string;
-  rotation: Exclude<CameraRotation, 0>;
+  rotation: CameraRotation;
+  resolution: TranscodeResolution;
   inputTransport: "tcp" | "udp";
   /** Set by stopRotationBridge() before killing, so the exit handler knows not to auto-respawn. */
   stopping: boolean;
@@ -51,39 +59,67 @@ export function rotationFilter(rotation: Exclude<CameraRotation, 0>): string {
   }
 }
 
+/** ffmpeg `-vf` value for a downscale, keeping aspect ratio (`-2` rounds width to an even number). Null for "original" (no scaling). */
+export function scaleFilter(resolution: TranscodeResolution): string | null {
+  return resolution === "original" ? null : `scale=-2:${resolution}`;
+}
+
+/** Combines the rotation and scale filters into a single `-vf` value, or null if neither applies. */
+export function buildVideoFilter(rotation: CameraRotation, resolution: TranscodeResolution): string | null {
+  const filters = [rotation !== 0 ? rotationFilter(rotation) : null, scaleFilter(resolution)].filter(
+    (f): f is string => f !== null
+  );
+  return filters.length > 0 ? filters.join(",") : null;
+}
+
 /**
- * Ensures a rotation bridge is running for this camera, reading from
- * `sourceUri` and publishing the rotated result to
+ * Ensures a transcode bridge is running for this camera, reading from
+ * `sourceUri` and publishing the (rotated/rescaled/re-encoded) result to
  * `rtsp://<mediamtx>/<cameraId>`. Reuses an already-running bridge as-is if
- * it's alive AND already using the same source/rotation; otherwise (source
- * URI changed, rotation amount changed, or the process died) the stale one
- * is stopped first and a fresh one started, so config changes actually take
+ * it's alive AND already using the same source/rotation/resolution;
+ * otherwise (any of those changed, or the process died) the stale one is
+ * stopped first and a fresh one started, so config changes actually take
  * effect instead of silently keeping the old stream running.
  */
 export async function ensureRotationBridge(
   cameraId: string,
   sourceUri: string,
-  rotation: Exclude<CameraRotation, 0>,
+  rotation: CameraRotation,
+  resolution: TranscodeResolution = "original",
   inputTransport: "tcp" | "udp" = "tcp"
 ): Promise<void> {
   const existing = activeBridges.get(cameraId);
   const alive = existing && existing.process.exitCode === null && !existing.process.killed;
-  if (alive && existing.sourceUri === sourceUri && existing.rotation === rotation && existing.inputTransport === inputTransport) {
+  if (
+    alive &&
+    existing.sourceUri === sourceUri &&
+    existing.rotation === rotation &&
+    existing.resolution === resolution &&
+    existing.inputTransport === inputTransport
+  ) {
     return;
   }
   if (existing) {
     await stopRotationBridge(cameraId);
   }
 
-  const handle: BridgeHandle = { process: null as unknown as ChildProcess, sourceUri, rotation, inputTransport, stopping: false };
+  const handle: BridgeHandle = {
+    process: null as unknown as ChildProcess,
+    sourceUri,
+    rotation,
+    resolution,
+    inputTransport,
+    stopping: false,
+  };
   activeBridges.set(cameraId, handle);
   spawnBridge(cameraId, handle);
 }
 
 function spawnBridge(cameraId: string, handle: BridgeHandle): void {
-  const { sourceUri, rotation, inputTransport } = handle;
-  logger.info({ cameraId, rotation, inputTransport }, "Starting PTZ rotation bridge (ffmpeg, publishing to MediaMTX)");
+  const { sourceUri, rotation, resolution, inputTransport } = handle;
+  logger.info({ cameraId, rotation, resolution, inputTransport }, "Starting transcode bridge (ffmpeg, publishing to MediaMTX)");
 
+  const videoFilter = buildVideoFilter(rotation, resolution);
   const isRtsp = sourceUri.startsWith("rtsp://");
   const child = spawn(
     env.ffmpegPath,
@@ -97,8 +133,7 @@ function spawnBridge(cameraId: string, handle: BridgeHandle): void {
       ...(isRtsp ? ["-rtsp_transport", inputTransport] : []),
       "-i",
       sourceUri,
-      "-vf",
-      rotationFilter(rotation),
+      ...(videoFilter ? ["-vf", videoFilter] : []),
       "-c:v",
       "libx264",
       "-preset",
@@ -128,7 +163,7 @@ function spawnBridge(cameraId: string, handle: BridgeHandle): void {
     logger.debug({ cameraId }, chunk.toString("utf8").trim());
   });
   child.on("exit", (code, signal) => {
-    logger.warn({ cameraId, code, signal }, "Rotation bridge process exited");
+    logger.warn({ cameraId, code, signal }, "Transcode bridge process exited");
     if (handle.stopping) {
       if (activeBridges.get(cameraId) === handle) {
         activeBridges.delete(cameraId);
@@ -142,7 +177,7 @@ function spawnBridge(cameraId: string, handle: BridgeHandle): void {
     }, RESPAWN_DELAY_MS);
   });
   child.on("error", (err) => {
-    logger.error({ err, cameraId }, "Failed to start rotation bridge process");
+    logger.error({ err, cameraId }, "Failed to start transcode bridge process");
   });
 }
 
