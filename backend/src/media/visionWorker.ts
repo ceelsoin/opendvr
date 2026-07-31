@@ -143,6 +143,17 @@ export function embedSingleFace(image: Buffer): Promise<{ embedding: number[] }>
   return request("embed_face", image);
 }
 
+export interface VisionModelStatus {
+  yolo: boolean;
+  faceDetect: boolean;
+  faceRecognize: boolean;
+}
+
+/** Forces a load attempt (if not already tried) for each model and reports whether it actually loaded - lets the Dashboard tell "feature enabled but model file missing" apart from "worker just not running". Rejects if the worker itself isn't up (same as any other request). */
+export function getModelStatus(): Promise<VisionModelStatus> {
+  return request("status", Buffer.alloc(0));
+}
+
 export function isVisionWorkerRunning(): boolean {
   return child !== null;
 }

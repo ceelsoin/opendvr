@@ -494,7 +494,18 @@
     "colGrid": "Grille",
     "colMode": "Mode",
     "colCameras": "Caméras",
-    "colCurrent": "Actuelle"
+    "colCurrent": "Actuelle",
+    "visionModelsTitle": "Modèles d'IA",
+    "modelLoaded": "Chargé",
+    "modelNotLoaded": "Non chargé",
+    "modelYolo": "YOLO (détection d'objets)",
+    "modelFaceDetect": "Détection de visage (YuNet)",
+    "modelFaceRecognize": "Reconnaissance faciale (SFace)",
+    "colObjectDetection": "Détection d'objets",
+    "colFaceRecognition": "Reconnaissance faciale",
+    "aiFeatureActive": "Actif",
+    "aiFeatureEnabledInactive": "Activé, mais inactif",
+    "aiFeatureHint": "La détection d'objets et la reconnaissance faciale ne fonctionnent que via le pipeline de détection de mouvement \"analyse vidéo locale\" - si une caméra affiche \"Activé, mais inactif\", vérifiez que sa source de détection de mouvement (formulaire de la caméra) est réglée sur \"vidéo\", pas ONVIF."
   },
   "onvifDebug": {
     "title": "Débogage ONVIF",

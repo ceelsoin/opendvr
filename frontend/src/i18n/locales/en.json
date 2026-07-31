@@ -505,7 +505,18 @@
     "colGrid": "Grid",
     "colMode": "Mode",
     "colCameras": "Cameras",
-    "colCurrent": "Current"
+    "colCurrent": "Current",
+    "visionModelsTitle": "AI models",
+    "modelLoaded": "Loaded",
+    "modelNotLoaded": "Not loaded",
+    "modelYolo": "YOLO (object detection)",
+    "modelFaceDetect": "Face detection (YuNet)",
+    "modelFaceRecognize": "Face recognition (SFace)",
+    "colObjectDetection": "Object detection",
+    "colFaceRecognition": "Face recognition",
+    "aiFeatureActive": "Active",
+    "aiFeatureEnabledInactive": "Enabled, but inactive",
+    "aiFeatureHint": "Object detection and face recognition only ever run on the \"local video analysis\" motion pipeline - if a camera shows \"Enabled, but inactive\", check its motion detection source (camera form) is set to \"video\", not ONVIF."
   },
   "onvifDebug": {
     "title": "ONVIF Debug",

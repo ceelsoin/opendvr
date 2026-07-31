@@ -505,7 +505,18 @@
     "colGrid": "Grid",
     "colMode": "Modo",
     "colCameras": "Câmeras",
-    "colCurrent": "Atual"
+    "colCurrent": "Atual",
+    "visionModelsTitle": "Modelos de IA",
+    "modelLoaded": "Carregado",
+    "modelNotLoaded": "Não carregado",
+    "modelYolo": "YOLO (detecção de objetos)",
+    "modelFaceDetect": "Detecção facial (YuNet)",
+    "modelFaceRecognize": "Reconhecimento facial (SFace)",
+    "colObjectDetection": "Detecção de objeto",
+    "colFaceRecognition": "Reconhecimento facial",
+    "aiFeatureActive": "Ativo",
+    "aiFeatureEnabledInactive": "Ativado, mas inativo",
+    "aiFeatureHint": "Detecção de objeto e reconhecimento facial só rodam na pipeline de \"análise de vídeo local\" — se uma câmera mostrar \"Ativado, mas inativo\", verifique se a fonte de detecção de movimento dela (formulário da câmera) está definida como \"vídeo\", e não ONVIF."
   },
   "onvifDebug": {
     "title": "Debug ONVIF",

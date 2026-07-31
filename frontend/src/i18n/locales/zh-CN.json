@@ -494,7 +494,18 @@
     "colGrid": "宫格",
     "colMode": "模式",
     "colCameras": "摄像头数",
-    "colCurrent": "当前"
+    "colCurrent": "当前",
+    "visionModelsTitle": "AI 模型",
+    "modelLoaded": "已加载",
+    "modelNotLoaded": "未加载",
+    "modelYolo": "YOLO（物体检测）",
+    "modelFaceDetect": "人脸检测（YuNet）",
+    "modelFaceRecognize": "人脸识别（SFace）",
+    "colObjectDetection": "物体检测",
+    "colFaceRecognition": "人脸识别",
+    "aiFeatureActive": "运行中",
+    "aiFeatureEnabledInactive": "已启用，但未生效",
+    "aiFeatureHint": "物体检测和人脸识别仅在\"本地视频分析\"运动检测流程中运行——如果某个摄像头显示\"已启用，但未生效\"，请检查该摄像头的运动检测来源（摄像头表单）是否设置为\"video\"而非 ONVIF。"
   },
   "onvifDebug": {
     "title": "ONVIF 调试",

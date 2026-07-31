@@ -190,6 +190,33 @@ function ProcessHealthSection() {
             </div>
 
             <div className="flex flex-col gap-2 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+              <h3 className="text-sm font-medium">{t("dashboard.visionModelsTitle")}</h3>
+              <div className="flex flex-col gap-1 text-xs text-neutral-400">
+                <span className="flex items-center gap-1.5">
+                  <StatusDot
+                    ok={data.visionModels.yolo}
+                    title={data.visionModels.yolo ? t("dashboard.modelLoaded") : t("dashboard.modelNotLoaded")}
+                  />
+                  {t("dashboard.modelYolo")}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <StatusDot
+                    ok={data.visionModels.faceDetect}
+                    title={data.visionModels.faceDetect ? t("dashboard.modelLoaded") : t("dashboard.modelNotLoaded")}
+                  />
+                  {t("dashboard.modelFaceDetect")}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <StatusDot
+                    ok={data.visionModels.faceRecognize}
+                    title={data.visionModels.faceRecognize ? t("dashboard.modelLoaded") : t("dashboard.modelNotLoaded")}
+                  />
+                  {t("dashboard.modelFaceRecognize")}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
               <div className="flex items-center gap-2">
                 <StatusDot
                   ok={data.webpageBrowserRunning}
@@ -201,7 +228,8 @@ function ProcessHealthSection() {
           </div>
 
           <div>
-            <h3 className="mb-2 text-sm font-medium text-neutral-300">{t("dashboard.cameraProcessesTitle")}</h3>
+            <h3 className="mb-1 text-sm font-medium text-neutral-300">{t("dashboard.cameraProcessesTitle")}</h3>
+            <p className="mb-2 text-xs text-neutral-500">{t("dashboard.aiFeatureHint")}</p>
             {data.cameras.length === 0 ? (
               <p className="text-xs text-neutral-500">—</p>
             ) : (
@@ -213,6 +241,8 @@ function ProcessHealthSection() {
                       <th className="px-3 py-2 font-medium">{t("dashboard.colVlcRelay")}</th>
                       <th className="px-3 py-2 font-medium">{t("dashboard.colBridge")}</th>
                       <th className="px-3 py-2 font-medium">{t("dashboard.colMotionWorker")}</th>
+                      <th className="px-3 py-2 font-medium">{t("dashboard.colObjectDetection")}</th>
+                      <th className="px-3 py-2 font-medium">{t("dashboard.colFaceRecognition")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-800">
@@ -260,6 +290,40 @@ function ProcessHealthSection() {
                                 ok={camera.motionWorker.running}
                                 title={camera.motionWorker.running ? t("dashboard.workerRunning") : t("dashboard.workerStopped")}
                               />
+                            </span>
+                          ) : (
+                            <span className="text-neutral-600">—</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
+                          {camera.objectDetection ? (
+                            <span
+                              className="flex items-center gap-1.5"
+                              title={
+                                camera.objectDetection.active
+                                  ? t("dashboard.aiFeatureActive")
+                                  : t("dashboard.aiFeatureEnabledInactive")
+                              }
+                            >
+                              <StatusDot ok={camera.objectDetection.active} title="" />
+                              {camera.objectDetection.active ? t("dashboard.aiFeatureActive") : t("dashboard.aiFeatureEnabledInactive")}
+                            </span>
+                          ) : (
+                            <span className="text-neutral-600">—</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
+                          {camera.faceRecognition ? (
+                            <span
+                              className="flex items-center gap-1.5"
+                              title={
+                                camera.faceRecognition.active
+                                  ? t("dashboard.aiFeatureActive")
+                                  : t("dashboard.aiFeatureEnabledInactive")
+                              }
+                            >
+                              <StatusDot ok={camera.faceRecognition.active} title="" />
+                              {camera.faceRecognition.active ? t("dashboard.aiFeatureActive") : t("dashboard.aiFeatureEnabledInactive")}
                             </span>
                           ) : (
                             <span className="text-neutral-600">—</span>

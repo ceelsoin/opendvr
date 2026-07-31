@@ -494,7 +494,18 @@
     "colGrid": "Grid",
     "colMode": "Mode",
     "colCameras": "Kamera",
-    "colCurrent": "Saat ini"
+    "colCurrent": "Saat ini",
+    "visionModelsTitle": "Model AI",
+    "modelLoaded": "Dimuat",
+    "modelNotLoaded": "Belum dimuat",
+    "modelYolo": "YOLO (deteksi objek)",
+    "modelFaceDetect": "Deteksi wajah (YuNet)",
+    "modelFaceRecognize": "Pengenalan wajah (SFace)",
+    "colObjectDetection": "Deteksi objek",
+    "colFaceRecognition": "Pengenalan wajah",
+    "aiFeatureActive": "Aktif",
+    "aiFeatureEnabledInactive": "Diaktifkan, tapi tidak aktif",
+    "aiFeatureHint": "Deteksi objek dan pengenalan wajah hanya berjalan pada pipeline deteksi gerakan \"analisis video lokal\" - jika kamera menampilkan \"Diaktifkan, tapi tidak aktif\", periksa apakah sumber deteksi gerakannya (formulir kamera) sudah diatur ke \"video\", bukan ONVIF."
   },
   "onvifDebug": {
     "title": "Debug ONVIF",

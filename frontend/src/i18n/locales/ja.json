@@ -494,7 +494,18 @@
     "colGrid": "グリッド",
     "colMode": "モード",
     "colCameras": "カメラ数",
-    "colCurrent": "現在"
+    "colCurrent": "現在",
+    "visionModelsTitle": "AIモデル",
+    "modelLoaded": "読み込み済み",
+    "modelNotLoaded": "未読み込み",
+    "modelYolo": "YOLO（物体検知）",
+    "modelFaceDetect": "顔検出（YuNet）",
+    "modelFaceRecognize": "顔認識（SFace）",
+    "colObjectDetection": "物体検知",
+    "colFaceRecognition": "顔認識",
+    "aiFeatureActive": "有効",
+    "aiFeatureEnabledInactive": "有効だが非アクティブ",
+    "aiFeatureHint": "物体検知と顔認識は「ローカル動画解析」の動き検知パイプラインでのみ動作します — カメラが「有効だが非アクティブ」と表示される場合は、カメラ設定の動き検知ソースが ONVIF ではなく「video」になっているかを確認してください。"
   },
   "onvifDebug": {
     "title": "ONVIFデバッグ",

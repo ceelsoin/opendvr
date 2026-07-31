@@ -7,7 +7,7 @@ import { listTimestampBridgeStatuses } from "../media/timestampBridge.js";
 import { listMjpegBridgeStatuses } from "../media/mjpegBridge.js";
 import { listWebpageBridgeStatuses, isSharedBrowserRunning } from "../media/webpageBridge.js";
 import { listMotionDetectorStatuses } from "../media/motionDetector.js";
-import { getVisionWorkerStatus, type VisionWorkerStatus } from "../media/visionWorker.js";
+import { getVisionWorkerStatus, getModelStatus, type VisionWorkerStatus, type VisionModelStatus } from "../media/visionWorker.js";
 import { listGridBroadcastStatuses, type GridBroadcastStatus } from "../media/gridBroadcastBridge.js";
 import { getCaptioningHealth, type CaptioningHealth } from "../notifications/captioning.js";
 
@@ -29,6 +29,21 @@ export interface CameraProcessStatus {
   transcodeBridge: TranscodeBridgeStatus | null;
   /** Local OpenCV motion_worker.py process (motionDetectionSource "video") - see media/motionDetector.ts. */
   motionWorker: { running: boolean; pid: number | null } | null;
+  /**
+   * `enabled` mirrors the DB flag (`camera.objectDetectionEnabled`); `active`
+   * additionally requires `motionDetectionSource === "video"` - object
+   * detection is ONLY ever invoked from the video-based motion pipeline
+   * (media/objectDetection.ts's classifyMotionFrame, called from
+   * motionDetector.ts), never from ONVIF PullPoint events. A camera can
+   * have `enabled: true, active: false` if it was configured for object
+   * detection while using "video", then switched to ONVIF-based motion
+   * detection afterwards - the flag stays set in the DB but the feature
+   * silently stops firing, which is exactly the confusing case this field
+   * exists to surface.
+   */
+  objectDetection: { enabled: boolean; active: boolean } | null;
+  /** Same `enabled`/`active` distinction as objectDetection - face recognition additionally only ever runs after a "person" object detection already fired. */
+  faceRecognition: { enabled: boolean; active: boolean } | null;
 }
 
 export interface GridBroadcastProcessStatus extends GridBroadcastStatus {
@@ -39,6 +54,8 @@ export interface ProcessHealth {
   mediamtx: MediaMtxHealth;
   captioning: CaptioningHealth;
   visionWorker: VisionWorkerStatus;
+  /** Whether each AI model file actually loaded on the shared vision worker - null entries mean the worker wasn't running/didn't respond in time, not necessarily that the model is missing. */
+  visionModels: { yolo: boolean | null; faceDetect: boolean | null; faceRecognize: boolean | null };
   /** Single shared headless Chromium instance backing every "webpage" source camera - see media/webpageBridge.ts. */
   webpageBrowserRunning: boolean;
   cameras: CameraProcessStatus[];
@@ -55,7 +72,11 @@ export interface ProcessHealth {
  * whole (individual health checks already swallow their own errors).
  */
 export async function getProcessHealth(): Promise<ProcessHealth> {
-  const [mediamtx, captioning] = await Promise.all([checkMediaMtxHealth(), getCaptioningHealth()]);
+  const [mediamtx, captioning, visionModels] = await Promise.all([
+    checkMediaMtxHealth(),
+    getCaptioningHealth(),
+    getModelStatus().catch(() => null),
+  ]);
 
   const vlcRelays = new Map(listVlcRelayStatuses().map((s) => [s.cameraId, s]));
   const rotationBridges = new Map(listRotationBridgeStatuses().map((s) => [s.cameraId, s]));
@@ -83,6 +104,7 @@ export async function getProcessHealth(): Promise<ProcessHealth> {
 
     const relay = vlcRelays.get(camera.id);
     const motion = motionWorkers.get(camera.id);
+    const motionSourceIsVideo = camera.motionDetectionSource === "video";
 
     return {
       id: camera.id,
@@ -91,6 +113,12 @@ export async function getProcessHealth(): Promise<ProcessHealth> {
       vlcRelay: relay ? { running: relay.running, pid: relay.pid, port: relay.port } : null,
       transcodeBridge,
       motionWorker: motion ? { running: motion.running, pid: motion.pid } : null,
+      objectDetection: camera.objectDetectionEnabled
+        ? { enabled: true, active: motionSourceIsVideo }
+        : null,
+      faceRecognition: camera.faceRecognitionEnabled
+        ? { enabled: true, active: motionSourceIsVideo }
+        : null,
     };
   });
 
@@ -104,6 +132,11 @@ export async function getProcessHealth(): Promise<ProcessHealth> {
     mediamtx,
     captioning,
     visionWorker: getVisionWorkerStatus(),
+    visionModels: {
+      yolo: visionModels?.yolo ?? null,
+      faceDetect: visionModels?.faceDetect ?? null,
+      faceRecognize: visionModels?.faceRecognize ?? null,
+    },
     webpageBrowserRunning: isSharedBrowserRunning(),
     cameras,
     gridBroadcasts,

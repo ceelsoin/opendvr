@@ -18,7 +18,9 @@ dependency we already have avoids adding a second, heavier ML runtime.
 
 Protocol: newline-delimited JSON on stdin/stdout (Node acts as the RPC
 client, see visionWorker.ts). Each request:
-    {"id": <int>, "task": "detect"|"face", "image": "<base64 JPEG>"}
+    {"id": <int>, "task": "detect"|"face"|"embed_face"|"status", "image": "<base64 JPEG>"}
+("status" ignores "image" entirely - used by the Dashboard's process-health
+view to check whether each model file actually loaded.)
 Each response:
     {"id": <int>, "result": {...}}   on success
     {"id": <int>, "error": "<message>"}   on failure (never crashes the
@@ -212,6 +214,15 @@ def run_embed_single_face(face_detector: LazyModel, face_recognizer: LazyModel, 
     return {"embedding": largest["embedding"]}
 
 
+def run_status(yolo: LazyModel, face_detector: LazyModel, face_recognizer: LazyModel) -> dict:
+    """Forces a load attempt (if not already tried) for each model and reports whether it actually loaded - used by the Dashboard's process-health view to tell "feature enabled but model file missing" apart from "just not running yet"."""
+    return {
+        "yolo": yolo.get() is not None,
+        "faceDetect": face_detector.get() is not None,
+        "faceRecognize": face_recognizer.get() is not None,
+    }
+
+
 def main() -> int:
     if len(sys.argv) < 5:
         log("usage: vision_worker.py <yoloModelPath> <yoloInputSize> <faceDetectModelPath> <faceRecognizeModelPath>")
@@ -246,6 +257,8 @@ def main() -> int:
                 result = run_face(face_detector, face_recognizer, image_b64)
             elif task == "embed_face":
                 result = run_embed_single_face(face_detector, face_recognizer, image_b64)
+            elif task == "status":
+                result = run_status(yolo, face_detector, face_recognizer)
             else:
                 result = {"error": f"unknown_task:{task}"}
         except Exception as err:  # noqa: BLE001 - never let one bad request kill the shared worker

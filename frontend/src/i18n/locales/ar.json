@@ -494,7 +494,18 @@
     "colGrid": "الشبكة",
     "colMode": "الوضع",
     "colCameras": "الكاميرات",
-    "colCurrent": "الحالية"
+    "colCurrent": "الحالية",
+    "visionModelsTitle": "نماذج الذكاء الاصطناعي",
+    "modelLoaded": "تم التحميل",
+    "modelNotLoaded": "لم يتم التحميل",
+    "modelYolo": "YOLO (كشف الأجسام)",
+    "modelFaceDetect": "كشف الوجوه (YuNet)",
+    "modelFaceRecognize": "التعرف على الوجوه (SFace)",
+    "colObjectDetection": "كشف الأجسام",
+    "colFaceRecognition": "التعرف على الوجوه",
+    "aiFeatureActive": "نشط",
+    "aiFeatureEnabledInactive": "مفعّل، لكن غير نشط",
+    "aiFeatureHint": "كشف الأجسام والتعرف على الوجوه يعملان فقط ضمن مسار \"تحليل الفيديو المحلي\" لكشف الحركة — إذا ظهرت كاميرا بحالة \"مفعّل، لكن غير نشط\"، تحقق من أن مصدر كشف الحركة الخاص بها (نموذج الكاميرا) مضبوط على \"فيديو\" وليس ONVIF."
   },
   "onvifDebug": {
     "title": "تصحيح ONVIF",

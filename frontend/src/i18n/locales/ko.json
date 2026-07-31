@@ -494,7 +494,18 @@
     "colGrid": "그리드",
     "colMode": "모드",
     "colCameras": "카메라",
-    "colCurrent": "현재"
+    "colCurrent": "현재",
+    "visionModelsTitle": "AI 모델",
+    "modelLoaded": "로드됨",
+    "modelNotLoaded": "로드되지 않음",
+    "modelYolo": "YOLO(객체 감지)",
+    "modelFaceDetect": "얼굴 감지(YuNet)",
+    "modelFaceRecognize": "얼굴 인식(SFace)",
+    "colObjectDetection": "객체 감지",
+    "colFaceRecognition": "얼굴 인식",
+    "aiFeatureActive": "활성",
+    "aiFeatureEnabledInactive": "활성화됨, 비활성 상태",
+    "aiFeatureHint": "객체 감지와 얼굴 인식은 \"로컬 영상 분석\" 모션 파이프라인에서만 동작합니다 — 카메라가 \"활성화됨, 비활성 상태\"로 표시되면 해당 카메라의 모션 감지 소스(카메라 설정)가 ONVIF가 아닌 \"video\"로 설정되어 있는지 확인하세요."
   },
   "onvifDebug": {
     "title": "ONVIF 디버그",

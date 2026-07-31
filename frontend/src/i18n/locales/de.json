@@ -494,7 +494,18 @@
     "colGrid": "Grid",
     "colMode": "Modus",
     "colCameras": "Kameras",
-    "colCurrent": "Aktuell"
+    "colCurrent": "Aktuell",
+    "visionModelsTitle": "KI-Modelle",
+    "modelLoaded": "Geladen",
+    "modelNotLoaded": "Nicht geladen",
+    "modelYolo": "YOLO (Objekterkennung)",
+    "modelFaceDetect": "Gesichtserkennung (YuNet)",
+    "modelFaceRecognize": "Gesichtserkennung (SFace)",
+    "colObjectDetection": "Objekterkennung",
+    "colFaceRecognition": "Gesichtserkennung",
+    "aiFeatureActive": "Aktiv",
+    "aiFeatureEnabledInactive": "Aktiviert, aber inaktiv",
+    "aiFeatureHint": "Objekterkennung und Gesichtserkennung laufen nur über die Bewegungserkennungs-Pipeline \"lokale Videoanalyse\" - zeigt eine Kamera \"Aktiviert, aber inaktiv\" an, prüfe, ob ihre Bewegungserkennungsquelle (Kameraformular) auf \"Video\" statt ONVIF steht."
   },
   "onvifDebug": {
     "title": "ONVIF-Debug",

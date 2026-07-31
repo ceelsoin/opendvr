@@ -63,6 +63,12 @@ export interface VisionWorkerStatus {
   pendingRequests: number;
 }
 
+export interface VisionModelStatus {
+  yolo: boolean | null;
+  faceDetect: boolean | null;
+  faceRecognize: boolean | null;
+}
+
 export type TranscodeBridgeKind = "rotation" | "timestamp" | "mjpeg" | "webpage";
 
 export interface CameraProcessStatus {
@@ -72,6 +78,8 @@ export interface CameraProcessStatus {
   vlcRelay: { running: boolean; pid: number | null; port: number } | null;
   transcodeBridge: { kind: TranscodeBridgeKind; running: boolean; pid: number | null } | null;
   motionWorker: { running: boolean; pid: number | null } | null;
+  objectDetection: { enabled: boolean; active: boolean } | null;
+  faceRecognition: { enabled: boolean; active: boolean } | null;
 }
 
 export interface GridBroadcastProcessStatus {
@@ -88,6 +96,7 @@ export interface ProcessHealth {
   mediamtx: MediaMtxHealth;
   captioning: CaptioningHealth;
   visionWorker: VisionWorkerStatus;
+  visionModels: VisionModelStatus;
   webpageBrowserRunning: boolean;
   cameras: CameraProcessStatus[];
   gridBroadcasts: GridBroadcastProcessStatus[];

@@ -494,7 +494,18 @@
     "colGrid": "ग्रिड",
     "colMode": "मोड",
     "colCameras": "कैमरे",
-    "colCurrent": "वर्तमान"
+    "colCurrent": "वर्तमान",
+    "visionModelsTitle": "AI मॉडल",
+    "modelLoaded": "लोड हो गया",
+    "modelNotLoaded": "लोड नहीं हुआ",
+    "modelYolo": "YOLO (वस्तु पहचान)",
+    "modelFaceDetect": "चेहरा पहचान (YuNet)",
+    "modelFaceRecognize": "चेहरा पहचान/मिलान (SFace)",
+    "colObjectDetection": "वस्तु पहचान",
+    "colFaceRecognition": "चेहरा पहचान",
+    "aiFeatureActive": "सक्रिय",
+    "aiFeatureEnabledInactive": "सक्षम, पर निष्क्रिय",
+    "aiFeatureHint": "वस्तु पहचान और चेहरा पहचान केवल \"स्थानीय वीडियो विश्लेषण\" मोशन पाइपलाइन में ही चलते हैं — अगर कोई कैमरा \"सक्षम, पर निष्क्रिय\" दिखाए, तो जांचें कि उसका मोशन डिटेक्शन स्रोत (कैमरा फॉर्म) \"वीडियो\" पर सेट है, ONVIF पर नहीं।"
   },
   "onvifDebug": {
     "title": "ONVIF डीबग",

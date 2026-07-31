@@ -494,7 +494,18 @@
     "colGrid": "Сетка",
     "colMode": "Режим",
     "colCameras": "Камеры",
-    "colCurrent": "Текущая"
+    "colCurrent": "Текущая",
+    "visionModelsTitle": "Модели ИИ",
+    "modelLoaded": "Загружена",
+    "modelNotLoaded": "Не загружена",
+    "modelYolo": "YOLO (обнаружение объектов)",
+    "modelFaceDetect": "Обнаружение лиц (YuNet)",
+    "modelFaceRecognize": "Распознавание лиц (SFace)",
+    "colObjectDetection": "Обнаружение объектов",
+    "colFaceRecognition": "Распознавание лиц",
+    "aiFeatureActive": "Активно",
+    "aiFeatureEnabledInactive": "Включено, но неактивно",
+    "aiFeatureHint": "Обнаружение объектов и распознавание лиц работают только в конвейере обнаружения движения \"локальный видеоанализ\" — если камера показывает \"Включено, но неактивно\", проверьте, что источник обнаружения движения (форма камеры) установлен на \"video\", а не ONVIF."
   },
   "onvifDebug": {
     "title": "Отладка ONVIF",
