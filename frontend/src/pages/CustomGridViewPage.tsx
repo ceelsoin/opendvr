@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { useCameras } from "../api/cameras";
 import { useGrid, usePublicGrid } from "../api/grids";
 import { CameraTile } from "../components/cameras/CameraTile";
-import { HlsPlayer } from "../components/player/HlsPlayer";
+import { PublicCameraTile } from "../components/cameras/PublicCameraTile";
 import { PtzTargetPanel } from "../components/ptz/PtzTargetPanel";
 import { usePtzTargetStore } from "../store/ptzTargetStore";
 
@@ -57,15 +57,7 @@ export function CustomGridViewPage() {
             style={{ gridTemplateColumns: `repeat(${publicGrid.data.columns}, minmax(0, 1fr))` }}
           >
             {publicGrid.data.cameras.map((camera) => (
-              <div key={camera.id} className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900">
-                <div className="aspect-video">
-                  <HlsPlayer
-                    src={`/hls/${camera.hasSubStream ? `${camera.id}_sub` : camera.id}/index.m3u8`}
-                    className="h-full w-full"
-                  />
-                </div>
-                <p className="truncate px-3 py-1.5 text-sm">{camera.name}</p>
-              </div>
+              <PublicCameraTile key={camera.id} camera={camera} />
             ))}
           </div>
         )}

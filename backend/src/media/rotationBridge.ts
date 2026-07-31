@@ -80,17 +80,29 @@ export function buildVideoFilter(rotation: CameraRotation, resolution: Transcode
  * otherwise (any of those changed, or the process died) the stale one is
  * stopped first and a fresh one started, so config changes actually take
  * effect instead of silently keeping the old stream running.
+ *
+ * `force` bypasses the "already alive with the same config" reuse check -
+ * needed because a stalled/flaky source can leave ffmpeg alive (not
+ * exited) but no longer actually receiving frames, with everything else
+ * (sourceUri, rotation, resolution) unchanged. The reconciliation loop in
+ * index.ts detects that case (path "ready" but no new bytes for a while)
+ * and calls `provisionCamera(camera, { forceRefresh: true })` specifically
+ * to recover from it - without `force`, this function would just see
+ * "already alive, same config" and do nothing, leaving the camera stuck
+ * dark indefinitely (the bug this parameter fixes).
  */
 export async function ensureRotationBridge(
   cameraId: string,
   sourceUri: string,
   rotation: CameraRotation,
   resolution: TranscodeResolution = "original",
-  inputTransport: "tcp" | "udp" = "tcp"
+  inputTransport: "tcp" | "udp" = "tcp",
+  force = false
 ): Promise<void> {
   const existing = activeBridges.get(cameraId);
   const alive = existing && existing.process.exitCode === null && !existing.process.killed;
   if (
+    !force &&
     alive &&
     existing.sourceUri === sourceUri &&
     existing.rotation === rotation &&
@@ -131,6 +143,13 @@ function spawnBridge(cameraId: string, handle: BridgeHandle): void {
       // offline). Plain RTSP sources (direct camera/ONVIF, no relay) use TCP
       // as usual for reliability.
       ...(isRtsp ? ["-rtsp_transport", inputTransport] : []),
+      // Bounds how long ffmpeg will block waiting for data on a stalled/
+      // flaky connection (microseconds) - without this, a source that goes
+      // quiet without cleanly closing the TCP connection can leave ffmpeg
+      // stuck reading forever, never exiting, so the respawn-on-exit logic
+      // below never fires. 15s comfortably tolerates brief instability
+      // while still recovering from a genuinely dead connection quickly.
+      ...(isRtsp ? ["-timeout", "15000000"] : []),
       "-i",
       sourceUri,
       ...(videoFilter ? ["-vf", videoFilter] : []),

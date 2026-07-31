@@ -21,7 +21,7 @@ import { logger } from "../lib/logger.js";
  */
 export async function provisionCamera(camera: Camera, options: { forceRefresh?: boolean } = {}): Promise<Camera["status"]> {
   if (camera.sourceType !== "onvif") {
-    return provisionDirectSourceCamera(camera);
+    return provisionDirectSourceCamera(camera, options);
   }
   return provisionOnvifCamera(camera, options);
 }
@@ -38,7 +38,7 @@ export async function provisionCamera(camera: Camera, options: { forceRefresh?: 
  * compatibility relay (rtspCompatMode) for the same Digest-auth quirk as
  * ONVIF-resolved cameras - not meaningful for rtmp/hls/srt sources.
  */
-async function provisionDirectSourceCamera(camera: Camera): Promise<Camera["status"]> {
+async function provisionDirectSourceCamera(camera: Camera, options: { forceRefresh?: boolean } = {}): Promise<Camera["status"]> {
   logger.info({ cameraId: camera.id, sourceType: camera.sourceType }, "Provisionando câmera (fonte direta)");
   try {
     if (!camera.rtspMainUri) {
@@ -84,7 +84,8 @@ async function provisionDirectSourceCamera(camera: Camera): Promise<Camera["stat
         sourceUri,
         camera.rotation,
         camera.transcodeResolution,
-        camera.sourceType === "rtsp" && camera.rtspCompatMode === "vlc-relay" ? "udp" : "tcp"
+        camera.sourceType === "rtsp" && camera.rtspCompatMode === "vlc-relay" ? "udp" : "tcp",
+        options.forceRefresh
       );
       updateCameraConnection(camera.id, { status: "online" });
       return "online";
@@ -219,7 +220,8 @@ async function provisionOnvifCamera(camera: Camera, options: { forceRefresh?: bo
         sourceUri,
         camera.rotation,
         camera.transcodeResolution,
-        camera.rtspCompatMode === "vlc-relay" ? "udp" : "tcp"
+        camera.rtspCompatMode === "vlc-relay" ? "udp" : "tcp",
+        options.forceRefresh
       );
       updateCameraConnection(camera.id, {
         rtspMainUri: rtspUri,

@@ -67,6 +67,12 @@ function spawnBridge(cameraId: string, handle: BridgeHandle): void {
       // immediately with "461 Unsupported transport").
       "-rtsp_transport",
       "udp",
+      // Bounds how long ffmpeg blocks waiting for data on a stalled relay
+      // (microseconds) - see rotationBridge.ts for why this matters (a
+      // silently-stalled source can otherwise leave ffmpeg stuck reading
+      // forever, never exiting, so it never gets a chance to respawn).
+      "-timeout",
+      "15000000",
       // Ignores the relay's own (unreliable) packet timestamps and assigns
       // fresh, monotonically increasing ones based on the local wall clock
       // instead - sidesteps the MediaMTX HLS-muxer crash entirely, without
