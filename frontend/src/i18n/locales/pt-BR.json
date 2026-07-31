@@ -87,7 +87,7 @@
     "fullscreenFailedToast": "Não foi possível entrar em tela cheia.",
     "refreshPlayer": "Atualizar vídeo",
     "moreOptions": "Mais opções",
-    "diagnosticToggle": "diagnóstico",
+    "diagnosticToggle": "Diagnóstico",
     "diagnosticConfiguredPath": "Path configurado no MediaMTX: {{value}}",
     "diagnosticReady": "Fonte RTSP conectada (ready): {{value}}",
     "diagnosticSourceType": "Tipo de fonte: {{value}}",
