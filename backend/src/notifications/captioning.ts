@@ -1,5 +1,5 @@
 import { getCaptionSettings, isCaptioningEnabledFor } from "./captionSettings.js";
-import { getLocalEndpoint } from "../media/llamaCppBridge.js";
+import { env } from "../config/env.js";
 import { t } from "../i18n/index.js";
 import { logger } from "../lib/logger.js";
 
@@ -7,12 +7,15 @@ const REQUEST_TIMEOUT_MS = 15_000;
 
 /**
  * Item 4: auto-captions a notable event's snapshot via an OpenAI-compatible
- * `/chat/completions` vision endpoint - either the LOCAL llama.cpp server
- * this backend manages itself (media/llamaCppBridge.ts, provider "local"),
- * or an EXTERNAL one configured by the user (provider "external": a hosted
- * API, or a remote Ollama/LM Studio instance). Never throws: returns `null`
- * on any failure/timeout/misconfiguration, which callers treat as "no
- * caption available" - captioning is always optional.
+ * `/chat/completions` vision endpoint - either one configured by the user
+ * (provider "external": a hosted API, or a remote Ollama/LM Studio
+ * instance), or the optional `llamacpp-cpu`/`llamacpp-gpu` docker-compose
+ * sidecar services (providers "cpu"/"gpu" - official prebuilt
+ * ggml-org/llama.cpp images, pre-wired to fixed endpoints, see
+ * config/env.ts). Never throws: returns `null` on any failure/timeout/
+ * misconfiguration (including the sidecar container not being started),
+ * which callers treat as "no caption available" - captioning is always
+ * optional.
  */
 export async function captionImage(snapshot: Buffer, category: string): Promise<string | null> {
   const settings = getCaptionSettings();
@@ -23,22 +26,15 @@ export async function captionImage(snapshot: Buffer, category: string): Promise<
   let endpoint: string;
   let apiKey: string | null = null;
   let model: string;
-  if (settings.provider === "local") {
-    const localEndpoint = getLocalEndpoint();
-    if (!localEndpoint) {
-      // Not running yet (still starting up) or failed to start - skip this
-      // event's caption rather than block/retry; the next event will pick
-      // it up once the process is actually ready.
-      return null;
-    }
-    endpoint = localEndpoint;
-    // llama-server only ever has one model loaded, so the exact string here
-    // doesn't matter to it - any non-empty value works.
-    model = "local";
-  } else {
+  if (settings.provider === "external") {
     endpoint = settings.endpoint!;
     apiKey = settings.apiKey;
     model = settings.model!;
+  } else {
+    endpoint = settings.provider === "gpu" ? env.captioningGpuEndpoint : env.captioningCpuEndpoint;
+    // llama-server only ever has one model loaded, so the exact string here
+    // doesn't matter to it - any non-empty value works.
+    model = "local";
   }
 
   const dataUri = `data:image/jpeg;base64,${snapshot.toString("base64")}`;

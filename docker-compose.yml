@@ -110,40 +110,24 @@ services:
       VISION_FACE_DETECT_MODEL_PATH: ${VISION_FACE_DETECT_MODEL_PATH:-}
       VISION_FACE_RECOGNIZE_MODEL_PATH: ${VISION_FACE_RECOGNIZE_MODEL_PATH:-}
       # Optional VLM auto-captioning (item 4, see
-      # backend/src/notifications/captioning.ts and media/llamaCppBridge.ts) -
-      # "external" (default) calls any OpenAI-compatible vision endpoint you
-      # configure (hosted API, a remote Ollama/LM Studio instance, or the
-      # optional `llamacpp-gpu` service below if you have an NVIDIA GPU).
-      # "local" instead spawns/manages a CPU-only llama.cpp server IN this
-      # container (see Dockerfile), running a small GGUF vision model (e.g.
-      # SmolVLM-500M) you download yourself into ./app-data/models/llm/ (see
-      # docs/configuration.md). All of this - including provider choice - is
-      # also fully editable at runtime from the Settings page (takes
-      # precedence over these env vars).
+      # backend/src/notifications/captioning.ts) - "external" (default) calls
+      # any OpenAI-compatible vision endpoint you configure (hosted API, or a
+      # remote Ollama/LM Studio instance). "cpu"/"gpu" instead call the
+      # optional `llamacpp-cpu`/`llamacpp-gpu` sidecar services below
+      # (official prebuilt ggml-org/llama.cpp images, no compiling, pre-wired
+      # to fixed endpoints - nothing else to configure) - start the matching
+      # one with `docker compose --profile cpu up -d` or `--profile gpu up
+      # -d`. All of this - including provider choice - is also fully
+      # editable at runtime from the Settings page (takes precedence over
+      # these env vars).
       CAPTIONING_PROVIDER: ${CAPTIONING_PROVIDER:-external}
       CAPTIONING_ENDPOINT: ${CAPTIONING_ENDPOINT:-}
       CAPTIONING_API_KEY: ${CAPTIONING_API_KEY:-}
       CAPTIONING_MODEL: ${CAPTIONING_MODEL:-}
-      CAPTIONING_LOCAL_MODEL_PATH: ${CAPTIONING_LOCAL_MODEL_PATH:-}
-      CAPTIONING_LOCAL_MMPROJ_PATH: ${CAPTIONING_LOCAL_MMPROJ_PATH:-}
-      # "cpu" (default, always works - see the bundled llama-server binary in
-      # Dockerfile) or "gpu". Real GPU acceleration can't run inside THIS
-      # (Alpine/musl) container at all - CUDA requires glibc and NVIDIA's
-      # userspace driver libs, neither available here. For GPU, run the
-      # separate optional `llamacpp-gpu` service below instead (official
-      # CUDA-enabled llama.cpp image) and set provider to "external" pointing
-      # at it - this "local"/"gpu" combination is only for advanced setups
-      # where you supply your own GPU-capable binary + matching CUDA
-      # runtime libs via a custom LLAMACPP_SERVER_PATH (rare, not supported
-      # out of the box).
-      CAPTIONING_LOCAL_ACCELERATION: ${CAPTIONING_LOCAL_ACCELERATION:-cpu}
-      CAPTIONING_LOCAL_THREADS: ${CAPTIONING_LOCAL_THREADS:-2}
-      CAPTIONING_LOCAL_GPU_LAYERS: ${CAPTIONING_LOCAL_GPU_LAYERS:-0}
-      CAPTIONING_LOCAL_CONTEXT_SIZE: ${CAPTIONING_LOCAL_CONTEXT_SIZE:-2048}
-      CAPTIONING_LOCAL_PORT: ${CAPTIONING_LOCAL_PORT:-8090}
-      # Override only if using a different (e.g. GPU-capable) llama-server
-      # binary than the CPU-only one built into this image by default.
-      LLAMACPP_SERVER_PATH: ${LLAMACPP_SERVER_PATH:-}
+      # Only need overriding for advanced setups (renamed service, sidecar
+      # running elsewhere) - defaults already match the service names below.
+      CAPTIONING_CPU_ENDPOINT: ${CAPTIONING_CPU_ENDPOINT:-}
+      CAPTIONING_GPU_ENDPOINT: ${CAPTIONING_GPU_ENDPOINT:-}
     volumes:
       - ./app-data:/data
       - ./recordings:/recordings
@@ -154,17 +138,46 @@ services:
       # otherwise this volume line is simply unused.
       - ./certs:/certs:ro
 
+  # Optional CPU-only captioning (item 4) - runs the OFFICIAL llama.cpp
+  # server image (no CUDA) as a SEPARATE container, entirely independent of
+  # the main backend image - no compiling from source (this used to be built
+  # into the backend image, which made CI builds take over an hour; now it's
+  # just a pre-built image pull). Not started by `docker compose up` by
+  # default - opt in with:
+  #   docker compose --profile cpu up -d
+  # Then, in Settings -> "Legenda automática", set Provider = "CPU (local)" -
+  # no endpoint/model to fill in, it's pre-wired to this service.
+  #
+  # Requires downloading the 2 GGUF files (model + mmproj, e.g. SmolVLM-500M)
+  # into ./app-data/models/llm/ first - these are bundled/auto-seeded by the
+  # backend image's "ai-models" Dockerfile stage on first boot, so usually
+  # nothing to do. Check the llama.cpp docs for the current image tag/flags
+  # before relying on this - it moves fast.
+  llamacpp-cpu:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    container_name: ipcam-llamacpp-cpu
+    restart: unless-stopped
+    profiles: ["cpu"]
+    command: >
+      -m /models/SmolVLM-500M-Instruct-Q8_0.gguf
+      --mmproj /models/mmproj-SmolVLM-500M-Instruct-Q8_0.gguf
+      --host 0.0.0.0 --port 8080 -c 2048 --threads 2
+    volumes:
+      - ./app-data/models/llm:/models:ro
+    # Internal-network only (reached by the backend at
+    # http://llamacpp-cpu:8080), never published to the host/LAN.
+
   # Optional GPU-accelerated captioning (item 4) - runs the OFFICIAL
   # llama.cpp CUDA-enabled server image as a SEPARATE container, entirely
-  # independent of the (Alpine/CPU-only) backend image above - no rebuild,
-  # no risk to it. Requires an NVIDIA GPU + the NVIDIA Container Toolkit
+  # independent of the backend image above - no rebuild, no risk to it.
+  # Requires an NVIDIA GPU + the NVIDIA Container Toolkit
   # (https://github.com/NVIDIA/nvidia-container-toolkit) installed on the
   # host. Not started by `docker compose up` by default - opt in with:
   #   docker compose --profile gpu up -d
-  # Then, in Settings -> "Legenda automática", set Provider = "Externo",
-  # Endpoint = http://llamacpp-gpu:8080/v1, Model = (any non-empty value).
+  # Then, in Settings -> "Legenda automática", set Provider = "GPU (local)" -
+  # no endpoint/model to fill in, it's pre-wired to this service.
   #
-  # Requires downloading the same 2 GGUF files as the CPU "local" provider
+  # Requires downloading the same 2 GGUF files as the CPU sidecar above
   # (model + mmproj, e.g. SmolVLM-500M) into ./app-data/models/llm/ first -
   # see docs/configuration.md. Check the llama.cpp docs for the current
   # image tag/flags before relying on this - both move fast.

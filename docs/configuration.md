@@ -42,17 +42,11 @@ The backend reads env vars via [backend/src/config/env.ts](../backend/src/config
 | `VISION_FACE_DETECT_MODEL_PATH` | `<DATA_DIR>/models/face_detection_yunet.onnx` | Path to OpenCV's YuNet face detection ONNX model, used for face recognition. Bundled in the image and auto-seeded into `<DATA_DIR>/models` on first boot - see below. |
 | `VISION_FACE_RECOGNIZE_MODEL_PATH` | `<DATA_DIR>/models/face_recognition_sface.onnx` | Path to OpenCV's SFace face embedding ONNX model. Bundled/auto-seeded, same as above. |
 | `FACE_MATCH_THRESHOLD` | `0.5` | Cosine-similarity threshold above which a detected face is considered a match to a known face - lower is more lenient (more false matches), higher is stricter (more "unknown" results). |
-| `CAPTIONING_ENDPOINT` | unset (disabled) | Base URL of an OpenAI-compatible vision `/chat/completions` endpoint (e.g. a local Ollama/LM Studio instance, or the optional `llamacpp-gpu` service - see [AI computer vision](#ai-computer-vision-object-detection-face-recognition-auto-captioning) below), used when `CAPTIONING_PROVIDER` is `external`. |
+| `CAPTIONING_ENDPOINT` | unset (disabled) | Base URL of an OpenAI-compatible vision `/chat/completions` endpoint (e.g. a hosted API, or a remote Ollama/LM Studio instance), used when `CAPTIONING_PROVIDER` is `external`. |
 | `CAPTIONING_API_KEY` | unset | Optional bearer token for the endpoint above. |
 | `CAPTIONING_MODEL` | unset | Model name to request from the captioning endpoint. |
-| `CAPTIONING_PROVIDER` | `external` | `external` (call the endpoint above) or `local` (spawn/manage a CPU-only llama.cpp process in this same container - see below). |
-| `CAPTIONING_LOCAL_MODEL_PATH` / `CAPTIONING_LOCAL_MMPROJ_PATH` | `<DATA_DIR>/models/llm/SmolVLM-500M-Instruct-Q8_0.gguf` / `<DATA_DIR>/models/llm/mmproj-SmolVLM-500M-Instruct-Q8_0.gguf` | Paths (inside the container) to the `.gguf` language model and multimodal projector, used only when `CAPTIONING_PROVIDER=local`. Defaults already resolve to the bundled/auto-seeded SmolVLM-500M files - override only to use a different model. |
-| `CAPTIONING_LOCAL_ACCELERATION` | `cpu` | `cpu` (always available) or `gpu` (only takes effect with a custom GPU-capable `LLAMACPP_SERVER_PATH` - not the default binary; use the separate `llamacpp-gpu` service instead for real GPU support). |
-| `CAPTIONING_LOCAL_THREADS` | `2` | CPU threads for the local llama.cpp process. |
-| `CAPTIONING_LOCAL_GPU_LAYERS` | `0` | Layers to offload to GPU (`--n-gpu-layers`) - only meaningful with `CAPTIONING_LOCAL_ACCELERATION=gpu`. |
-| `CAPTIONING_LOCAL_CONTEXT_SIZE` | `2048` | Context size (`-c`) for the local llama.cpp process. |
-| `CAPTIONING_LOCAL_PORT` | `8090` | Loopback-only port the local llama.cpp process listens on - never exposed outside the container. |
-| `LLAMACPP_SERVER_PATH` | `/usr/local/bin/llama-server` | Path to the llama.cpp server binary used by the local captioning provider - override only to point at a different (e.g. custom-built) binary. |
+| `CAPTIONING_PROVIDER` | `external` | `external` (call the endpoint above), `cpu`, or `gpu` (call the optional `llamacpp-cpu`/`llamacpp-gpu` docker-compose sidecar service instead - see [AI computer vision](#ai-computer-vision-object-detection-face-recognition-auto-captioning) below; pre-wired to fixed endpoints, nothing else to configure). |
+| `CAPTIONING_CPU_ENDPOINT` / `CAPTIONING_GPU_ENDPOINT` | `http://llamacpp-cpu:8080/v1` / `http://llamacpp-gpu:8080/v1` | Override only for advanced setups (renamed service, sidecar running elsewhere) - the defaults already match `docker-compose.yml`'s service names. |
 | `HTTPS_PORT` | `4443` | Port for the optional local HTTPS listener (see below) - only used if `HTTPS_CERT_FILE`/`HTTPS_KEY_FILE` are both set. |
 | `HTTPS_CERT_FILE` / `HTTPS_KEY_FILE` | unset (disabled) | Optional: paths (inside the container) to a TLS cert/key pair. When both are set and readable, the backend starts a second listener on `HTTPS_PORT`, in addition to the normal HTTP one on `PORT` - see [Local HTTPS for Push notifications](#local-https-for-push-notifications) below. |
 
@@ -62,7 +56,7 @@ The backend reads env vars via [backend/src/config/env.ts](../backend/src/config
 
 Object detection and face recognition (items 1 and 3) run entirely on-device via OpenCV's own `dnn`/`objdetect` modules (`backend/vision_worker.py`, a single shared process for the whole app regardless of camera count - not one per camera) - no `onnxruntime`/`torch` dependency, deliberately, since neither ships musl-compatible (Alpine) wheels.
 
-**Face detection/recognition models, AND the SmolVLM-500M auto-captioning model, ship bundled with the image** (OpenCV Zoo's YuNet + SFace, and `ggml-org/SmolVLM-500M-Instruct-GGUF` - all permissively licensed, see [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md)): the Docker build downloads them once (`backend/Dockerfile`'s `ai-models` stage) and `docker-entrypoint.sh` copies them into `./app-data/models/` (SmolVLM's files under a `llm/` subfolder) on first container start, without ever overwriting a file already there. Nothing to configure - just enable face recognition on a camera, or pick the "Local" captioning provider below.
+**Face detection/recognition models, AND the SmolVLM-500M auto-captioning model, ship bundled with the image** (OpenCV Zoo's YuNet + SFace, and `ggml-org/SmolVLM-500M-Instruct-GGUF` - all permissively licensed, see [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md)): the Docker build downloads them once (`backend/Dockerfile`'s `ai-models` stage) and `docker-entrypoint.sh` copies them into `./app-data/models/` (SmolVLM's files under a `llm/` subfolder) on first container start, without ever overwriting a file already there. Nothing to configure - just enable face recognition on a camera, or pick the "CPU"/"GPU" captioning provider below.
 
 **YOLO object detection is not bundled** - its pretrained weights (Ultralytics) are AGPL-3.0 licensed, which would conflict with this project's all-permissive dependency policy, so it stays a manual, opt-in download into `./app-data/models/` (mounted at `/data/models` in the container, matching the env vars' defaults):
 
@@ -72,20 +66,21 @@ yolo export model=yolov8n.pt format=onnx imgsz=320
 # copy the resulting yolov8n.onnx into ./app-data/models/
 ```
 
-Missing this file simply disables object detection (the rest of the app, including plain motion detection and face recognition, is unaffected) - it's opt-in per camera (camera form checkbox), so nothing changes for existing cameras until explicitly enabled. Auto-captioning (item 4) is separate and has two provider modes, both configured entirely from the Settings page (endpoint/model, and which detected categories - person/vehicle/animal/other - should get a caption):
+Missing this file simply disables object detection (the rest of the app, including plain motion detection and face recognition, is unaffected) - it's opt-in per camera (camera form checkbox), so nothing changes for existing cameras until explicitly enabled. Auto-captioning (item 4) is separate and has three provider modes, all configured entirely from the Settings page (provider choice, endpoint/model when external, and which detected categories - person/vehicle/animal/other - should get a caption):
 
-- **External**: calls any OpenAI-compatible `/chat/completions` endpoint you point it at - a hosted API, a remote Ollama/LM Studio instance, or the optional `llamacpp-gpu` docker-compose service below if you have an NVIDIA GPU.
-- **Local**: the backend itself spawns/manages a CPU-only `llama-server` process (compiled from source into this same image - see `backend/Dockerfile`'s `llamacpp-build` stage) running the bundled SmolVLM-500M GGUF model - nothing to download, works out of the box. To use a different model instead, override the model/mmproj path fields on the Settings page. No extra container needed, but CPU-only - real GPU acceleration is not possible inside this Alpine image (CUDA has no musl support).
+- **External**: calls any OpenAI-compatible `/chat/completions` endpoint you point it at - a hosted API, or a remote Ollama/LM Studio instance.
+- **CPU**: calls the optional `llamacpp-cpu` docker-compose sidecar service - the **official, prebuilt** `ghcr.io/ggml-org/llama.cpp:server` image (no compilation, no risk to the main backend image), pre-wired to a fixed endpoint. Nothing to fill in on the Settings page - just start the sidecar:
+  ```bash
+  docker compose --profile cpu up -d llamacpp-cpu
+  ```
+- **GPU**: same idea, but the optional `llamacpp-gpu` service instead - the **official, prebuilt** `ghcr.io/ggml-org/llama.cpp:server-cuda` image, for real GPU acceleration. Requires an NVIDIA GPU + the [NVIDIA Container Toolkit](https://github.com/NVIDIA/nvidia-container-toolkit) installed on the host:
+  ```bash
+  docker compose --profile gpu up -d llamacpp-gpu
+  ```
 
-For real GPU-accelerated captioning, use the optional `llamacpp-gpu` service in `docker-compose.yml` instead - it runs the **official, prebuilt** `ghcr.io/ggml-org/llama.cpp:server-cuda` image (no compilation, no risk to the main Alpine backend image) as a completely separate container:
+Both sidecar services expect the same two GGUF files (model + mmproj) - bundled/auto-seeded into `./app-data/models/llm/` the same way as the face recognition models above, so there's nothing to download for the default SmolVLM-500M model.
 
-```bash
-# Requires an NVIDIA GPU + the NVIDIA Container Toolkit installed on the host:
-# https://github.com/NVIDIA/nvidia-container-toolkit
-docker compose --profile gpu up -d llamacpp-gpu
-```
-
-Then, in Settings → "Legenda automática", set Provider to **External**, Endpoint to `http://llamacpp-gpu:8080/v1`, and Model to any non-empty value. It expects the same two GGUF files (model + mmproj) as the "Local" provider, mounted from the same `./app-data/models/llm/` directory.
+> These two sidecar services used to be a single "Local" provider that compiled `llama.cpp` from source directly into the backend image - that made CI/production builds take over an hour and coupled an optional, rarely-changing feature to every single build of the main image. Using the official prebuilt images as separate opt-in containers instead removes that cost entirely, with no change in the out-of-the-box experience (still zero manual model downloads).
 
 ## Local HTTPS for Push notifications
 

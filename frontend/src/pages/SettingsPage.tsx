@@ -7,7 +7,7 @@ import {
   useUpdateNotificationSettings,
 } from "../api/settings";
 import { useStreamSettings, useUpdateStreamSettings, type HlsVariant } from "../api/streamSettings";
-import { useCaptionSettings, useUpdateCaptionSettings, type CaptioningAcceleration, type CaptioningProvider } from "../api/captioning";
+import { useCaptionSettings, useUpdateCaptionSettings, type CaptioningProvider } from "../api/captioning";
 import { useSubscribePush, useUnsubscribePush, useVapidPublicKey } from "../api/push";
 import { getExistingPushSubscription, isPushSupported, subscribeToPush, unsubscribeFromPush } from "../lib/push";
 import { useToastStore } from "../store/toastStore";
@@ -68,13 +68,6 @@ export function SettingsPage() {
   const [captionVehicle, setCaptionVehicle] = useState(true);
   const [captionAnimal, setCaptionAnimal] = useState(false);
   const [captionOther, setCaptionOther] = useState(false);
-  const [captionLocalModelPath, setCaptionLocalModelPath] = useState("");
-  const [captionLocalMmprojPath, setCaptionLocalMmprojPath] = useState("");
-  const [captionLocalAcceleration, setCaptionLocalAcceleration] = useState<CaptioningAcceleration>("cpu");
-  const [captionLocalThreads, setCaptionLocalThreads] = useState("2");
-  const [captionLocalGpuLayers, setCaptionLocalGpuLayers] = useState("0");
-  const [captionLocalContextSize, setCaptionLocalContextSize] = useState("2048");
-  const [captionLocalPort, setCaptionLocalPort] = useState("8090");
 
   const pushSupported = isPushSupported();
   const [pushSubscription, setPushSubscription] = useState<PushSubscription | null>(null);
@@ -137,13 +130,6 @@ export function SettingsPage() {
     setCaptionVehicle(captionSettings.categoryVehicle);
     setCaptionAnimal(captionSettings.categoryAnimal);
     setCaptionOther(captionSettings.categoryOther);
-    setCaptionLocalModelPath(captionSettings.localModelPath ?? "");
-    setCaptionLocalMmprojPath(captionSettings.localMmprojPath ?? "");
-    setCaptionLocalAcceleration(captionSettings.localAcceleration);
-    setCaptionLocalThreads(String(captionSettings.localThreads));
-    setCaptionLocalGpuLayers(String(captionSettings.localGpuLayers));
-    setCaptionLocalContextSize(String(captionSettings.localContextSize));
-    setCaptionLocalPort(String(captionSettings.localPort));
   }, [captionSettings]);
 
   const extractErrorMessage = (err: unknown, fallback: string): string => {
@@ -177,13 +163,6 @@ export function SettingsPage() {
         categoryVehicle: captionVehicle,
         categoryAnimal: captionAnimal,
         categoryOther: captionOther,
-        localModelPath: captionLocalModelPath || null,
-        localMmprojPath: captionLocalMmprojPath || null,
-        localAcceleration: captionLocalAcceleration,
-        localThreads: Number(captionLocalThreads) || 2,
-        localGpuLayers: Number(captionLocalGpuLayers) || 0,
-        localContextSize: Number(captionLocalContextSize) || 2048,
-        localPort: Number(captionLocalPort) || 8090,
       });
       addToast("success", t("settingsPage.toastCaptioningSaved"));
     } catch (err) {
@@ -573,10 +552,19 @@ export function SettingsPage() {
             <input
               type="radio"
               name="captioningProvider"
-              checked={captionProvider === "local"}
-              onChange={() => setCaptionProvider("local")}
+              checked={captionProvider === "cpu"}
+              onChange={() => setCaptionProvider("cpu")}
             />
-            {t("settingsPage.captioningProviderLocal")}
+            {t("settingsPage.captioningProviderCpu")}
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="captioningProvider"
+              checked={captionProvider === "gpu"}
+              onChange={() => setCaptionProvider("gpu")}
+            />
+            {t("settingsPage.captioningProviderGpu")}
           </label>
         </div>
 
@@ -603,91 +591,9 @@ export function SettingsPage() {
             />
           </>
         ) : (
-          <>
-            <p className="text-[11px] text-neutral-500">{t("settingsPage.captioningLocalHint")}</p>
-            <input
-              value={captionLocalModelPath}
-              onChange={(e) => setCaptionLocalModelPath(e.target.value)}
-              placeholder={t("settingsPage.captioningLocalModelPathPlaceholder")}
-              className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 font-mono text-sm"
-            />
-            <input
-              value={captionLocalMmprojPath}
-              onChange={(e) => setCaptionLocalMmprojPath(e.target.value)}
-              placeholder={t("settingsPage.captioningLocalMmprojPathPlaceholder")}
-              className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 font-mono text-sm"
-            />
-            <span className="text-xs text-neutral-500">{t("settingsPage.captioningAccelerationLabel")}</span>
-            <div className="flex flex-wrap gap-4 text-sm">
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="captioningAcceleration"
-                  checked={captionLocalAcceleration === "cpu"}
-                  onChange={() => setCaptionLocalAcceleration("cpu")}
-                />
-                {t("settingsPage.captioningAccelerationCpu")}
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="captioningAcceleration"
-                  checked={captionLocalAcceleration === "gpu"}
-                  onChange={() => setCaptionLocalAcceleration("gpu")}
-                />
-                {t("settingsPage.captioningAccelerationGpu")}
-              </label>
-            </div>
-            {captionLocalAcceleration === "gpu" && (
-              <p className="text-[11px] text-amber-500">{t("settingsPage.captioningAccelerationGpuHint")}</p>
-            )}
-            <div className="grid grid-cols-2 gap-3">
-              {captionLocalAcceleration === "cpu" ? (
-                <label className="flex flex-col gap-1 text-xs text-neutral-500">
-                  {t("settingsPage.captioningThreadsLabel")}
-                  <input
-                    type="number"
-                    min={1}
-                    value={captionLocalThreads}
-                    onChange={(e) => setCaptionLocalThreads(e.target.value)}
-                    className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
-                  />
-                </label>
-              ) : (
-                <label className="flex flex-col gap-1 text-xs text-neutral-500">
-                  {t("settingsPage.captioningGpuLayersLabel")}
-                  <input
-                    type="number"
-                    min={0}
-                    value={captionLocalGpuLayers}
-                    onChange={(e) => setCaptionLocalGpuLayers(e.target.value)}
-                    className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
-                  />
-                </label>
-              )}
-              <label className="flex flex-col gap-1 text-xs text-neutral-500">
-                {t("settingsPage.captioningContextSizeLabel")}
-                <input
-                  type="number"
-                  min={256}
-                  value={captionLocalContextSize}
-                  onChange={(e) => setCaptionLocalContextSize(e.target.value)}
-                  className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-xs text-neutral-500">
-                {t("settingsPage.captioningPortLabel")}
-                <input
-                  type="number"
-                  min={1024}
-                  max={65535}
-                  value={captionLocalPort}
-                  onChange={(e) => setCaptionLocalPort(e.target.value)}
-                  className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
-                />
-              </label>
-            </div>
-          </>
+          <p className="text-[11px] text-neutral-500">
+            {t("settingsPage.captioningSidecarHint", { profile: captionProvider })}
+          </p>
         )}
 
         <span className="text-xs text-neutral-500">{t("settingsPage.captioningCategoriesLabel")}</span>

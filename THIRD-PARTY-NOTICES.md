@@ -71,6 +71,7 @@ license.
 | [MediaMTX](https://github.com/bluenviron/mediamtx) | MIT | Streaming/recording engine, runs as its own Docker container (`mediamtx` service in `docker-compose.yml`) |
 | [FFmpeg](https://ffmpeg.org/) | LGPL-2.1+ / GPL-2.0+ (depends on build configuration) | Invoked as a CLI subprocess (`child_process.spawn`) for snapshots/thumbnails and bridging; not statically or dynamically linked into OpenDVR's code |
 | [Chromium](https://www.chromium.org/) | BSD-style (multiple licenses) | Launched as a subprocess via `playwright-core` for the webpage-source bridge (`media/webpageBridge.ts`) |
+| [llama.cpp](https://github.com/ggml-org/llama.cpp) | MIT | Official prebuilt `ghcr.io/ggml-org/llama.cpp:server`/`:server-cuda` images, run as separate optional Docker containers (`llamacpp-cpu`/`llamacpp-gpu` services in `docker-compose.yml`) for item 4's auto-captioning provider; not compiled or linked into the main backend image |
 
 ## Bundled AI model weight files
 
@@ -80,7 +81,7 @@ These binary model files are downloaded during the Docker build (`backend/Docker
 | --- | --- | --- |
 | [YuNet face detection](https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet) (`face_detection_yunet_2023mar.onnx`) | MIT | Loaded by `backend/vision_worker.py` via OpenCV's `cv2.FaceDetectorYN` for face recognition |
 | [SFace face recognition](https://github.com/opencv/opencv_zoo/tree/main/models/face_recognition_sface) (`face_recognition_sface_2021dec.onnx`) | Apache-2.0 | Loaded by `backend/vision_worker.py` via OpenCV's `cv2.FaceRecognizerSF` for face embeddings |
-| [SmolVLM-500M-Instruct GGUF](https://huggingface.co/ggml-org/SmolVLM-500M-Instruct-GGUF) (`SmolVLM-500M-Instruct-Q8_0.gguf` + `mmproj-SmolVLM-500M-Instruct-Q8_0.gguf`) | Apache-2.0 | Loaded by the bundled `llama-server` binary (`backend/src/media/llamaCppBridge.ts`) for item 4's "local" auto-captioning provider |
+| [SmolVLM-500M-Instruct GGUF](https://huggingface.co/ggml-org/SmolVLM-500M-Instruct-GGUF) (`SmolVLM-500M-Instruct-Q8_0.gguf` + `mmproj-SmolVLM-500M-Instruct-Q8_0.gguf`) | Apache-2.0 | Bundled in this image and mounted into the optional `llamacpp-cpu`/`llamacpp-gpu` docker-compose sidecar services (official prebuilt `ggml-org/llama.cpp` images) for item 4's auto-captioning provider |
 
 The optional YOLO object-detection model (`VISION_YOLO_MODEL_PATH`) is **deliberately not bundled**: Ultralytics' pretrained YOLOv8/YOLO11 weights are AGPL-3.0 licensed, which would conflict with the all-permissive policy above - it remains a manual, opt-in download (see [docs/configuration.md](./docs/configuration.md)) and is never part of the distributed image.
 

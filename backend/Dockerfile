@@ -40,40 +40,6 @@ COPY backend/src ./src
 RUN npm run build:backend
 RUN npm prune --omit=dev
 
-# --- llama.cpp build stage ---------------------------------------------------
-# Compiles llama.cpp's server binary (CPU-only) from source for item 4's
-# "local" auto-captioning provider (see backend/src/media/llamaCppBridge.ts,
-# which spawns/manages it directly, driven entirely by Settings-page config -
-# model paths, CPU threads, GPU layers). Not available as an Alpine apk
-# package, and upstream's prebuilt release binaries are glibc-linked (same
-# musl/Alpine constraint as better-sqlite3/py3-opencv elsewhere in this
-# file), so building from source is the only option here.
-#
-# GPU acceleration is deliberately NOT built here: CUDA's toolchain has no
-# musl/Alpine support at all, so no llama-server binary running INSIDE this
-# image can ever use a GPU. For real GPU-accelerated captioning, run the
-# separate `llamacpp-gpu` docker-compose service instead (official prebuilt
-# CUDA image, zero risk to this image) and point the "External" captioning
-# provider at it - see docs/configuration.md.
-FROM alpine:3.20 AS llamacpp-build
-
-RUN apk add --no-cache git cmake make g++ linux-headers
-
-# Pinned to a specific tag for reproducible builds - bump deliberately (check
-# https://github.com/ggml-org/llama.cpp/tags for newer ones).
-ARG LLAMA_CPP_VERSION=b10192
-RUN git clone --depth 1 --branch ${LLAMA_CPP_VERSION} https://github.com/ggml-org/llama.cpp.git /llama.cpp
-
-WORKDIR /llama.cpp
-RUN cmake -B build \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DGGML_NATIVE=OFF \
-      -DBUILD_SHARED_LIBS=OFF \
-      -DLLAMA_CURL=OFF \
-      -DLLAMA_BUILD_TESTS=OFF \
-      -DLLAMA_BUILD_EXAMPLES=OFF \
-  && cmake --build build --target llama-server -j"$(nproc)"
-
 # --- AI model download stage -------------------------------------------------
 # Downloads the face detection/recognition ONNX models (OpenCV Zoo's YuNet
 # and SFace - MIT and Apache-2.0 respectively, see THIRD-PARTY-NOTICES.md) at
@@ -83,10 +49,11 @@ RUN cmake -B build \
 #
 # Also downloads the SmolVLM-500M-Instruct GGUF model + mmproj (Apache-2.0,
 # ggml-org's own llama.cpp-ready GGUF conversion - see THIRD-PARTY-NOTICES.md)
-# for item 4's "local" auto-captioning provider (see
-# backend/src/media/llamaCppBridge.ts) - bundled for the same reason as the
-# face models: it's a small (~520MB combined), permissively-licensed model
-# that makes the feature work out of the box with zero manual downloads.
+# for item 4's auto-captioning feature. These are consumed by the optional
+# `llamacpp-cpu`/`llamacpp-gpu` docker-compose sidecar services (official
+# prebuilt ggml-org/llama.cpp images - see docker-compose.yml), NOT by
+# anything running inside this image itself - bundled here purely so the
+# feature works with zero manual downloads, same as the face models.
 #
 # Deliberately does NOT include the YOLO object-detection model here: its
 # pretrained weights are AGPL-3.0 licensed (Ultralytics), which would
@@ -149,10 +116,7 @@ FROM node:22-alpine AS runtime
 # rationale as py3-opencv: prebuilt platform packages over huge downloads
 # that may not even support musl). This is by far the heaviest optional
 # runtime dependency in this image - only pulled in for that one source type.
-#
-# libstdc++/libgomp: runtime shared libs the llama.cpp build above links
-# against dynamically (g++/OpenMP) - NOT part of node:22-alpine by default.
-RUN apk add --no-cache ffmpeg vlc py3-opencv chromium ttf-freefont libstdc++ libgomp \
+RUN apk add --no-cache ffmpeg vlc py3-opencv chromium ttf-freefont \
   && addgroup -g 10001 vlcrelay \
   && adduser -D -H -h /tmp -u 10001 -G vlcrelay vlcrelay
 
@@ -165,7 +129,6 @@ COPY --from=backend-build /app/dist ./dist
 COPY --from=frontend-build /frontend/dist ./dist/web
 COPY backend/motion_worker.py ./motion_worker.py
 COPY backend/vision_worker.py ./vision_worker.py
-COPY --from=llamacpp-build /llama.cpp/build/bin/llama-server /usr/local/bin/llama-server
 # Bundled model files, seeded into the bind-mounted ${DATA_DIR}/models volume
 # on first boot by docker-entrypoint.sh - not placed directly at /data/models
 # here because /data is a host bind mount (see docker-compose.yml), which
