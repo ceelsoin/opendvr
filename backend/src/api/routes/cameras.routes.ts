@@ -19,6 +19,7 @@ import { stopMjpegBridge } from "../../media/mjpegBridge.js";
 import { stopWebpageBridge } from "../../media/webpageBridge.js";
 import { stopRotationBridge } from "../../media/rotationBridge.js";
 import { stopTimestampBridge } from "../../media/timestampBridge.js";
+import { removeBaselineSnapshot } from "../../media/baselineSnapshot.js";
 import { stopMotionRecording } from "../../media/motionRecording.js";
 import { restartMotionListening, shouldDetectMotion, startMotionListening, stopMotionListening } from "../../media/motionOrchestrator.js";
 import { errorMessage } from "../../lib/errors.js";
@@ -280,6 +281,7 @@ camerasRouter.delete("/:id", async (req, res) => {
   await stopWebpageBridge(camera.id);
   await stopRotationBridge(camera.id);
   await stopTimestampBridge(camera.id);
+  removeBaselineSnapshot(camera.id);
   await deleteCameraPath(camera.id);
   await deleteCameraPath(subStreamPathName(camera.id));
   deleteCamera(camera.id);

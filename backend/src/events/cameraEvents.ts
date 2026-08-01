@@ -9,6 +9,7 @@ import { saveEventSnapshot } from "../lib/snapshotStorage.js";
 import { notifyEvent } from "../notifications/webhooks.js";
 import { captionImage } from "../notifications/captioning.js";
 import { triggerMotionRecording } from "../media/motionRecording.js";
+import { getBaselineSnapshot } from "../media/baselineSnapshot.js";
 import { env } from "../config/env.js";
 import { logger } from "../lib/logger.js";
 import type { ClassifiedMotion } from "../media/objectDetection.js";
@@ -103,6 +104,11 @@ const cooldownUntil = new Map<string, number>();
 function endSession(cameraId: string): void {
   activeSessions.delete(cameraId);
   cooldownUntil.set(cameraId, Date.now() + EVENT_COOLDOWN_MS);
+}
+
+/** Whether a notable event session is currently in progress for a camera - used by media/baselineSnapshot.ts to avoid refreshing the "idle" reference frame while something is actually happening. */
+export function isEventSessionActive(cameraId: string): boolean {
+  return activeSessions.has(cameraId);
 }
 
 export function recordCameraEvent(camera: Camera, topic: string, message: unknown): void {
@@ -209,7 +215,7 @@ export function recordCameraEvent(camera: Camera, topic: string, message: unknow
         logger.warn({ err, cameraId: camera.id, eventId }, "Failed to fetch event clip");
         return null;
       }),
-      category && snapshot ? captionImage(snapshot, category, detections) : Promise.resolve(null),
+      category && snapshot ? captionImage(snapshot, category, detections, getBaselineSnapshot(camera.id)) : Promise.resolve(null),
     ]);
     if (caption) {
       updateEventCaption(eventId, caption);

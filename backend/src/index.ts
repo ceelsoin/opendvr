@@ -12,6 +12,7 @@ import { stopAllRecordings } from "./media/recorder.js";
 import { startMotionListening, shouldDetectMotion } from "./media/motionOrchestrator.js";
 import { stopAllMotionDetectors } from "./media/motionDetector.js";
 import { startVisionWorker } from "./media/visionWorker.js";
+import { startBaselineSnapshotRefresh } from "./media/baselineSnapshot.js";
 import { provisionCamera } from "./media/provisioning.js";
 import { getCameraPathStatus } from "./media/mediamtx.js";
 import { gridBroadcastPathName, stopAllGridBroadcasts, syncGridBroadcast } from "./media/gridBroadcastBridge.js";
@@ -67,6 +68,11 @@ if (env.httpsCertFile && env.httpsKeyFile) {
 // camera with object detection enabled actually sends it a frame); missing
 // model files just make individual requests fail gracefully, not this.
 startVisionWorker();
+
+// Periodic "idle/empty scene" reference frame per camera (object-detection-
+// enabled cameras only) - see media/baselineSnapshot.ts. Used by auto-
+// captioning to describe what CHANGED relative to the camera's normal view.
+startBaselineSnapshotRefresh();
 
 // MediaMTX paths - AND its global HLS config, see media/streamSettings.ts -
 // only exist in-memory (set via its Control API), so they're lost whenever

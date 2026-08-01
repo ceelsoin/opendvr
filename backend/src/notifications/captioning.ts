@@ -77,12 +77,17 @@ function resolveEndpoint(settings: ReturnType<typeof getCaptionSettings>): strin
  * prompt as context, and the caption is explicitly instructed to answer in
  * the app's configured language (see getBackendLanguage()/LANGUAGE_NAMES) -
  * small VLMs otherwise tend to default to English regardless of the
- * prompt's own language.
+ * prompt's own language. `baselineSnapshot` (see media/baselineSnapshot.ts),
+ * when available, is sent as a SECOND reference image (the camera's normal,
+ * idle view) alongside the event frame, with the model instructed to
+ * describe only what changed between the two - turns "there's a car" into
+ * "a car that wasn't there before is now parked in the driveway".
  */
 export async function captionImage(
   snapshot: Buffer,
   category: string,
-  detections?: DetectionContext | null
+  detections?: DetectionContext | null,
+  baselineSnapshot?: Buffer | null
 ): Promise<string | null> {
   const settings = getCaptionSettings();
   if (!isCaptioningEnabledFor(category, settings)) {
@@ -96,10 +101,21 @@ export async function captionImage(
   const model = settings.provider === "external" ? settings.model! : "local";
 
   const language = getBackendLanguage();
-  const promptParts = [t("captioning.prompt"), buildDetectionContextHint(detections), `Respond only in ${LANGUAGE_NAMES[language]}.`];
+  const promptParts = [
+    t("captioning.prompt"),
+    baselineSnapshot
+      ? "The first image is this camera's normal, empty view for reference; the second image is the moment the event was detected. Compare them and describe only what actually changed or newly appeared in the second image - ignore anything present in both."
+      : null,
+    buildDetectionContextHint(detections),
+    `Respond only in ${LANGUAGE_NAMES[language]}.`,
+  ];
   const promptText = promptParts.filter((part): part is string => Boolean(part)).join(" ");
 
-  const dataUri = `data:image/jpeg;base64,${snapshot.toString("base64")}`;
+  const toDataUri = (buffer: Buffer) => `data:image/jpeg;base64,${buffer.toString("base64")}`;
+  const imageContent = [
+    ...(baselineSnapshot ? [{ type: "image_url", image_url: { url: toDataUri(baselineSnapshot) } }] : []),
+    { type: "image_url", image_url: { url: toDataUri(snapshot) } },
+  ];
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -116,10 +132,7 @@ export async function captionImage(
         messages: [
           {
             role: "user",
-            content: [
-              { type: "text", text: promptText },
-              { type: "image_url", image_url: { url: dataUri } },
-            ],
+            content: [{ type: "text", text: promptText }, ...imageContent],
           },
         ],
       }),
