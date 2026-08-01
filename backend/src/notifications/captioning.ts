@@ -1,10 +1,60 @@
 import { getCaptionSettings, isCaptioningEnabledFor, type CaptioningProvider } from "./captionSettings.js";
 import { env } from "../config/env.js";
-import { t } from "../i18n/index.js";
+import { getBackendLanguage, t, type BackendLanguage } from "../i18n/index.js";
 import { logger } from "../lib/logger.js";
+import type { ClassifiedMotion } from "../media/objectDetection.js";
 
 const REQUEST_TIMEOUT_MS = 15_000;
 const HEALTH_CHECK_TIMEOUT_MS = 3_000;
+
+/** English name of each supported language, for the "respond only in ___" instruction below - written in English regardless of target language, since small/instruction-light VLMs follow an English meta-instruction more reliably than one phrased in the target language itself. */
+const LANGUAGE_NAMES: Record<BackendLanguage, string> = {
+  "pt-BR": "Portuguese (Brazil)",
+  en: "English",
+  es: "Spanish",
+  fr: "French",
+  de: "German",
+  "zh-CN": "Simplified Chinese",
+  ja: "Japanese",
+  ko: "Korean",
+  ru: "Russian",
+  ar: "Arabic",
+  hi: "Hindi",
+  id: "Indonesian",
+};
+
+/** Same shape media/objectDetection.ts's classifyMotionFrame produces - only ever available for "object:*" events (see events/cameraEvents.ts's call site). */
+type DetectionContext = ClassifiedMotion["metadata"];
+
+/**
+ * Summarizes what the object-detection/face-recognition pipeline already
+ * found, so the VLM has a head start instead of guessing from pixels alone
+ * (e.g. "I think there's a person and a car" instead of relying purely on
+ * the image). Deliberately phrased as a HINT, not a fact the model must
+ * repeat verbatim - a stale/wrong prior detection (e.g. a face match with
+ * middling confidence) shouldn't be stated as certain in the caption.
+ */
+function buildDetectionContextHint(detections: DetectionContext | null | undefined): string | null {
+  if (!detections) return null;
+  const parts: string[] = [];
+
+  if (detections.objects?.length) {
+    const objectsText = detections.objects
+      .slice(0, 5)
+      .map((o) => `${o.label} (${Math.round(o.confidence * 100)}% confidence)`)
+      .join(", ");
+    parts.push(`an object-detection pass already found: ${objectsText}`);
+  }
+  if (detections.faces?.length) {
+    const facesText = detections.faces
+      .map((f) => (f.name ? `${f.name} (${Math.round(f.confidence * 100)}% confidence)` : "an unrecognized face"))
+      .join(", ");
+    parts.push(`face recognition matched: ${facesText}`);
+  }
+  if (parts.length === 0) return null;
+
+  return `For context, ${parts.join("; ")}. Use this only as a hint - describe what you actually see in the image, and don't just repeat these labels verbatim if the image doesn't clearly support them.`;
+}
 
 /** Base `/v1`-style endpoint actually used for a given provider - "cpu"/"gpu" are pre-wired, "external" is whatever the user configured. */
 function resolveEndpoint(settings: ReturnType<typeof getCaptionSettings>): string | null {
@@ -22,9 +72,18 @@ function resolveEndpoint(settings: ReturnType<typeof getCaptionSettings>): strin
  * config/env.ts). Never throws: returns `null` on any failure/timeout/
  * misconfiguration (including the sidecar container not being started),
  * which callers treat as "no caption available" - captioning is always
- * optional.
+ * optional. `detections` (when available, see events/cameraEvents.ts's call
+ * site) feeds the prior object-detection/face-recognition results into the
+ * prompt as context, and the caption is explicitly instructed to answer in
+ * the app's configured language (see getBackendLanguage()/LANGUAGE_NAMES) -
+ * small VLMs otherwise tend to default to English regardless of the
+ * prompt's own language.
  */
-export async function captionImage(snapshot: Buffer, category: string): Promise<string | null> {
+export async function captionImage(
+  snapshot: Buffer,
+  category: string,
+  detections?: DetectionContext | null
+): Promise<string | null> {
   const settings = getCaptionSettings();
   if (!isCaptioningEnabledFor(category, settings)) {
     return null;
@@ -36,6 +95,9 @@ export async function captionImage(snapshot: Buffer, category: string): Promise<
   // doesn't matter to it - any non-empty value works.
   const model = settings.provider === "external" ? settings.model! : "local";
 
+  const language = getBackendLanguage();
+  const promptParts = [t("captioning.prompt"), buildDetectionContextHint(detections), `Respond only in ${LANGUAGE_NAMES[language]}.`];
+  const promptText = promptParts.filter((part): part is string => Boolean(part)).join(" ");
 
   const dataUri = `data:image/jpeg;base64,${snapshot.toString("base64")}`;
   const controller = new AbortController();
@@ -55,7 +117,7 @@ export async function captionImage(snapshot: Buffer, category: string): Promise<
           {
             role: "user",
             content: [
-              { type: "text", text: t("captioning.prompt") },
+              { type: "text", text: promptText },
               { type: "image_url", image_url: { url: dataUri } },
             ],
           },

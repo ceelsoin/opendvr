@@ -11,6 +11,7 @@ import { captionImage } from "../notifications/captioning.js";
 import { triggerMotionRecording } from "../media/motionRecording.js";
 import { env } from "../config/env.js";
 import { logger } from "../lib/logger.js";
+import type { ClassifiedMotion } from "../media/objectDetection.js";
 
 /**
  * Shared "a motion-ish event happened" pipeline, called from BOTH motion
@@ -197,12 +198,18 @@ export function recordCameraEvent(camera: Camera, topic: string, message: unknow
     // the optional VLM caption (item 4) below - both are independent,
     // possibly-slow network calls.
     const category = topic.startsWith("object:") ? topic.slice("object:".length) : null;
+    // Feeds the object-detection/face-recognition pipeline's own results
+    // into the captioning prompt as context (see notifications/captioning.ts's
+    // buildDetectionContextHint) - only ever available for "object:*" topics,
+    // which is exactly when `message` has this shape (see
+    // media/objectDetection.ts's classifyMotionFrame).
+    const detections = topic.startsWith("object:") ? (message as ClassifiedMotion["metadata"] | null) : null;
     const [clip, caption] = await Promise.all([
       captureEventClip(camera, occurredAt).catch((err) => {
         logger.warn({ err, cameraId: camera.id, eventId }, "Failed to fetch event clip");
         return null;
       }),
-      category && snapshot ? captionImage(snapshot, category) : Promise.resolve(null),
+      category && snapshot ? captionImage(snapshot, category, detections) : Promise.resolve(null),
     ]);
     if (caption) {
       updateEventCaption(eventId, caption);
