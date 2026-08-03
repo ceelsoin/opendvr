@@ -60,3 +60,16 @@ export function emitCameraStatus(cameraId: string, status: string): void {
 export function emitEvent(cameraId: string, type: string, payload: Record<string, unknown> = {}): void {
   io?.emit("camera:event", { cameraId, type, ...payload, occurredAt: new Date().toISOString() });
 }
+
+/**
+ * Broadcasts fresh detection boxes for the live-view overlay (see
+ * frontend/src/components/player/HlsPlayer.tsx), independent of
+ * `emitEvent`/`camera:event` above - the latter is deliberately debounced
+ * to one DB row/notification per motion "session" (see
+ * events/cameraEvents.ts), but the overlay should refresh on every single
+ * classification (media/motionDetector.ts) for as long as something is
+ * being tracked, or it'd only ever show a box once per session.
+ */
+export function emitDetections(cameraId: string, objects: unknown[]): void {
+  io?.emit("camera:detections", { cameraId, objects });
+}

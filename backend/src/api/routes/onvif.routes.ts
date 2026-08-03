@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { discoverStreams } from "../../onvif/device.js";
+import { resolveCapabilities } from "../../onvif/capabilityResolver.js";
 import { diagnoseSoapCompatibility } from "../../onvif/diagnose.js";
 import { listOnvifDebugCommands, runOnvifDebugCommand } from "../../onvif/debugCommands.js";
 import { getCameraById } from "../../db/cameras.repository.js";
@@ -61,12 +62,18 @@ onvifRouter.post("/probe", async (req, res) => {
 
   try {
     const streams = await discoverStreams(camera);
+    // Best-effort: never blocks/fails the probe response itself, so the
+    // frontend can already show capability badges and pre-fill sensible
+    // defaults (see plans/05-capability-resolver.md) before the camera is
+    // even saved.
+    const capabilities = await resolveCapabilities(camera);
     res.json({
       host,
       port: resolvedPort,
       onvifPath: resolvedPath,
       username,
       streams,
+      capabilities,
     });
   } catch (err) {
     const details = errorMessage(err);

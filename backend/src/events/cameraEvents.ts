@@ -1,15 +1,18 @@
 import type { Camera } from "../types/camera.js";
-import { insertEvent, updateEventSnapshot, updateEventCaption, appendEventPipelineOutput } from "../db/events.repository.js";
+import { insertEvent, updateEventSnapshot, updateEventCaption, appendEventPipelineOutput, updateEventClipAnnotated } from "../db/events.repository.js";
 import { emitEvent } from "../ws/index.js";
 import { captureSnapshot } from "../onvif/snapshot.js";
 import { captureFrameSnapshot } from "../media/frameSnapshot.js";
 import { captureEventClip } from "../media/eventClip.js";
 import { uploadSnapshotToS3 } from "../lib/s3Storage.js";
-import { saveEventSnapshot } from "../lib/snapshotStorage.js";
+import { saveEventSnapshot, saveEventClip } from "../lib/snapshotStorage.js";
 import { notifyEvent } from "../notifications/webhooks.js";
 import { captionImage } from "../notifications/captioning.js";
 import { triggerMotionRecording } from "../media/motionRecording.js";
 import { getBaselineSnapshot } from "../media/baselineSnapshot.js";
+import { clearTracks } from "../media/objectTracker.js";
+import { drawDetections } from "../media/snapshotRenderer.js";
+import { drawDetectionsOnClip } from "../media/clipRenderer.js";
 import { env } from "../config/env.js";
 import { logger } from "../lib/logger.js";
 import type { ClassifiedMotion } from "../media/objectDetection.js";
@@ -104,6 +107,9 @@ const cooldownUntil = new Map<string, number>();
 function endSession(cameraId: string): void {
   activeSessions.delete(cameraId);
   cooldownUntil.set(cameraId, Date.now() + EVENT_COOLDOWN_MS);
+  // A new session later is an independent sighting - don't let it inherit
+  // this one's track IDs (see media/objectTracker.ts).
+  clearTracks(cameraId);
 }
 
 /** Whether a notable event session is currently in progress for a camera - used by media/baselineSnapshot.ts to avoid refreshing the "idle" reference frame while something is actually happening. */
@@ -172,13 +178,40 @@ export function recordCameraEvent(camera: Camera, topic: string, message: unknow
   // camera HTTP snapshot endpoint or webhook never blocks the caller
   // (ONVIF pull loop or video frame-diff loop).
   void (async () => {
+    // Deliberately NOT using frameCache.ts here (unlike the zone-editor
+    // snapshot endpoint) - an event snapshot must reflect this exact
+    // moment, not a frame that could be up to several minutes stale.
     let snapshot = await captureSnapshot(camera);
     if (!snapshot) {
       snapshot = await captureFrameSnapshot(camera.id);
     }
-    if (snapshot) {
-      const snapshotPath = await saveEventSnapshot(camera.id, eventId, snapshot);
-      updateEventSnapshot(eventId, snapshotPath);
+
+    const category = topic.startsWith("object:") ? topic.slice("object:".length) : null;
+    // Feeds the object-detection/face-recognition pipeline's own results
+    // into the captioning prompt as context (see notifications/captioning.ts's
+    // buildDetectionContextHint) - only ever available for "object:*" topics,
+    // which is exactly when `message` has this shape (see
+    // media/objectDetection.ts's classifyMotionFrame).
+    const detections = topic.startsWith("object:") ? (message as ClassifiedMotion["metadata"] | null) : null;
+
+    // Optionally draws bounding boxes onto a SEPARATE copy of the snapshot
+    // (see media/snapshotRenderer.ts) - `snapshot` itself stays untouched,
+    // since captioning (below) should analyze the actual scene, not one
+    // with boxes drawn over it.
+    let outputSnapshot = snapshot;
+    let snapshotAnnotated = false;
+    if (snapshot && camera.annotateEventSnapshots && detections?.objects.length) {
+      try {
+        outputSnapshot = await drawDetections(snapshot, detections.objects);
+        snapshotAnnotated = true;
+      } catch (err) {
+        logger.debug({ err, cameraId: camera.id, eventId }, "Failed to annotate event snapshot; using the original");
+      }
+    }
+
+    if (outputSnapshot) {
+      const snapshotPath = await saveEventSnapshot(camera.id, eventId, outputSnapshot);
+      updateEventSnapshot(eventId, snapshotPath, snapshotAnnotated);
     } else {
       logger.warn({ cameraId: camera.id, eventId }, "Failed to capture a snapshot for event (both ONVIF and ffmpeg fallback failed)");
     }
@@ -186,7 +219,7 @@ export function recordCameraEvent(camera: Camera, topic: string, message: unknow
     // Public URL for the snapshot (uploaded to S3-compatible storage, see
     // lib/s3Storage.ts), when configured - preferred by Discord/Telegram/
     // generic-webhook over a raw multipart attachment (see those files).
-    const snapshotUrl = snapshot ? await uploadSnapshotToS3(camera.id, snapshot) : null;
+    const snapshotUrl = outputSnapshot ? await uploadSnapshotToS3(camera.id, outputSnapshot) : null;
 
     // A clickable link back to the Timeline, sent instead of a snapshot
     // attachment when the camera is actually recording (continuous or
@@ -203,13 +236,6 @@ export function recordCameraEvent(camera: Camera, topic: string, message: unknow
     // media/eventClip.ts and notifyEvent below). Fetched in parallel with
     // the optional VLM caption (item 4) below - both are independent,
     // possibly-slow network calls.
-    const category = topic.startsWith("object:") ? topic.slice("object:".length) : null;
-    // Feeds the object-detection/face-recognition pipeline's own results
-    // into the captioning prompt as context (see notifications/captioning.ts's
-    // buildDetectionContextHint) - only ever available for "object:*" topics,
-    // which is exactly when `message` has this shape (see
-    // media/objectDetection.ts's classifyMotionFrame).
-    const detections = topic.startsWith("object:") ? (message as ClassifiedMotion["metadata"] | null) : null;
     const [clip, caption] = await Promise.all([
       captureEventClip(camera, occurredAt).catch((err) => {
         logger.warn({ err, cameraId: camera.id, eventId }, "Failed to fetch event clip");
@@ -222,7 +248,22 @@ export function recordCameraEvent(camera: Camera, topic: string, message: unknow
       appendEventPipelineOutput(eventId, "captioning", caption);
     }
 
-    await notifyEvent(camera, topic, snapshot ?? undefined, recordingLink, snapshotUrl ?? undefined, clip ?? undefined, caption ?? undefined);
+    await notifyEvent(camera, topic, outputSnapshot ?? undefined, recordingLink, snapshotUrl ?? undefined, clip ?? undefined, caption ?? undefined);
+
+    // Fire-and-forget: a bbox-annotated copy of the clip is an extra
+    // artifact for the Events page (see media/clipRenderer.ts) - never
+    // delays/blocks the notification that was just sent above, and never
+    // replaces the raw clip already attached to it.
+    if (clip && camera.annotateEventSnapshots && detections?.objects.length) {
+      drawDetectionsOnClip(clip, detections.objects)
+        .then((annotatedClip) => {
+          if (!annotatedClip) return undefined;
+          return saveEventClip(camera.id, eventId, annotatedClip).then((clipPath) => updateEventClipAnnotated(eventId, clipPath));
+        })
+        .catch((err) => {
+          logger.debug({ err, cameraId: camera.id, eventId }, "Failed to render annotated event clip");
+        });
+    }
   })().catch((err) => {
     logger.warn({ err, cameraId: camera.id }, "Failed to process event snapshot/notification");
   });

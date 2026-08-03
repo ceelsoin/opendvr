@@ -1,6 +1,7 @@
 {
   "errors": {
     "cameraNotFound": "Camera not found",
+    "cameraNotOnvif": "This camera isn't an ONVIF source, so there's nothing to probe",
     "gridNotFound": "Grid not found",
     "eventNotFound": "Event not found",
     "invalidPayload": "Invalid payload",

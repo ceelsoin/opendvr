@@ -1,6 +1,7 @@
 {
   "errors": {
     "cameraNotFound": "Kamera tidak ditemukan",
+    "cameraNotOnvif": "Kamera ini bukan sumber ONVIF, tidak ada yang bisa diperiksa",
     "gridNotFound": "Grid tidak ditemukan",
     "eventNotFound": "Peristiwa tidak ditemukan",
     "invalidPayload": "Data tidak valid",

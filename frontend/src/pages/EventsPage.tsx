@@ -123,16 +123,36 @@ export function EventsPage() {
               >
                 <div className="flex items-center gap-3">
                   {event.snapshotUrl && (
-                    <img
-                      src={event.snapshotUrl}
-                      alt={t("events.snapshotAlt")}
-                      className="h-14 w-24 shrink-0 rounded object-cover"
-                    />
+                    <div className="relative h-14 w-24 shrink-0">
+                      <img
+                        src={event.snapshotUrl}
+                        alt={t("events.snapshotAlt")}
+                        className="h-14 w-24 rounded object-cover"
+                      />
+                      {event.snapshotAnnotated && (
+                        <span
+                          title={t("events.annotatedBadgeTitle")}
+                          className="absolute bottom-0.5 right-0.5 rounded bg-black/70 px-1 text-[9px] font-medium text-green-400"
+                        >
+                          {t("events.annotatedBadge")}
+                        </span>
+                      )}
+                    </div>
                   )}
                   <div className="flex flex-1 flex-col gap-1">
                     <span className="font-medium">{cameraName(event.camera_id)}</span>
                     <span className="text-xs text-neutral-500">{friendlyEventType(event.type, t)}</span>
                     {event.caption && <span className="text-xs text-neutral-400">📝 {event.caption}</span>}
+                    {event.clipAnnotatedUrl && (
+                      <a
+                        href={event.clipAnnotatedUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-blue-400 hover:underline"
+                      >
+                        🎬 {t("events.viewAnnotatedClip")}
+                      </a>
+                    )}
                     {event.pipelines.length > 0 && (
                       <div className="flex flex-wrap gap-1">
                         {event.pipelines.map((pipeline) => (

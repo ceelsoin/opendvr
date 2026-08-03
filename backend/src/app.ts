@@ -19,7 +19,7 @@ export function createApp() {
 
   app.use(cors());
   app.use(express.json());
-  app.use(pinoHttp({ logger }));
+  // app.use(pinoHttp({ logger }));
 
   // Protects everything below (API + media proxies) except the auth
   // endpoints themselves and the SPA static shell - see auth/requireAuth.ts.

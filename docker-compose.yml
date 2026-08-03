@@ -3,6 +3,15 @@ services:
     image: bluenviron/mediamtx:latest
     container_name: ipcam-mediamtx
     restart: always
+    # Relative CPU scheduling weight (default is 1024 for every container) -
+    # doubled so the kernel favors MediaMTX's real-time RTSP/HLS work over
+    # the backend/llamacpp-cpu/Python workers when the host's CPU is fully
+    # saturated (e.g. a VLM captioning run coinciding with a motion event on
+    # a 2-vCPU host) - this is what was causing the live stream to actually
+    # break (not just lag) on person-detection events. A soft priority, not
+    # a hard reservation - doesn't take capacity away from anything when
+    # the host isn't contended.
+    cpu_shares: 2048
     ports:
       - "8554:8554" # RTSP (útil para testar com VLC/ffplay diretamente)
       - "8889:8889" # WebRTC
@@ -161,9 +170,20 @@ services:
     command: >
       -m /models/SmolVLM-500M-Instruct-Q8_0.gguf
       --mmproj /models/mmproj-SmolVLM-500M-Instruct-Q8_0.gguf
-      --host 0.0.0.0 --port 8080 -c 2048 --threads 2
+      --host 0.0.0.0 --port 8080 -c 2048 --threads 1
     volumes:
       - ./app-data/models/llm:/models:ro
+    # Hard cap, on top of --threads 1 above (defense in depth against BLAS/
+    # runtime libraries spawning more threads than --threads implies) - a
+    # VLM inference run must never be able to claim every core on a small
+    # host, since that starves MediaMTX badly enough to break the live
+    # stream (confirmed root cause on a 2-vCPU deployment - captioning ran
+    # with --threads 2 = both cores). Adjust upward if the host has more
+    # cores to spare and captioning latency matters more than stream safety.
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
     # Internal-network only (reached by the backend at
     # http://llamacpp-cpu:8080), never published to the host/LAN.
 

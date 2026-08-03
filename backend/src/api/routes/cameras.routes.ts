@@ -9,17 +9,20 @@ import {
   setCameraEnabled,
   toPublicCamera,
   updateCamera,
+  updateCameraCapabilities,
 } from "../../db/cameras.repository.js";
 import { discoverStreams } from "../../onvif/device.js";
+import { resolveCapabilities } from "../../onvif/capabilityResolver.js";
 import { deleteCameraPath, getCameraPathStatus, subStreamPathName } from "../../media/mediamtx.js";
 import { provisionCamera } from "../../media/provisioning.js";
-import { captureFrameSnapshot } from "../../media/frameSnapshot.js";
+import { getRecentFrame } from "../../media/frameCache.js";
 import { getVlcRelayUrl, stopVlcRelay } from "../../media/vlcRelay.js";
 import { stopMjpegBridge } from "../../media/mjpegBridge.js";
 import { stopWebpageBridge } from "../../media/webpageBridge.js";
 import { stopRotationBridge } from "../../media/rotationBridge.js";
 import { stopTimestampBridge } from "../../media/timestampBridge.js";
 import { removeBaselineSnapshot } from "../../media/baselineSnapshot.js";
+import { clearTracks } from "../../media/objectTracker.js";
 import { stopMotionRecording } from "../../media/motionRecording.js";
 import { restartMotionListening, shouldDetectMotion, startMotionListening, stopMotionListening } from "../../media/motionOrchestrator.js";
 import { errorMessage } from "../../lib/errors.js";
@@ -63,6 +66,10 @@ const baseCameraSchema = z.object({
   motionDetectionSource: z.enum(["onvif", "video"]).optional(),
   objectDetectionEnabled: z.boolean().optional(),
   faceRecognitionEnabled: z.boolean().optional(),
+  // Draws bounding boxes/labels onto the saved event snapshot when object
+  // detection produced any (see media/snapshotRenderer.ts) - off by default,
+  // opt-in per camera.
+  annotateEventSnapshots: z.boolean().optional(),
   detectionZone: detectionZoneSchema.nullable().optional(),
   detectionCategories: z.array(z.enum(["person", "vehicle", "animal", "other"])).nullable().optional(),
   retentionDays: z.number().int().positive().optional(),
@@ -134,7 +141,10 @@ camerasRouter.get("/:id/snapshot", async (req, res) => {
     res.status(404).json({ error: t("errors.cameraNotFound") });
     return;
   }
-  const snapshot = await captureFrameSnapshot(camera.id);
+  // Up to 10 minutes old is fine here (just a background image for drawing
+  // a zone polygon) - reuses whatever motion/baseline capture already ran
+  // instead of always spawning a new ffmpeg process, see plans/01-frame-cache.md.
+  const snapshot = await getRecentFrame(camera.id, 10 * 60_000);
   if (!snapshot) {
     res.status(502).json({ error: t("errors.snapshotFailed") });
     return;
@@ -181,7 +191,8 @@ camerasRouter.post("/:id/probe", async (req, res) => {
 
   try {
     const streams = await discoverStreams({ host, port, onvifPath, username, password });
-    res.json({ host, port, onvifPath, username, streams });
+    const capabilities = await resolveCapabilities({ host, port, onvifPath, username, password });
+    res.json({ host, port, onvifPath, username, streams, capabilities });
   } catch (err) {
     const details = errorMessage(err);
     logger.warn({ err, cameraId: camera.id, host, port }, "ONVIF re-probe (existing camera) failed");
@@ -202,6 +213,14 @@ camerasRouter.post("/", async (req, res) => {
   await provisionCamera(camera);
   if (shouldDetectMotion(camera)) {
     void startMotionListening(camera);
+  }
+
+  // Best-effort capability probe (see onvif/capabilityResolver.ts) - only
+  // meaningful for actual ONVIF cameras; skipped for direct RTSP/RTMP/etc.
+  // sources, which have no ONVIF stack to probe at all.
+  if (camera.sourceType === "onvif") {
+    const capabilities = await resolveCapabilities(camera);
+    updateCameraCapabilities(camera.id, capabilities);
   }
 
   const finalCamera = getCameraById(camera.id) ?? camera;
@@ -250,6 +269,28 @@ camerasRouter.patch("/:id", async (req, res) => {
   res.json(toPublicCamera(finalCamera));
 });
 
+/**
+ * Manually re-runs the ONVIF capability probe (see onvif/capabilityResolver.ts)
+ * for an already-registered camera - for when the camera's firmware
+ * changed, or the initial probe/creation ran before the camera was
+ * actually reachable. Only meaningful for ONVIF cameras.
+ */
+camerasRouter.post("/:id/capabilities/resolve", async (req, res) => {
+  const camera = getCameraById(req.params.id);
+  if (!camera) {
+    res.status(404).json({ error: t("errors.cameraNotFound") });
+    return;
+  }
+  if (camera.sourceType !== "onvif") {
+    res.status(400).json({ error: t("errors.cameraNotOnvif") });
+    return;
+  }
+
+  const capabilities = await resolveCapabilities(camera);
+  const updated = updateCameraCapabilities(camera.id, capabilities);
+  res.json(toPublicCamera(updated ?? camera));
+});
+
 /** Forces a full reconnect: re-resolves the RTSP URI via ONVIF and re-registers the MediaMTX path. */
 camerasRouter.post("/:id/restart", async (req, res) => {
   const camera = getCameraById(req.params.id);
@@ -282,6 +323,7 @@ camerasRouter.delete("/:id", async (req, res) => {
   await stopRotationBridge(camera.id);
   await stopTimestampBridge(camera.id);
   removeBaselineSnapshot(camera.id);
+  clearTracks(camera.id);
   await deleteCameraPath(camera.id);
   await deleteCameraPath(subStreamPathName(camera.id));
   deleteCamera(camera.id);

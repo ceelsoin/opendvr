@@ -1,6 +1,7 @@
 {
   "errors": {
     "cameraNotFound": "未找到摄像头",
+    "cameraNotOnvif": "此摄像头不是 ONVIF 源，无法探测",
     "gridNotFound": "未找到宫格布局",
     "eventNotFound": "未找到事件",
     "invalidPayload": "数据无效",

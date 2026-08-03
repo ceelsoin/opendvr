@@ -225,6 +225,15 @@ function ProcessHealthSection() {
                 <h3 className="text-sm font-medium">{t("dashboard.webpageBrowserTitle")}</h3>
               </div>
             </div>
+
+            <div className="flex flex-col gap-2 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+              <h3 className="text-sm font-medium">{t("dashboard.frameCacheTitle")}</h3>
+              <p className="text-xs text-neutral-500">
+                {data.frameCache.cachedCameras === 0
+                  ? t("dashboard.frameCacheEmpty")
+                  : `${t("dashboard.frameCacheCameras", { count: data.frameCache.cachedCameras })} · ${t("dashboard.frameCacheAvgAge", { seconds: Math.round((data.frameCache.averageAgeMs ?? 0) / 1000) })}`}
+              </p>
+            </div>
           </div>
 
           <div>

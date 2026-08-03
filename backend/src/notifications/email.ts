@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { getNotificationSettings } from "./notificationSettings.js";
+import type { NotificationChannel } from "./channel.js";
 
 /**
  * Sends a notification email via SMTP. Attaches the 8-second event clip
@@ -41,3 +42,10 @@ export async function notifyEmail(
     attachments,
   });
 }
+
+/** Adapter exposing this channel through the common NotificationChannel interface - see notifications/channel.ts + registry.ts. */
+export const emailChannel: NotificationChannel = {
+  id: "email",
+  isEnabled: (settings) => Boolean(settings.emailSmtpHost && settings.emailFrom && settings.emailTo),
+  send: (event) => notifyEmail(event.subject, event.message, event.snapshot, event.recordingLink, event.clip),
+};

@@ -14,9 +14,11 @@ interface EventRow {
   metadata: string | null;
   read: number;
   snapshot_path: string | null;
+  snapshot_annotated: number;
   caption: string | null;
   pipelines: string;
   pipeline_outputs: string | null;
+  clip_annotated_path: string | null;
 }
 
 function serializeEvent(row: EventRow) {
@@ -28,9 +30,11 @@ function serializeEvent(row: EventRow) {
     metadata: row.metadata ? JSON.parse(row.metadata) : null,
     read: Boolean(row.read),
     snapshotUrl: row.snapshot_path,
+    snapshotAnnotated: Boolean(row.snapshot_annotated),
     caption: row.caption,
     pipelines: row.pipelines ? JSON.parse(row.pipelines) : [],
     pipelineOutputs: row.pipeline_outputs ? JSON.parse(row.pipeline_outputs) : null,
+    clipAnnotatedUrl: row.clip_annotated_path,
   };
 }
 

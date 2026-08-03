@@ -1,6 +1,21 @@
 export type CameraStatus = "online" | "offline" | "unknown";
 
 /**
+ * Actively-probed ONVIF capabilities (see onvif/capabilityResolver.ts) -
+ * unlike hasPtz/motionDetectionSource/etc. below (user-set flags), these
+ * reflect what was actually tested to work, not what the camera merely
+ * advertises via GetCapabilities (proven unreliable on cheap/OEM cameras).
+ */
+export interface CameraCapabilities {
+  ptz: boolean;
+  onvifEventsWork: boolean;
+  snapshotWorks: boolean;
+  hasSubstream: boolean;
+  videoCodec: string | null;
+  probedAt: number;
+}
+
+/**
  * "vlc-relay": the camera's RTSP server is incompatible with MediaMTX's Go
  * RTSP client (e.g. it only accepts Digest auth retried on the SAME TCP
  * connection as the 401 challenge). A headless VLC process (which uses the
@@ -132,6 +147,10 @@ export interface Camera {
   objectDetectionEnabled: boolean;
   /** Face recognition (OpenCV YuNet+SFace), only ever runs on frames object detection already classified as "person". */
   faceRecognitionEnabled: boolean;
+  /** Draws bounding boxes/labels onto the saved event snapshot - see media/snapshotRenderer.ts. Off by default. */
+  annotateEventSnapshots: boolean;
+  /** Actively-probed ONVIF capabilities (see onvif/capabilityResolver.ts) - null until a probe/create/redetect has run it. */
+  capabilities: CameraCapabilities | null;
   detectionZone: DetectionZone | null;
   /** Which detected categories actually generate an event (see media/objectDetection.ts) - null/empty means all of them (unchanged default behavior). */
   detectionCategories: DetectionCategory[] | null;
@@ -170,6 +189,7 @@ export interface CreateCameraInput {
   motionDetectionSource?: MotionDetectionSource;
   objectDetectionEnabled?: boolean;
   faceRecognitionEnabled?: boolean;
+  annotateEventSnapshots?: boolean;
   detectionZone?: DetectionZone | null;
   detectionCategories?: DetectionCategory[] | null;
   retentionDays?: number;
@@ -199,6 +219,7 @@ export interface UpdateCameraInput {
   motionDetectionSource?: MotionDetectionSource;
   objectDetectionEnabled?: boolean;
   faceRecognitionEnabled?: boolean;
+  annotateEventSnapshots?: boolean;
   detectionZone?: DetectionZone | null;
   detectionCategories?: DetectionCategory[] | null;
   retentionDays?: number;

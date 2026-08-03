@@ -1,6 +1,7 @@
 {
   "errors": {
     "cameraNotFound": "Caméra introuvable",
+    "cameraNotOnvif": "Cette caméra n'est pas une source ONVIF, il n'y a rien à sonder",
     "gridNotFound": "Grille introuvable",
     "eventNotFound": "Événement introuvable",
     "invalidPayload": "Données invalides",

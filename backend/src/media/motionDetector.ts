@@ -5,6 +5,8 @@ import { env } from "../config/env.js";
 import type { Camera } from "../types/camera.js";
 import { recordCameraEvent } from "../events/cameraEvents.js";
 import { classifyMotionFrame } from "./objectDetection.js";
+import { setFrame } from "./frameCache.js";
+import { emitDetections } from "../ws/index.js";
 import { logger } from "../lib/logger.js";
 
 /**
@@ -32,6 +34,8 @@ const detectors = new Map<string, MotionDetectorHandle>();
 interface MotionWorkerEvent {
   type: string;
   areaRatio?: number;
+  /** Normalized [x, y, w, h] union bbox of the motion contours, used by objectTracker.ts to cheaply match against existing tracks - see motion_worker.py. */
+  box?: [number, number, number, number];
   /** Base64 JPEG of the triggering frame, used for object detection - see objectDetection.ts. */
   frame?: string;
 }
@@ -73,9 +77,18 @@ export function startMotionDetector(camera: Camera): void {
     // every frame, keeping CPU cost bounded (see media/objectDetection.ts).
     if (camera.objectDetectionEnabled && parsed.frame) {
       const frameBuffer = Buffer.from(parsed.frame, "base64");
-      void classifyMotionFrame(camera, frameBuffer, parsed.areaRatio ?? 0)
+      // Free reuse: this same buffer is already in memory, so share it via
+      // frameCache.ts for other callers (zone editor, baseline refresh)
+      // instead of them spawning their own ffmpeg capture - see plans/01-frame-cache.md.
+      setFrame(camera.id, frameBuffer, "motion");
+      void classifyMotionFrame(camera, frameBuffer, parsed.areaRatio ?? 0, parsed.box)
         .then((classified) => {
           if (classified) {
+            // Broadcast on EVERY classification (not just the first one of
+            // a debounced event session, see events/cameraEvents.ts) - the
+            // live-view overlay should refresh for as long as something is
+            // being tracked, independent of the DB/notification debounce.
+            emitDetections(camera.id, classified.metadata.objects);
             recordCameraEvent(camera, classified.topic, classified.metadata);
           }
           // classified === null means either the feature is unavailable

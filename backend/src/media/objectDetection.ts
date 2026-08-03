@@ -1,5 +1,6 @@
 import type { Camera } from "../types/camera.js";
 import { detectObjects, detectFaces, type ObjectDetection } from "./visionWorker.js";
+import { tryReuseTrack, updateTracks, type DetectionWithTrack } from "./objectTracker.js";
 import { pointInPolygon } from "../lib/geometry.js";
 import { listFaces } from "../db/faces.repository.js";
 import { env } from "../config/env.js";
@@ -28,7 +29,7 @@ export interface ClassifiedMotion {
   metadata: {
     areaRatio: number;
     category: ObjectDetection["category"];
-    objects: ObjectDetection[];
+    objects: DetectionWithTrack[];
     faces?: Array<{ name: string | null; confidence: number }>;
   };
 }
@@ -64,15 +65,27 @@ function matchKnownFace(embedding: number[]): { name: string | null; confidence:
 export async function classifyMotionFrame(
   camera: Camera,
   frameJpeg: Buffer,
-  areaRatio: number
+  areaRatio: number,
+  motionBox?: [number, number, number, number] | null
 ): Promise<ClassifiedMotion | null> {
-  // Intentionally NOT caught here: a rejection (model missing, worker down,
-  // request timeout) propagates to the caller (motionDetector.ts), which
-  // falls back to the plain "video:motion" event - important so enabling
-  // this feature without the model files in place doesn't silently make
-  // motion detection stop reporting anything at all.
-  const { objects: rawObjects } = await detectObjects(frameJpeg);
-  let objects = rawObjects;
+  // Cheap pre-check: if a still-fresh track's box roughly matches where
+  // MOG2 says motion just happened, reuse its last known classification
+  // instead of paying for a new YOLO call - see media/objectTracker.ts and
+  // plans/02-tracking-de-objetos.md. Falls through to a real YOLO call
+  // (and never throws) whenever there's no confident match.
+  const reused = motionBox ? tryReuseTrack(camera.id, motionBox) : null;
+  let objects: DetectionWithTrack[];
+  if (reused) {
+    objects = [reused];
+  } else {
+    // Intentionally NOT caught here: a rejection (model missing, worker
+    // down, request timeout) propagates to the caller (motionDetector.ts),
+    // which falls back to the plain "video:motion" event - important so
+    // enabling this feature without the model files in place doesn't
+    // silently make motion detection stop reporting anything at all.
+    const { objects: rawObjects } = await detectObjects(frameJpeg);
+    objects = updateTracks(camera.id, rawObjects);
+  }
 
   if (camera.detectionZone) {
     const zone = camera.detectionZone;

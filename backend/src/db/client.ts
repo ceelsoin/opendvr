@@ -213,6 +213,15 @@ const COLUMN_MIGRATIONS: Record<string, string[]> = {
     // cost on weak hardware. Only has an effect while the bridge is running
     // (rotation != 0 or transcode_to_h264 is on).
     "ALTER TABLE cameras ADD COLUMN transcode_resolution TEXT NOT NULL DEFAULT 'original'",
+    // Draws bounding boxes/labels onto the saved event snapshot when object
+    // detection classified something (see media/snapshotRenderer.ts) - off
+    // by default (opt-in), matches the original snapshot when disabled.
+    "ALTER TABLE cameras ADD COLUMN annotate_event_snapshots INTEGER NOT NULL DEFAULT 0",
+    // Actively-probed ONVIF capabilities (JSON, nullable - see
+    // onvif/capabilityResolver.ts), as opposed to the sourceType/hasPtz/
+    // motionDetectionSource fields above, which are still user-set flags.
+    // Null until a probe/create/redetect actually runs it.
+    "ALTER TABLE cameras ADD COLUMN capabilities TEXT",
   ],
   events: [
     "ALTER TABLE events ADD COLUMN read INTEGER NOT NULL DEFAULT 0",
@@ -229,6 +238,16 @@ const COLUMN_MIGRATIONS: Record<string, string[]> = {
     // just its final topic string.
     "ALTER TABLE events ADD COLUMN pipelines TEXT NOT NULL DEFAULT '[]'",
     "ALTER TABLE events ADD COLUMN pipeline_outputs TEXT",
+    // Whether snapshot_path actually points at a bbox-annotated JPEG rather
+    // than the raw capture - see media/snapshotRenderer.ts + camera's
+    // annotate_event_snapshots flag above.
+    "ALTER TABLE events ADD COLUMN snapshot_annotated INTEGER NOT NULL DEFAULT 0",
+    // Public URL of a bbox-annotated copy of the event clip (see
+    // media/clipRenderer.ts) - nullable, only ever set when the camera has
+    // annotate_event_snapshots on AND detections were available. The RAW
+    // clip attached to notifications is never persisted/replaced by this -
+    // it's purely an additional artifact for the Events page.
+    "ALTER TABLE events ADD COLUMN clip_annotated_path TEXT",
   ],
   grids: [
     // Lets a grid opt out of requireAuth for its viewing endpoints (see

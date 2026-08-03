@@ -1,4 +1,5 @@
 import { getNotificationSettings } from "./notificationSettings.js";
+import type { NotificationChannel } from "./channel.js";
 
 /**
  * Sends a message via the Telegram Bot API. Attaches an 8-second video clip
@@ -69,3 +70,10 @@ export async function notifyTelegram(
     throw new Error(`Telegram sendMessage failed: ${res.status} ${await res.text().catch(() => "")}`);
   }
 }
+
+/** Adapter exposing this channel through the common NotificationChannel interface - see notifications/channel.ts + registry.ts. */
+export const telegramChannel: NotificationChannel = {
+  id: "telegram",
+  isEnabled: (settings) => Boolean(settings.telegramBotToken && settings.telegramChatId),
+  send: (event) => notifyTelegram(event.message, event.snapshot, event.recordingLink, event.snapshotUrl, event.clip),
+};

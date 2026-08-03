@@ -104,6 +104,20 @@ export function useRestartCamera() {
   });
 }
 
+/** Manually re-runs the ONVIF capability probe for an already-registered camera - see backend/src/onvif/capabilityResolver.ts. */
+export function useResolveCameraCapabilities() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await apiClient.post<Camera>(`/cameras/${id}/capabilities/resolve`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: CAMERAS_KEY });
+    },
+  });
+}
+
 /** Administrative on/off switch (distinct from `status`, which reflects connectivity) - tears down MediaMTX path/motion listener/VLC relay but keeps the camera's config. */
 export function useDisableCamera() {
   const queryClient = useQueryClient();

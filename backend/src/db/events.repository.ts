@@ -30,14 +30,19 @@ export function insertEvent(input: CreateEventInput): string {
   return id;
 }
 
-/** Attaches a snapshot's public URL path to an already-inserted event (snapshot capture happens asynchronously). */
-export function updateEventSnapshot(id: string, snapshotPath: string): void {
-  db.prepare("UPDATE events SET snapshot_path = ? WHERE id = ?").run(snapshotPath, id);
+/** Attaches a snapshot's public URL path to an already-inserted event (snapshot capture happens asynchronously). `annotated` records whether that file has bounding boxes drawn on it (see media/snapshotRenderer.ts). */
+export function updateEventSnapshot(id: string, snapshotPath: string, annotated = false): void {
+  db.prepare("UPDATE events SET snapshot_path = ?, snapshot_annotated = ? WHERE id = ?").run(snapshotPath, annotated ? 1 : 0, id);
 }
 
 /** Attaches an auto-generated VLM caption to an already-inserted event (captioning happens asynchronously, after the snapshot is captured). */
 export function updateEventCaption(id: string, caption: string): void {
   db.prepare("UPDATE events SET caption = ? WHERE id = ?").run(caption, id);
+}
+
+/** Attaches a bbox-annotated copy of the event clip (see media/clipRenderer.ts) - an additional artifact, never replaces the raw clip sent to notifications. */
+export function updateEventClipAnnotated(id: string, clipPath: string): void {
+  db.prepare("UPDATE events SET clip_annotated_path = ? WHERE id = ?").run(clipPath, id);
 }
 
 /**

@@ -1,4 +1,5 @@
 import { getNotificationSettings } from "./notificationSettings.js";
+import type { NotificationChannel } from "./channel.js";
 
 /**
  * Posts a message to a Discord channel via an incoming webhook. Attaches an
@@ -61,3 +62,10 @@ export async function notifyDiscord(
     throw new Error(`Discord webhook failed: ${res.status} ${await res.text().catch(() => "")}`);
   }
 }
+
+/** Adapter exposing this channel through the common NotificationChannel interface - see notifications/channel.ts + registry.ts. */
+export const discordChannel: NotificationChannel = {
+  id: "discord",
+  isEnabled: (settings) => Boolean(settings.discordWebhookUrl),
+  send: (event) => notifyDiscord(event.message, event.snapshot, event.recordingLink, event.snapshotUrl, event.clip),
+};

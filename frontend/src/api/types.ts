@@ -53,6 +53,25 @@ export interface DetectionZone {
 /** The 4 categories the shared YOLO worker can classify a detection as. */
 export type DetectionCategory = "person" | "vehicle" | "animal" | "other";
 
+/** A single detected object, as broadcast over the `camera:event` WebSocket message (see backend/src/media/objectTracker.ts's DetectionWithTrack) - used to draw a live overlay box on the player, see components/player/HlsPlayer.tsx. */
+export interface DetectionBox {
+  box: [number, number, number, number];
+  category: DetectionCategory;
+  label: string;
+  confidence: number;
+  trackId: number;
+}
+
+/** Actively-probed ONVIF capabilities (see backend/src/onvif/capabilityResolver.ts) - what was actually tested to work, not just what the camera advertises. */
+export interface CameraCapabilities {
+  ptz: boolean;
+  onvifEventsWork: boolean;
+  snapshotWorks: boolean;
+  hasSubstream: boolean;
+  videoCodec: string | null;
+  probedAt: number;
+}
+
 export interface Camera {
   id: string;
   name: string;
@@ -84,6 +103,10 @@ export interface Camera {
   objectDetectionEnabled: boolean;
   /** Face recognition, only ever runs on frames already classified as "person" by object detection. */
   faceRecognitionEnabled: boolean;
+  /** Draws bounding boxes/labels onto the saved event snapshot - see backend/src/media/snapshotRenderer.ts. */
+  annotateEventSnapshots: boolean;
+  /** Actively-probed ONVIF capabilities - null until a probe/create/redetect has run it. */
+  capabilities: CameraCapabilities | null;
   detectionZone: DetectionZone | null;
   /** Which detected categories actually generate an event - null/empty means all of them. */
   detectionCategories: DetectionCategory[] | null;
@@ -119,6 +142,7 @@ export interface CreateCameraInput {
   motionDetectionSource?: MotionDetectionSource;
   objectDetectionEnabled?: boolean;
   faceRecognitionEnabled?: boolean;
+  annotateEventSnapshots?: boolean;
   detectionZone?: DetectionZone | null;
   detectionCategories?: DetectionCategory[] | null;
   retentionDays?: number;
@@ -141,6 +165,7 @@ export interface OnvifProbeResult {
   onvifPath: string;
   username: string;
   streams: DiscoveredStream[];
+  capabilities: CameraCapabilities;
 }
 
 export interface DiscoveredCamera {
@@ -167,11 +192,15 @@ export interface CameraEvent {
   metadata: Record<string, unknown> | null;
   read: boolean;
   snapshotUrl: string | null;
+  /** Whether snapshotUrl points at a bbox-annotated JPEG rather than the raw capture - see backend/src/media/snapshotRenderer.ts. */
+  snapshotAnnotated: boolean;
   caption: string | null;
   /** Which detection pipelines produced this event (e.g. "video_motion", "object_detection", "face_recognition", "captioning", "onvif_event") - see backend/src/events/cameraEvents.ts. */
   pipelines: string[];
   /** Each pipeline's raw output, keyed by pipeline name - same keys as `pipelines`. */
   pipelineOutputs: Record<string, unknown> | null;
+  /** URL of a bbox-annotated copy of the event clip - null unless annotation was enabled and detections were available (see backend/src/media/clipRenderer.ts). Never replaces the raw clip attached to notifications. */
+  clipAnnotatedUrl: string | null;
 }
 
 /** A user-defined camera grid: column count ("formato") + an ordered list of camera IDs ("ordem"/"câmeras"). */

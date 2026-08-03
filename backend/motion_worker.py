@@ -134,8 +134,8 @@ def main() -> int:
         if not contours:
             continue
 
+        resized_height, resized_width = resized.shape[:2]
         if zone_points:
-            resized_height, resized_width = resized.shape[:2]
             def centroid_in_zone(contour) -> bool:
                 moments = cv2.moments(contour)
                 if moments["m00"] == 0:
@@ -157,11 +157,40 @@ def main() -> int:
             continue
 
         last_event_at = now
+        # Union bounding box of every remaining contour, normalized 0..1 -
+        # a coarse approximation of "where in the frame did motion happen",
+        # cheap to compute from data we already have. Used by Node's
+        # media/objectTracker.ts to decide whether a new trigger likely
+        # matches an object it's already tracking (skipping a fresh YOLO
+        # call) - see plans/02-tracking-de-objetos.md. Normalized
+        # coordinates are resolution-independent, so this is directly
+        # comparable to YOLO's own normalized boxes despite being computed
+        # against the smaller analysis frame, not the exported one below.
+        xs1 = min(cv2.boundingRect(c)[0] for c in contours)
+        ys1 = min(cv2.boundingRect(c)[1] for c in contours)
+        xs2 = max(cv2.boundingRect(c)[0] + cv2.boundingRect(c)[2] for c in contours)
+        ys2 = max(cv2.boundingRect(c)[1] + cv2.boundingRect(c)[3] for c in contours)
+        motion_box = [
+            round(xs1 / resized_width, 4),
+            round(ys1 / resized_height, 4),
+            round((xs2 - xs1) / resized_width, 4),
+            round((ys2 - ys1) / resized_height, 4),
+        ]
         export_scale = FRAME_EXPORT_WIDTH / float(width)
         export_frame = cv2.resize(frame, (FRAME_EXPORT_WIDTH, max(1, int(height * export_scale))))
         ok_encode, buffer = cv2.imencode(".jpg", export_frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
         frame_b64 = base64.b64encode(buffer).decode("ascii") if ok_encode else None
-        print(json.dumps({"type": "motion", "areaRatio": round(area_ratio, 4), "frame": frame_b64}), flush=True)
+        print(
+            json.dumps(
+                {
+                    "type": "motion",
+                    "areaRatio": round(area_ratio, 4),
+                    "box": motion_box,
+                    "frame": frame_b64,
+                }
+            ),
+            flush=True,
+        )
 
 
 if __name__ == "__main__":

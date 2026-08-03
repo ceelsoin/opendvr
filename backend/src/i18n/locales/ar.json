@@ -1,6 +1,7 @@
 {
   "errors": {
     "cameraNotFound": "الكاميرا غير موجودة",
+    "cameraNotOnvif": "هذه الكاميرا ليست مصدر ONVIF، لا يوجد شيء لفحصه",
     "gridNotFound": "الشبكة غير موجودة",
     "eventNotFound": "الحدث غير موجود",
     "invalidPayload": "بيانات غير صالحة",

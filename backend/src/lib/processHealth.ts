@@ -10,6 +10,7 @@ import { listMotionDetectorStatuses } from "../media/motionDetector.js";
 import { getVisionWorkerStatus, getModelStatus, type VisionWorkerStatus, type VisionModelStatus } from "../media/visionWorker.js";
 import { listGridBroadcastStatuses, type GridBroadcastStatus } from "../media/gridBroadcastBridge.js";
 import { getCaptioningHealth, type CaptioningHealth } from "../notifications/captioning.js";
+import { getStats as getFrameCacheStats, type FrameCacheStats } from "../media/frameCache.js";
 
 export type TranscodeBridgeKind = "rotation" | "timestamp" | "mjpeg" | "webpage";
 
@@ -56,6 +57,8 @@ export interface ProcessHealth {
   visionWorker: VisionWorkerStatus;
   /** Whether each AI model file actually loaded on the shared vision worker - null entries mean the worker wasn't running/didn't respond in time, not necessarily that the model is missing. */
   visionModels: { yolo: boolean | null; faceDetect: boolean | null; faceRecognize: boolean | null };
+  /** In-memory per-camera latest-frame cache - see media/frameCache.ts (plans/01-frame-cache.md). */
+  frameCache: FrameCacheStats;
   /** Single shared headless Chromium instance backing every "webpage" source camera - see media/webpageBridge.ts. */
   webpageBrowserRunning: boolean;
   cameras: CameraProcessStatus[];
@@ -138,6 +141,7 @@ export async function getProcessHealth(): Promise<ProcessHealth> {
       faceRecognize: visionModels?.faceRecognize ?? null,
     },
     webpageBrowserRunning: isSharedBrowserRunning(),
+    frameCache: getFrameCacheStats(),
     cameras,
     gridBroadcasts,
   };

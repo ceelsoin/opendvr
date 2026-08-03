@@ -149,6 +149,18 @@ const downSince = new Map<string, number>();
 const lastUnavailableNotifiedAt = new Map<string, number>();
 
 setInterval(() => {
+  // Same "lost on MediaMTX restart, only lives in memory" problem as camera
+  // paths below - but this was previously only ever (re)applied once, at
+  // this backend's own boot. If MediaMTX's Control API wasn't reachable yet
+  // at that exact moment (e.g. docker-compose's `depends_on` only waits for
+  // the container to start, not for :9997 to actually accept connections),
+  // or MediaMTX itself restarts independently later (crash/OOM/manual),
+  // the low-latency HLS tuning was silently lost for good until the next
+  // backend restart - a likely contributor to "stream has a ~1min delay"
+  // reports. Cheap and idempotent, so just re-apply every tick instead of
+  // trying to detect exactly when it's needed.
+  void applyStreamSettingsToMediaMtx();
+
   for (const camera of listCameras()) {
     if (!camera.enabled) continue;
     void getCameraPathStatus(camera.id).then((status) => {

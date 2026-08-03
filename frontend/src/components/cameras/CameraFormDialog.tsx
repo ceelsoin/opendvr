@@ -1,8 +1,8 @@
 import { useState } from "react";
 import axios from "axios";
 import { useTranslation } from "react-i18next";
-import type { Camera, CreateCameraInput, DiscoveredStream, UpdateCameraInput } from "../../api/types";
-import { useCreateCamera, useProbeCamera, useProbeOnvif, useUpdateCamera } from "../../api/cameras";
+import type { Camera, CameraCapabilities, CreateCameraInput, DiscoveredStream, UpdateCameraInput } from "../../api/types";
+import { useCreateCamera, useProbeCamera, useProbeOnvif, useResolveCameraCapabilities, useUpdateCamera } from "../../api/cameras";
 import { DetectionZoneEditor } from "./DetectionZoneEditor";
 
 interface CameraFormDialogProps {
@@ -92,6 +92,7 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
   const updateCamera = useUpdateCamera();
   const probeOnvif = useProbeOnvif();
   const probeCamera = useProbeCamera();
+  const resolveCapabilities = useResolveCameraCapabilities();
 
   const [onvifUrl, setOnvifUrl] = useState(() => onvifUrlDisplay(camera));
   const [sourceType, setSourceType] = useState<Camera["sourceType"]>(camera?.sourceType ?? "onvif");
@@ -119,6 +120,7 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
   );
   const [objectDetectionEnabled, setObjectDetectionEnabled] = useState(camera?.objectDetectionEnabled ?? false);
   const [faceRecognitionEnabled, setFaceRecognitionEnabled] = useState(camera?.faceRecognitionEnabled ?? false);
+  const [annotateEventSnapshots, setAnnotateEventSnapshots] = useState(camera?.annotateEventSnapshots ?? false);
   const [detectionZone, setDetectionZone] = useState<Camera["detectionZone"]>(camera?.detectionZone ?? null);
   // null/empty (existing cameras predating this feature) behaves as "all categories" - normalize to the explicit list so the checkboxes below start all checked.
   const [detectionCategories, setDetectionCategories] = useState<NonNullable<Camera["detectionCategories"]>>(
@@ -131,6 +133,7 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
   const [zoneEditorOpen, setZoneEditorOpen] = useState(false);
 
   const [streams, setStreams] = useState<DiscoveredStream[]>(() => initialStreamsFromCamera(camera, t));
+  const [capabilities, setCapabilities] = useState<CameraCapabilities | null>(camera?.capabilities ?? null);
   const [mainToken, setMainToken] = useState<string>(camera?.onvifProfileToken ?? "");
   const [subToken, setSubToken] = useState<string>(camera?.onvifSubProfileToken ?? "");
   const [formError, setFormError] = useState<string | null>(null);
@@ -171,6 +174,13 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
       setOnvifPath(result.onvifPath);
       setUsername(result.username);
       setStreams(result.streams);
+      setCapabilities(result.capabilities);
+      // Cheap câmeras baratas costumam anunciar suporte a eventos ONVIF que
+      // na prática não funciona - sugere o default mais confiável assim que
+      // isso é detectado, sem sobrescrever se o usuário já mudou manualmente.
+      if (!result.capabilities.onvifEventsWork) {
+        setMotionDetectionSource("video");
+      }
       const defaults = pickDefaultTokens(result.streams);
       if (defaults.main) setMainToken(defaults.main);
       if (defaults.sub) setSubToken(defaults.sub);
@@ -235,6 +245,7 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
       motionDetectionSource: sourceType === "onvif" ? motionDetectionSource : "video",
       objectDetectionEnabled,
       faceRecognitionEnabled: objectDetectionEnabled && faceRecognitionEnabled,
+      annotateEventSnapshots: objectDetectionEnabled && annotateEventSnapshots,
       detectionZone,
       detectionCategories,
       retentionDays: Number(retentionDays) || 7,
@@ -357,7 +368,40 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
                 >
                   {probeOnvif.isPending || probeCamera.isPending ? t("cameraForm.connecting") : t("cameraForm.getStreamUrls")}
                 </button>
+                {isEdit && camera && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const updated = await resolveCapabilities.mutateAsync(camera.id);
+                      setCapabilities(updated.capabilities);
+                    }}
+                    disabled={resolveCapabilities.isPending}
+                    className="rounded-md bg-neutral-800 px-3 py-2 text-sm hover:bg-neutral-700 disabled:opacity-50"
+                  >
+                    {resolveCapabilities.isPending ? t("cameraForm.connecting") : t("cameraForm.redetectCapabilities")}
+                  </button>
+                )}
               </div>
+
+              {capabilities && (
+                <div className="flex flex-wrap gap-1.5 text-[11px]">
+                  <span className={`rounded-full px-2 py-0.5 ${capabilities.ptz ? "bg-green-900 text-green-300" : "bg-neutral-800 text-neutral-500"}`}>
+                    {capabilities.ptz ? "✓" : "✗"} {t("cameraForm.capabilityPtz")}
+                  </span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 ${capabilities.onvifEventsWork ? "bg-green-900 text-green-300" : "bg-neutral-800 text-neutral-500"}`}
+                    title={!capabilities.onvifEventsWork ? t("cameraForm.capabilityEventsHint") : undefined}
+                  >
+                    {capabilities.onvifEventsWork ? "✓" : "✗"} {t("cameraForm.capabilityEvents")}
+                  </span>
+                  <span className={`rounded-full px-2 py-0.5 ${capabilities.snapshotWorks ? "bg-green-900 text-green-300" : "bg-neutral-800 text-neutral-500"}`}>
+                    {capabilities.snapshotWorks ? "✓" : "✗"} {t("cameraForm.capabilitySnapshot")}
+                  </span>
+                  <span className={`rounded-full px-2 py-0.5 ${capabilities.hasSubstream ? "bg-green-900 text-green-300" : "bg-neutral-800 text-neutral-500"}`}>
+                    {capabilities.hasSubstream ? "✓" : "✗"} {t("cameraForm.capabilitySubstream")}
+                  </span>
+                </div>
+              )}
 
               {streams.length > 0 && (
                 <div className="flex flex-col gap-2 rounded-md border border-neutral-800 p-3">
@@ -631,6 +675,14 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
                       onChange={(e) => setFaceRecognitionEnabled(e.target.checked)}
                     />
                     {t("cameraForm.faceRecognitionCheckbox")}
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={annotateEventSnapshots}
+                      onChange={(e) => setAnnotateEventSnapshots(e.target.checked)}
+                    />
+                    {t("cameraForm.annotateSnapshotsCheckbox")}
                   </label>
                   <div className="flex flex-col gap-1">
                     <span className="text-xs text-neutral-500">{t("cameraForm.detectionCategoriesLabel")}</span>

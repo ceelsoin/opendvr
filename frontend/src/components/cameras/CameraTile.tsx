@@ -286,7 +286,7 @@ export function CameraTile({ camera, fillHeight = false }: { camera: Camera; fil
             {!camera.enabled ? t("cameras.statusDisabledTitle") : t("cameras.statusOfflineTitle")}
           </div>
         ) : (
-          <HlsPlayer key={reloadKey} src={`/hls/${hlsPathName}/index.m3u8`} className="h-full w-full" />
+          <HlsPlayer key={reloadKey} src={`/hls/${hlsPathName}/index.m3u8`} className="h-full w-full" cameraId={camera.id} />
         )}
         {!showOffline && camera.recordingMode === "continuous" && (
           <div className="absolute right-2 top-2 flex items-center gap-1.5 rounded bg-black/60 px-2 py-1 text-xs font-medium text-red-400">

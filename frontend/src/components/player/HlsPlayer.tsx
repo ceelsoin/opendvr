@@ -2,13 +2,40 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import Hls from "hls.js";
 import { useStreamSettings } from "../../api/streamSettings";
+import { useCameraEventStore } from "../../store/cameraEventStore";
+import type { DetectionBox } from "../../api/types";
 
 interface HlsPlayerProps {
   src: string;
   className?: string;
+  /** When provided, draws a brief overlay box for any recent detection on this camera (see store/cameraEventStore.ts) - purely client-side, no extra server/network cost. */
+  cameraId?: string;
 }
 
 type PlayerState = "loading" | "playing" | "error";
+
+// Stable reference (not a fresh `[]` literal per render) - a zustand
+// selector must return the SAME reference when nothing relevant changed,
+// or useSyncExternalStore sees a "new snapshot" on every call and re-renders
+// forever (React error #185, minified) - this bit the live overlay in the
+// production build.
+const EMPTY_DETECTIONS: DetectionBox[] = [];
+
+const CATEGORY_COLORS: Record<string, string> = {
+  person: "#ef4444",
+  vehicle: "#3b82f6",
+  animal: "#22c55e",
+  other: "#eab308",
+};
+
+/** Same "object-fit: contain" math the <video> element itself uses - where the actual video pixels land within its (possibly differently-shaped) container, so overlay boxes line up regardless of letterboxing. */
+function computeContainRect(containerW: number, containerH: number, videoW: number, videoH: number) {
+  if (!containerW || !containerH || !videoW || !videoH) return null;
+  const scale = Math.min(containerW / videoW, containerH / videoH);
+  const width = videoW * scale;
+  const height = videoH * scale;
+  return { left: (containerW - width) / 2, top: (containerH - height) / 2, width, height };
+}
 
 /**
  * Plays an HLS stream (MediaMTX output, proxied through the backend at
@@ -18,11 +45,40 @@ type PlayerState = "loading" | "playing" | "error";
  * shared/cached across every mounted player, so this adds no extra
  * requests beyond the first.
  */
-export function HlsPlayer({ src, className }: HlsPlayerProps) {
+export function HlsPlayer({ src, className, cameraId }: HlsPlayerProps) {
   const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [state, setState] = useState<PlayerState>("loading");
+  const [renderRect, setRenderRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
   const { data: streamSettings } = useStreamSettings();
+  const detections = useCameraEventStore((s) => (cameraId ? s.detectionsByCamera[cameraId] : undefined) ?? EMPTY_DETECTIONS);
+
+  // Recomputes the video's actual rendered rect (accounting for
+  // object-contain letterboxing) whenever the container resizes or the
+  // stream's intrinsic dimensions become known - both matter for
+  // positioning the detection overlay boxes below correctly.
+  useEffect(() => {
+    if (!cameraId) return;
+    const video = videoRef.current;
+    const container = containerRef.current;
+    if (!video || !container) return;
+
+    const recompute = () => {
+      setRenderRect(computeContainRect(container.clientWidth, container.clientHeight, video.videoWidth, video.videoHeight));
+    };
+
+    recompute();
+    video.addEventListener("loadedmetadata", recompute);
+    video.addEventListener("resize", recompute);
+    const resizeObserver = new ResizeObserver(recompute);
+    resizeObserver.observe(container);
+    return () => {
+      video.removeEventListener("loadedmetadata", recompute);
+      video.removeEventListener("resize", recompute);
+      resizeObserver.disconnect();
+    };
+  }, [cameraId]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -135,13 +191,39 @@ export function HlsPlayer({ src, className }: HlsPlayerProps) {
   }, [src, streamSettings]);
 
   return (
-    <div className={`relative ${className ?? ""}`}>
+    <div ref={containerRef} className={`relative ${className ?? ""}`}>
       <video ref={videoRef} className="h-full w-full object-contain" autoPlay muted playsInline />
       {state !== "playing" && (
         <div className="absolute inset-0 flex items-center justify-center bg-black text-sm text-neutral-500">
           {state === "loading" ? t("player.connecting") : t("player.unavailable")}
         </div>
       )}
+      {state === "playing" &&
+        renderRect &&
+        detections.map((detection) => {
+          const [x, y, w, h] = detection.box;
+          const color = CATEGORY_COLORS[detection.category] ?? CATEGORY_COLORS.other;
+          return (
+            <div
+              key={detection.trackId}
+              className="pointer-events-none absolute border-2"
+              style={{
+                left: renderRect.left + x * renderRect.width,
+                top: renderRect.top + y * renderRect.height,
+                width: w * renderRect.width,
+                height: h * renderRect.height,
+                borderColor: color,
+              }}
+            >
+              <span
+                className="absolute -top-5 left-0 whitespace-nowrap rounded px-1 text-[10px] font-medium text-black"
+                style={{ backgroundColor: color }}
+              >
+                {detection.label}
+              </span>
+            </div>
+          );
+        })}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { captureFrameSnapshot } from "./frameSnapshot.js";
+import { setFrame, removeFrame } from "./frameCache.js";
 import { listCameras } from "../db/cameras.repository.js";
 import { isEventSessionActive } from "../events/cameraEvents.js";
 import { logger } from "../lib/logger.js";
@@ -16,6 +17,9 @@ import { logger } from "../lib/logger.js";
 // to be cheap (one extra ffmpeg frame-grab per camera per tick).
 const REFRESH_INTERVAL_MS = 10 * 60_000;
 
+// Own storage, separate from frameCache.ts's rolling "most recent frame" -
+// this one must only ever hold a genuinely idle frame, so it can't just be
+// the latest cached frame (which may have been set from a motion trigger).
 const baselines = new Map<string, Buffer>();
 
 /** Returns the cached idle-frame snapshot for a camera, or null if none has been captured yet. */
@@ -25,6 +29,7 @@ export function getBaselineSnapshot(cameraId: string): Buffer | null {
 
 export function removeBaselineSnapshot(cameraId: string): void {
   baselines.delete(cameraId);
+  removeFrame(cameraId);
 }
 
 async function refreshCamera(cameraId: string): Promise<void> {
@@ -36,6 +41,9 @@ async function refreshCamera(cameraId: string): Promise<void> {
     const snapshot = await captureFrameSnapshot(cameraId);
     if (snapshot) {
       baselines.set(cameraId, snapshot);
+      // Also share it via the general frame cache (poll source) so other
+      // callers, e.g. the zone editor, can reuse it - see plans/01-frame-cache.md.
+      setFrame(cameraId, snapshot, "poll");
     }
   } catch (err) {
     logger.debug({ err, cameraId }, "Failed to refresh idle baseline snapshot");

@@ -1,6 +1,7 @@
 {
   "errors": {
     "cameraNotFound": "카메라를 찾을 수 없습니다",
+    "cameraNotOnvif": "이 카메라는 ONVIF 소스가 아니므로 탐색할 대상이 없습니다",
     "gridNotFound": "그리드를 찾을 수 없습니다",
     "eventNotFound": "이벤트를 찾을 수 없습니다",
     "invalidPayload": "잘못된 데이터입니다",

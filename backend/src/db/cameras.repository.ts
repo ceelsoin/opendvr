@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { db } from "./client.js";
-import type { Camera, CameraPublic, CreateCameraInput, UpdateCameraInput } from "../types/camera.js";
+import type { Camera, CameraCapabilities, CameraPublic, CreateCameraInput, UpdateCameraInput } from "../types/camera.js";
 
 interface CameraRow {
   id: string;
@@ -31,6 +31,7 @@ interface CameraRow {
   motion_detection_source: Camera["motionDetectionSource"];
   object_detection_enabled: number;
   face_recognition_enabled: number;
+  annotate_event_snapshots: number;
   detection_zone: string | null;
   detection_categories: string | null;
   retention_days: number;
@@ -38,6 +39,7 @@ interface CameraRow {
   enabled: number;
   created_at: string;
   updated_at: string;
+  capabilities: string | null;
 }
 
 function toCamera(row: CameraRow): Camera {
@@ -70,6 +72,7 @@ function toCamera(row: CameraRow): Camera {
     motionDetectionSource: row.motion_detection_source,
     objectDetectionEnabled: Boolean(row.object_detection_enabled),
     faceRecognitionEnabled: Boolean(row.face_recognition_enabled),
+    annotateEventSnapshots: Boolean(row.annotate_event_snapshots),
     detectionZone: row.detection_zone ? JSON.parse(row.detection_zone) : null,
     detectionCategories: row.detection_categories ? JSON.parse(row.detection_categories) : null,
     retentionDays: row.retention_days,
@@ -77,6 +80,7 @@ function toCamera(row: CameraRow): Camera {
     enabled: Boolean(row.enabled),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    capabilities: row.capabilities ? JSON.parse(row.capabilities) : null,
   };
 }
 
@@ -105,7 +109,7 @@ export function createCamera(input: CreateCameraInput): Camera {
       sub_stream_width, sub_stream_height, sub_stream_encoding, has_ptz, rotation,
       transcode_to_h264, transcode_resolution,
       recording_mode, motion_recording, motion_detection_source,
-      object_detection_enabled, face_recognition_enabled, detection_zone, detection_categories, retention_days
+      object_detection_enabled, face_recognition_enabled, annotate_event_snapshots, detection_zone, detection_categories, retention_days
     ) VALUES (
       @id, @name, @sourceType, @host, @port, @onvifPath, @username, @password,
       @rtspMainUri, @rtspSubUri, @mainProfileToken, @subProfileToken,
@@ -113,7 +117,7 @@ export function createCamera(input: CreateCameraInput): Camera {
       @subStreamWidth, @subStreamHeight, @subStreamEncoding, @hasPtz, @rotation,
       @transcodeToH264, @transcodeResolution,
       @recordingMode, @motionRecording, @motionDetectionSource,
-      @objectDetectionEnabled, @faceRecognitionEnabled, @detectionZone, @detectionCategories, @retentionDays
+      @objectDetectionEnabled, @faceRecognitionEnabled, @annotateEventSnapshots, @detectionZone, @detectionCategories, @retentionDays
     )`
   ).run({
     id,
@@ -149,6 +153,7 @@ export function createCamera(input: CreateCameraInput): Camera {
     motionDetectionSource: input.motionDetectionSource ?? "video",
     objectDetectionEnabled: input.objectDetectionEnabled ? 1 : 0,
     faceRecognitionEnabled: input.faceRecognitionEnabled ? 1 : 0,
+    annotateEventSnapshots: input.annotateEventSnapshots ? 1 : 0,
     detectionZone: input.detectionZone ? JSON.stringify(input.detectionZone) : null,
     detectionCategories: input.detectionCategories ? JSON.stringify(input.detectionCategories) : null,
     retentionDays: input.retentionDays ?? 7,
@@ -186,6 +191,7 @@ export function updateCamera(id: string, input: UpdateCameraInput): Camera | nul
     ["motionDetectionSource", "motion_detection_source", (v) => v],
     ["objectDetectionEnabled", "object_detection_enabled", (v) => (v ? 1 : 0)],
     ["faceRecognitionEnabled", "face_recognition_enabled", (v) => (v ? 1 : 0)],
+    ["annotateEventSnapshots", "annotate_event_snapshots", (v) => (v ? 1 : 0)],
     ["retentionDays", "retention_days", (v) => v],
   ];
 
@@ -250,6 +256,14 @@ export function setCameraEnabled(id: string, enabled: boolean): Camera | null {
   db.prepare(
     "UPDATE cameras SET enabled = ?, updated_at = datetime('now') WHERE id = ?"
   ).run(enabled ? 1 : 0, id);
+  return getCameraById(id);
+}
+
+/** Persists the result of an ONVIF capability probe (see onvif/capabilityResolver.ts) - called after create and after a manual "redetect" action. */
+export function updateCameraCapabilities(id: string, capabilities: CameraCapabilities): Camera | null {
+  db.prepare(
+    "UPDATE cameras SET capabilities = ?, updated_at = datetime('now') WHERE id = ?"
+  ).run(JSON.stringify(capabilities), id);
   return getCameraById(id);
 }
 

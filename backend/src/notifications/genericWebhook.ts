@@ -1,4 +1,5 @@
 import { getNotificationSettings } from "./notificationSettings.js";
+import type { NotificationChannel } from "./channel.js";
 
 export interface GenericWebhookPayload {
   cameraId: string;
@@ -45,3 +46,24 @@ export async function notifyGenericWebhook(payload: GenericWebhookPayload, snaps
     throw new Error(`Generic webhook failed: ${res.status} ${await res.text().catch(() => "")}`);
   }
 }
+
+/** Adapter exposing this channel through the common NotificationChannel interface - see notifications/channel.ts + registry.ts. */
+export const genericWebhookChannel: NotificationChannel = {
+  id: "webhook",
+  isEnabled: (settings) => Boolean(settings.webhookUrl),
+  send: (event) =>
+    notifyGenericWebhook(
+      {
+        cameraId: event.camera.id,
+        cameraName: event.camera.name,
+        topic: event.topic,
+        message: event.message,
+        occurredAt: event.occurredAt,
+        recordingLink: event.recordingLink,
+        snapshotUrl: event.snapshotUrl,
+        caption: event.caption,
+      },
+      event.snapshot,
+      event.clip
+    ),
+};

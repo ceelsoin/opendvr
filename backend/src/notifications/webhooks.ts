@@ -1,28 +1,12 @@
 import type { Camera } from "../types/camera.js";
 import { env } from "../config/env.js";
 import { getNotificationSettings } from "./notificationSettings.js";
-import { notifyDiscord } from "./discord.js";
-import { notifyTelegram } from "./telegram.js";
-import { notifyGenericWebhook } from "./genericWebhook.js";
-import { notifyEmail } from "./email.js";
-import { hasPushSubscriptions, sendPushToAllSubscriptions } from "../lib/webPush.js";
+import { friendlyEventType } from "./eventLabels.js";
+import { channels } from "./registry.js";
+import type { NotificationEvent, NotificationChannelId } from "./channel.js";
+import { eventBus } from "../events/bus.js";
 import { t, getBackendLanguage } from "../i18n/index.js";
 import { logger } from "../lib/logger.js";
-
-/** Human-friendly translation for common ONVIF event topic suffixes, in the admin's configured language (see backend/src/i18n/). */
-function friendlyEventType(topic: string): string {
-  const lower = topic.toLowerCase();
-  if (lower === "object:person") return t("notifications.personDetected");
-  if (lower === "object:vehicle") return t("notifications.vehicleDetected");
-  if (lower === "object:animal") return t("notifications.animalDetected");
-  if (lower === "object:other") return t("notifications.objectDetected");
-  if (lower.includes("tamper")) return t("notifications.tamperDetected");
-  if (lower.includes("motion")) return t("notifications.motionDetected");
-  if (lower.includes("linedetector")) return t("notifications.lineCrossingDetected");
-  if (lower.includes("fielddetector") || lower.includes("intrusion")) return t("notifications.intrusionDetected");
-  if (lower.includes("occupancy")) return t("notifications.occupancyDetected");
-  return topic;
-}
 
 function buildMessage(camera: Pick<Camera, "name">, topic: string, occurredAt: Date, caption?: string): string {
   const time = occurredAt.toLocaleString(getBackendLanguage(), { timeZone: env.timezone });
@@ -31,12 +15,29 @@ function buildMessage(camera: Pick<Camera, "name">, topic: string, occurredAt: D
 }
 
 /**
- * Sends best-effort external notifications (Discord, Telegram, a generic
- * JSON webhook and email, each independently optional/configurable from
- * the Settings page or env vars, each with its own "attach snapshot"
- * toggle) for a camera event. Never throws - each channel's failure is
- * logged and doesn't affect the others or the caller (the ONVIF event
- * stream / video motion detector).
+ * Sends `event` to every channel in notifications/registry.ts that's both
+ * allowed for this notification's kind (see CONNECTIVITY_CHANNEL_IDS below)
+ * and currently configured (`isEnabled`). Never throws - each channel's
+ * failure is logged and doesn't affect the others or the caller.
+ */
+async function dispatchToChannels(event: NotificationEvent, allowedIds?: ReadonlySet<NotificationChannelId>): Promise<void> {
+  const settings = getNotificationSettings();
+  const applicable = channels.filter((channel) => (!allowedIds || allowedIds.has(channel.id)) && channel.isEnabled(settings));
+  const results = await Promise.allSettled(applicable.map((channel) => channel.send(event)));
+  for (const result of results) {
+    if (result.status === "rejected") {
+      logger.warn({ err: result.reason, cameraId: event.camera.id }, `Failed to send ${event.kind} notification`);
+    }
+  }
+}
+
+/**
+ * Sends best-effort external notifications (every channel in
+ * notifications/registry.ts) for a camera event. Never throws - each
+ * channel's failure is logged and doesn't affect the others or the caller
+ * (the ONVIF event stream / video motion detector). Also emitted on the
+ * internal event bus (events/bus.ts), so a future plugin can subscribe
+ * independently of the channel registry - see plans/04-event-bus-plugins.md.
  */
 export async function notifyEvent(
   camera: Pick<Camera, "id" | "name">,
@@ -47,34 +48,27 @@ export async function notifyEvent(
   clip?: Buffer,
   caption?: string
 ): Promise<void> {
-  const message = buildMessage(camera, topic, new Date(), caption);
-  const occurredAt = new Date().toISOString();
-
-  const results = await Promise.allSettled([
-    notifyDiscord(message, snapshot, recordingLink, snapshotUrl, clip),
-    notifyTelegram(message, snapshot, recordingLink, snapshotUrl, clip),
-    notifyGenericWebhook(
-      { cameraId: camera.id, cameraName: camera.name, topic, message, occurredAt, recordingLink, snapshotUrl, caption },
-      snapshot,
-      clip
-    ),
-    notifyEmail(`OpenDVR: ${friendlyEventType(topic)} (${camera.name})`, message, snapshot, recordingLink, clip),
-    sendPushToAllSubscriptions({
-      title: `OpenDVR: ${friendlyEventType(topic)}`,
-      body: `${camera.name} - ${new Date(occurredAt).toLocaleString(getBackendLanguage(), { timeZone: env.timezone })}`,
-      url: recordingLink ?? (env.publicBaseUrl ? `${env.publicBaseUrl}/web/` : undefined),
-      icon: snapshotUrl,
-      tag: camera.id,
-    }),
-  ]);
-  for (const result of results) {
-    if (result.status === "rejected") {
-      logger.warn({ err: result.reason, cameraId: camera.id }, "Failed to send event notification");
-    }
-  }
+  const occurredAt = new Date();
+  const event: NotificationEvent = {
+    kind: "camera_event",
+    camera,
+    topic,
+    message: buildMessage(camera, topic, occurredAt, caption),
+    subject: `OpenDVR: ${friendlyEventType(topic)} (${camera.name})`,
+    occurredAt: occurredAt.toISOString(),
+    snapshot,
+    recordingLink,
+    snapshotUrl,
+    clip,
+    caption,
+  };
+  eventBus.emitTyped("camera:event", event);
+  await dispatchToChannels(event);
 }
 
-export type NotificationChannel = "discord" | "telegram" | "webhook" | "email" | "push";
+// Web Push has no "connectivity blip" payload today and was never wired to
+// these two notifications - preserved as-is rather than silently adding it.
+const CONNECTIVITY_CHANNEL_IDS = new Set<NotificationChannelId>(["discord", "telegram", "webhook", "email"]);
 
 /** Renders a duration as a short, language-agnostic "Xh Ymin" / "Ymin" string - used in connectivity notifications below. */
 function formatDurationHuman(ms: number): string {
@@ -97,92 +91,57 @@ export async function notifyCameraUnavailable(camera: Pick<Camera, "id" | "name"
   const since = new Date(downSinceMs).toLocaleString(getBackendLanguage(), { timeZone: env.timezone });
   const duration = formatDurationHuman(Date.now() - downSinceMs);
   const message = t("notifications.cameraUnavailable", { camera: camera.name, duration, since });
-
-  const results = await Promise.allSettled([
-    notifyDiscord(message),
-    notifyTelegram(message),
-    notifyGenericWebhook({
-      cameraId: camera.id,
-      cameraName: camera.name,
-      topic: "camera.unavailable",
-      message,
-      occurredAt: new Date().toISOString(),
-    }),
-    notifyEmail(`OpenDVR: ${camera.name} ${t("notifications.cameraUnavailableSubject")}`, message),
-  ]);
-  for (const result of results) {
-    if (result.status === "rejected") {
-      logger.warn({ err: result.reason, cameraId: camera.id }, "Failed to send camera-unavailable notification");
-    }
-  }
+  const event: NotificationEvent = {
+    kind: "camera_unavailable",
+    camera,
+    topic: "camera.unavailable",
+    message,
+    subject: `OpenDVR: ${camera.name} ${t("notifications.cameraUnavailableSubject")}`,
+    occurredAt: new Date().toISOString(),
+  };
+  eventBus.emitTyped("camera:unavailable", event);
+  await dispatchToChannels(event, CONNECTIVITY_CHANNEL_IDS);
 }
 
 /** Sends a "camera back online" notice to every configured channel - only called for outages that were actually long enough to have triggered `notifyCameraUnavailable` above, so brief blips don't also spam a recovery message. */
 export async function notifyCameraRecovered(camera: Pick<Camera, "id" | "name">, downForMs: number): Promise<void> {
   const duration = formatDurationHuman(downForMs);
   const message = t("notifications.cameraRecovered", { camera: camera.name, duration });
-
-  const results = await Promise.allSettled([
-    notifyDiscord(message),
-    notifyTelegram(message),
-    notifyGenericWebhook({
-      cameraId: camera.id,
-      cameraName: camera.name,
-      topic: "camera.recovered",
-      message,
-      occurredAt: new Date().toISOString(),
-    }),
-    notifyEmail(`OpenDVR: ${camera.name} ${t("notifications.cameraRecoveredSubject")}`, message),
-  ]);
-  for (const result of results) {
-    if (result.status === "rejected") {
-      logger.warn({ err: result.reason, cameraId: camera.id }, "Failed to send camera-recovered notification");
-    }
-  }
+  const event: NotificationEvent = {
+    kind: "camera_recovered",
+    camera,
+    topic: "camera.recovered",
+    message,
+    subject: `OpenDVR: ${camera.name} ${t("notifications.cameraRecoveredSubject")}`,
+    occurredAt: new Date().toISOString(),
+  };
+  eventBus.emitTyped("camera:recovered", event);
+  await dispatchToChannels(event, CONNECTIVITY_CHANNEL_IDS);
 }
 
-/** Sends a one-off test message on the given channel, for the Settings page's "Testar" button. Throws on failure (caller reports it to the user). */
-export async function sendTestNotification(channel: NotificationChannel): Promise<void> {
-  const message = t("notifications.testMessage");
-  const settings = getNotificationSettings();
+const NOT_CONFIGURED_ERROR_KEYS: Record<NotificationChannelId, string> = {
+  discord: "errors.discordNotConfigured",
+  telegram: "errors.telegramNotConfigured",
+  webhook: "errors.webhookNotConfigured",
+  email: "errors.smtpNotConfigured",
+  push: "errors.pushNotConfigured",
+};
 
-  switch (channel) {
-    case "discord":
-      if (!settings.discordWebhookUrl) {
-        throw new Error(t("errors.discordNotConfigured"));
-      }
-      await notifyDiscord(message);
-      return;
-    case "telegram":
-      if (!settings.telegramBotToken || !settings.telegramChatId) {
-        throw new Error(t("errors.telegramNotConfigured"));
-      }
-      await notifyTelegram(message);
-      return;
-    case "webhook":
-      if (!settings.webhookUrl) {
-        throw new Error(t("errors.webhookNotConfigured"));
-      }
-      await notifyGenericWebhook({
-        cameraId: "test",
-        cameraName: t("notifications.testCameraName"),
-        topic: "test",
-        message,
-        occurredAt: new Date().toISOString(),
-      });
-      return;
-    case "email":
-      if (!settings.emailSmtpHost || !settings.emailFrom || !settings.emailTo) {
-        throw new Error(t("errors.smtpNotConfigured"));
-      }
-      await notifyEmail(`OpenDVR: ${t("notifications.testMessage")}`, message);
-      return;
-    case "push":
-      if (!hasPushSubscriptions()) {
-        throw new Error(t("errors.pushNotConfigured"));
-      }
-      await sendPushToAllSubscriptions({ title: "OpenDVR", body: message, tag: "opendvr-test" });
-      return;
+/** Sends a one-off test message on the given channel, for the Settings page's "Testar" button. Throws on failure (caller reports it to the user). */
+export async function sendTestNotification(channelId: NotificationChannelId): Promise<void> {
+  const settings = getNotificationSettings();
+  const channel = channels.find((c) => c.id === channelId);
+  if (!channel || !channel.isEnabled(settings)) {
+    throw new Error(t(NOT_CONFIGURED_ERROR_KEYS[channelId]));
   }
+  const message = t("notifications.testMessage");
+  await channel.send({
+    kind: "test",
+    camera: { id: "test", name: t("notifications.testCameraName") },
+    topic: "test",
+    message,
+    subject: `OpenDVR: ${message}`,
+    occurredAt: new Date().toISOString(),
+  });
 }
 

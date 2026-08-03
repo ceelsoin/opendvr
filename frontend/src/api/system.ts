@@ -92,11 +92,17 @@ export interface GridBroadcastProcessStatus {
   currentIndex: number | null;
 }
 
+export interface FrameCacheStats {
+  cachedCameras: number;
+  averageAgeMs: number | null;
+}
+
 export interface ProcessHealth {
   mediamtx: MediaMtxHealth;
   captioning: CaptioningHealth;
   visionWorker: VisionWorkerStatus;
   visionModels: VisionModelStatus;
+  frameCache: FrameCacheStats;
   webpageBrowserRunning: boolean;
   cameras: CameraProcessStatus[];
   gridBroadcasts: GridBroadcastProcessStatus[];
