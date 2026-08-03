@@ -154,6 +154,39 @@ export function tryReuseTrack(cameraId: string, motionBox: Box): DetectionWithTr
 }
 
 /**
+ * Cheap, frequent (every motion_worker.py analysis tick, ~5/s - see its
+ * "track" message) position-only update for the live-view overlay: moves
+ * the best-matching existing track's box to the latest motion contour
+ * bbox, WITHOUT touching `skippedSinceConfirm` - this isn't a real
+ * classification, just visual smoothing between the real ones from
+ * `tryReuseTrack`/`updateTracks`, so it must never let a track coast past
+ * MAX_SKIPS_BEFORE_RECHECK for free. Returns null when nothing has been
+ * classified yet at all, or every known track has already expired - the
+ * frontend simply keeps showing the last box it has until its own hold
+ * timer runs out.
+ */
+export function nudgeTrackPosition(cameraId: string, motionBox: Box): DetectionWithTrack | null {
+  const camState = getState(cameraId);
+  const now = Date.now();
+  let best: Track | null = null;
+  let bestScore = 0;
+  for (const track of camState.tracks) {
+    if (now - track.lastSeenAt > TRACK_TTL_MS) continue;
+    const score = matchScore(track.box, motionBox);
+    if (score > bestScore) {
+      bestScore = score;
+      best = track;
+    }
+  }
+  if (!best || bestScore < MATCH_SCORE_THRESHOLD) {
+    return null;
+  }
+  best.box = motionBox;
+  best.lastSeenAt = now;
+  return toDetection(best);
+}
+
+/**
  * Associates a fresh batch of YOLO detections with existing tracks (same
  * category, best score above threshold, matched greedily by descending
  * detection confidence), creating new tracks for anything unmatched and

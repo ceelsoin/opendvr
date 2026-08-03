@@ -153,10 +153,7 @@ def main() -> int:
 
         if area_ratio < MIN_AREA_RATIO:
             continue
-        if now - last_event_at < EVENT_DEBOUNCE_S:
-            continue
 
-        last_event_at = now
         # Union bounding box of every remaining contour, normalized 0..1 -
         # a coarse approximation of "where in the frame did motion happen",
         # cheap to compute from data we already have. Used by Node's
@@ -176,6 +173,18 @@ def main() -> int:
             round((xs2 - xs1) / resized_width, 4),
             round((ys2 - ys1) / resized_height, 4),
         ]
+
+        # Cheap, frequent (every analysis tick, ~5/s) box-only update - lets
+        # the live-view overlay (HlsPlayer.tsx) follow the moving blob
+        # continuously instead of freezing between full "motion" events
+        # below, which only fire once per EVENT_DEBOUNCE_S. No frame/YOLO
+        # cost at all, just the contours already computed above.
+        print(json.dumps({"type": "track", "box": motion_box}), flush=True)
+
+        if now - last_event_at < EVENT_DEBOUNCE_S:
+            continue
+
+        last_event_at = now
         export_scale = FRAME_EXPORT_WIDTH / float(width)
         export_frame = cv2.resize(frame, (FRAME_EXPORT_WIDTH, max(1, int(height * export_scale))))
         ok_encode, buffer = cv2.imencode(".jpg", export_frame, [cv2.IMWRITE_JPEG_QUALITY, 80])

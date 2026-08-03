@@ -5,6 +5,7 @@ import { env } from "../config/env.js";
 import type { Camera } from "../types/camera.js";
 import { recordCameraEvent } from "../events/cameraEvents.js";
 import { classifyMotionFrame } from "./objectDetection.js";
+import { nudgeTrackPosition } from "./objectTracker.js";
 import { setFrame } from "./frameCache.js";
 import { emitDetections } from "../ws/index.js";
 import { logger } from "../lib/logger.js";
@@ -36,7 +37,7 @@ interface MotionWorkerEvent {
   areaRatio?: number;
   /** Normalized [x, y, w, h] union bbox of the motion contours, used by objectTracker.ts to cheaply match against existing tracks - see motion_worker.py. */
   box?: [number, number, number, number];
-  /** Base64 JPEG of the triggering frame, used for object detection - see objectDetection.ts. */
+  /** Base64 JPEG of the triggering frame, used for object detection - see objectDetection.ts. Only present on "motion" events, never on the lightweight "track" ones. */
   frame?: string;
 }
 
@@ -69,6 +70,18 @@ export function startMotionDetector(camera: Camera): void {
       return;
     }
     if (parsed.type !== "motion") {
+      // "track" messages are a cheap, frequent (~5/s) box-only nudge sent
+      // between full "motion" events (see motion_worker.py) - lets the
+      // live-view overlay follow the moving blob continuously instead of
+      // freezing at its last classified position until the next full
+      // event. Only meaningful once something has actually been classified
+      // at least once (nudgeTrackPosition returns null until then).
+      if (parsed.type === "track" && parsed.box && camera.objectDetectionEnabled) {
+        const nudged = nudgeTrackPosition(camera.id, parsed.box);
+        if (nudged) {
+          emitDetections(camera.id, [nudged]);
+        }
+      }
       return;
     }
 

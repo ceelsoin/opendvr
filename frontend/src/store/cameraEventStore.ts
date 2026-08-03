@@ -10,11 +10,15 @@ interface CameraEventState {
 }
 
 const FLASH_DURATION_MS = 4000;
-// A bit longer than motion_worker.py's own ~10s per-camera debounce (see
-// EVENT_DEBOUNCE_S there), so the box stays visible through the gap
-// between consecutive triggers of the same ongoing motion instead of
-// flickering off and back on every cycle.
-const BOX_DURATION_MS = 12000;
+// Short: motion_worker.py now sends a lightweight box-only "track" update
+// on every analysis tick (~5/s) for as long as real motion is ongoing (see
+// media/motionDetector.ts's `nudgeTrackPosition` handling), continuously
+// resetting this timer - so it only ever needs to bridge one or two missed
+// ticks, not the ~10s gap between full classified events like before. A
+// short value here also means the box disappears quickly once the object
+// actually stops moving, instead of lingering at its last (increasingly
+// wrong) position.
+const BOX_DURATION_MS = 2000;
 
 // Pending clear-timers, keyed by cameraId - a NEW call must cancel any
 // previous one before scheduling its own, otherwise an earlier timer can

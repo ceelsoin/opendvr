@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { clearTracks, tryReuseTrack, updateTracks } from "./objectTracker.js";
+import { clearTracks, nudgeTrackPosition, tryReuseTrack, updateTracks } from "./objectTracker.js";
 import type { ObjectDetection } from "./visionWorker.js";
 
 function person(box: [number, number, number, number], confidence = 0.9): ObjectDetection {
@@ -99,5 +99,29 @@ describe("objectTracker", () => {
     const after = updateTracks(cameraId, [person([0.5, 0.5, 0.1, 0.1])]);
     expect(after[0].trackId).not.toBe(tracked.trackId);
     expect(after[0].framesSeen).toBe(1);
+  });
+
+  it("nudgeTrackPosition moves the matching track's box without consuming a reuse slot", () => {
+    const cameraId = "cam-nudge";
+    const [tracked] = updateTracks(cameraId, [person([0.1, 0.1, 0.2, 0.2])]);
+    const nudged = nudgeTrackPosition(cameraId, [0.12, 0.1, 0.2, 0.2]);
+    expect(nudged?.trackId).toBe(tracked.trackId);
+    expect(nudged?.box).toEqual([0.12, 0.1, 0.2, 0.2]);
+
+    // A subsequent tryReuseTrack call should still see a full reuse budget -
+    // nudging alone must never trip MAX_SKIPS_BEFORE_RECHECK.
+    const reused = tryReuseTrack(cameraId, [0.12, 0.1, 0.2, 0.2]);
+    expect(reused?.trackId).toBe(tracked.trackId);
+  });
+
+  it("nudgeTrackPosition returns null when nothing has been classified yet", () => {
+    expect(nudgeTrackPosition("cam-never-classified", [0.1, 0.1, 0.2, 0.2])).toBeNull();
+  });
+
+  it("nudgeTrackPosition returns null once every track has expired", () => {
+    const cameraId = "cam-nudge-expired";
+    updateTracks(cameraId, [person([0.1, 0.1, 0.2, 0.2])]);
+    vi.setSystemTime(Date.now() + 21_000); // past TRACK_TTL_MS (20s)
+    expect(nudgeTrackPosition(cameraId, [0.1, 0.1, 0.2, 0.2])).toBeNull();
   });
 });

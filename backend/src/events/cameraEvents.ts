@@ -10,6 +10,7 @@ import { notifyEvent } from "../notifications/webhooks.js";
 import { captionImage } from "../notifications/captioning.js";
 import { triggerMotionRecording } from "../media/motionRecording.js";
 import { getBaselineSnapshot } from "../media/baselineSnapshot.js";
+import { getFrame } from "../media/frameCache.js";
 import { clearTracks } from "../media/objectTracker.js";
 import { drawDetections } from "../media/snapshotRenderer.js";
 import { drawDetectionsOnClip } from "../media/clipRenderer.js";
@@ -200,12 +201,25 @@ export function recordCameraEvent(camera: Camera, topic: string, message: unknow
     // with boxes drawn over it.
     let outputSnapshot = snapshot;
     let snapshotAnnotated = false;
-    if (snapshot && camera.annotateEventSnapshots && detections?.objects.length) {
-      try {
-        outputSnapshot = await drawDetections(snapshot, detections.objects);
-        snapshotAnnotated = true;
-      } catch (err) {
-        logger.debug({ err, cameraId: camera.id, eventId }, "Failed to annotate event snapshot; using the original");
+    if (camera.annotateEventSnapshots && detections?.objects.length) {
+      // Draw on the EXACT frame the boxes were computed from (cached by
+      // motionDetector.ts at classification time), not the `snapshot`
+      // above - that one is captured moments later via a separate ONVIF/
+      // ffmpeg roundtrip, so the object can have moved by the time it
+      // arrives, making the box visibly miss it. Falls back to `snapshot`
+      // if the cached frame is missing or has since gone stale (e.g. this
+      // pipeline got unusually delayed and a newer trigger already
+      // overwrote it).
+      const cachedFrame = getFrame(camera.id);
+      const annotationBase =
+        cachedFrame && Date.now() - cachedFrame.capturedAt <= 20_000 ? cachedFrame.buffer : snapshot;
+      if (annotationBase) {
+        try {
+          outputSnapshot = await drawDetections(annotationBase, detections.objects);
+          snapshotAnnotated = true;
+        } catch (err) {
+          logger.debug({ err, cameraId: camera.id, eventId }, "Failed to annotate event snapshot; using the original");
+        }
       }
     }
 
