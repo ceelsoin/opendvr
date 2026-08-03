@@ -40,6 +40,10 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
 
+      # clipRenderer.test.ts spawns a real ffmpeg to exercise drawDetectionsOnClip
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
       - name: Install dependencies
         working-directory: backend
         run: npm install
