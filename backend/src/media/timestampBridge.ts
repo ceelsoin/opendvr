@@ -15,9 +15,12 @@ import { logger } from "../lib/logger.js";
  * This spawns an ffmpeg process that reads the relay's RTSP output,
  * discards its unreliable timestamps in favor of ones derived from the
  * local wall clock as each packet arrives, and PUBLISHES (pushes, same
- * pattern as rotationBridge.ts/mjpegBridge.ts) the result - stream-copied,
- * no transcode, so CPU cost stays negligible - to the camera's MediaMTX
- * path. `provisioning.ts` configures that path with `source: "publisher"`
+ * pattern as rotationBridge.ts/mjpegBridge.ts) the result to the camera's
+ * MediaMTX path. Video is stream-copied (no re-encode, negligible CPU),
+ * but audio - typically G.711 (PCMA/PCMU) on these cameras, which MediaMTX
+ * doesn't support at all - is transcoded to AAC instead of copied, same as
+ * rotationBridge.ts; ffmpeg just skips this if the relay has no audio
+ * track. `provisioning.ts` configures that path with `source: "publisher"`
  * whenever this bridge is in use (MediaMTX just waits for the bridge to
  * connect, instead of pulling from the relay itself).
  */
@@ -81,8 +84,10 @@ function spawnBridge(cameraId: string, handle: BridgeHandle): void {
       "1",
       "-i",
       sourceUri,
-      "-c",
+      "-c:v",
       "copy",
+      "-c:a",
+      "aac",
       "-avoid_negative_ts",
       "make_zero",
       "-f",

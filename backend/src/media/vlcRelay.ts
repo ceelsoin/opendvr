@@ -95,14 +95,12 @@ function spawnVlc(cameraId: string, authenticatedSource: string, handle: RelayHa
       // embedded stacks, congested Wi-Fi, etc.) aren't cut off before they
       // get a chance to respond (VLC's default is much shorter).
       "--ipv4-timeout=60000",
-      // Cameras here typically send G.711 (PCMA/PCMU) audio, which MediaMTX
-      // doesn't support for HLS. Neither "--no-audio" (only disables local
-      // playback output) nor "--audio-track=-1" (only affects demux track
-      // selection) actually stop the audio ES from being duplicated into
-      // the sout chain - confirmed empirically (still showed up in the
-      // relay's own SDP with both). "--no-sout-audio" is the flag that
-      // actually controls whether audio gets redirected into stream output.
-      "--no-sout-audio",
+      // Audio IS forwarded into the sout chain (no "--no-sout-audio") -
+      // cameras here typically send G.711 (PCMA/PCMU), which MediaMTX
+      // doesn't support at all, but media/timestampBridge.ts and
+      // media/rotationBridge.ts (both already ffmpeg processes sitting
+      // between this relay and MediaMTX) transcode it to AAC, so it isn't
+      // lost - it just can't be passed through unchanged.
       "--sout",
       `#rtp{sdp=rtsp://:${handle.port}/relay}`,
     ],
