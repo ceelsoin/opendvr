@@ -110,6 +110,9 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
     camera?.motionDetectionSource ?? "video"
   );
   const [retentionDays, setRetentionDays] = useState(String(camera?.retentionDays ?? 7));
+  const [discordNotificationsEnabled, setDiscordNotificationsEnabled] = useState(
+    camera?.discordNotificationsEnabled ?? true
+  );
   const [useVlcRelay, setUseVlcRelay] = useState(camera?.rtspCompatMode === "vlc-relay");
   const [hasPtz, setHasPtz] = useState(camera?.hasPtz ?? false);
   const [rotation, setRotation] = useState<Camera["rotation"]>(camera?.rotation ?? 0);
@@ -237,6 +240,7 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
       faceRecognitionEnabled: objectDetectionEnabled && faceRecognitionEnabled,
       detectionZone,
       detectionCategories,
+      discordNotificationsEnabled,
       retentionDays: Number(retentionDays) || 7,
     };
 
@@ -702,6 +706,15 @@ export function CameraFormDialog({ camera, onClose }: CameraFormDialogProps) {
                 {t("cameraForm.ptzHint")}
               </p>
             )}
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={discordNotificationsEnabled}
+                onChange={(e) => setDiscordNotificationsEnabled(e.target.checked)}
+              />
+              {t("cameraForm.discordNotificationsCheckbox")}
+            </label>
+            <p className="text-[11px] text-neutral-500">{t("cameraForm.discordNotificationsHint")}</p>
           </div>
 
           {formError && <p className="text-xs text-red-400">{formError}</p>}

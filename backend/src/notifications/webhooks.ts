@@ -39,7 +39,7 @@ function buildMessage(camera: Pick<Camera, "name">, topic: string, occurredAt: D
  * stream / video motion detector).
  */
 export async function notifyEvent(
-  camera: Pick<Camera, "id" | "name">,
+  camera: Pick<Camera, "id" | "name" | "discordNotificationsEnabled">,
   topic: string,
   snapshot?: Buffer,
   recordingLink?: string,
@@ -51,7 +51,9 @@ export async function notifyEvent(
   const occurredAt = new Date().toISOString();
 
   const results = await Promise.allSettled([
-    notifyDiscord(message, snapshot, recordingLink, snapshotUrl, clip),
+    camera.discordNotificationsEnabled
+      ? notifyDiscord(message, snapshot, recordingLink, snapshotUrl, clip)
+      : Promise.resolve(),
     notifyTelegram(message, snapshot, recordingLink, snapshotUrl, clip),
     notifyGenericWebhook(
       { cameraId: camera.id, cameraName: camera.name, topic, message, occurredAt, recordingLink, snapshotUrl, caption },
@@ -93,13 +95,16 @@ function formatDurationHuman(ms: number): string {
  * loop), and again on a recurring cadence for as long as it stays down, so
  * an outage isn't a single easy-to-miss ping.
  */
-export async function notifyCameraUnavailable(camera: Pick<Camera, "id" | "name">, downSinceMs: number): Promise<void> {
+export async function notifyCameraUnavailable(
+  camera: Pick<Camera, "id" | "name" | "discordNotificationsEnabled">,
+  downSinceMs: number
+): Promise<void> {
   const since = new Date(downSinceMs).toLocaleString(getBackendLanguage(), { timeZone: env.timezone });
   const duration = formatDurationHuman(Date.now() - downSinceMs);
   const message = t("notifications.cameraUnavailable", { camera: camera.name, duration, since });
 
   const results = await Promise.allSettled([
-    notifyDiscord(message),
+    camera.discordNotificationsEnabled ? notifyDiscord(message) : Promise.resolve(),
     notifyTelegram(message),
     notifyGenericWebhook({
       cameraId: camera.id,
@@ -118,12 +123,15 @@ export async function notifyCameraUnavailable(camera: Pick<Camera, "id" | "name"
 }
 
 /** Sends a "camera back online" notice to every configured channel - only called for outages that were actually long enough to have triggered `notifyCameraUnavailable` above, so brief blips don't also spam a recovery message. */
-export async function notifyCameraRecovered(camera: Pick<Camera, "id" | "name">, downForMs: number): Promise<void> {
+export async function notifyCameraRecovered(
+  camera: Pick<Camera, "id" | "name" | "discordNotificationsEnabled">,
+  downForMs: number
+): Promise<void> {
   const duration = formatDurationHuman(downForMs);
   const message = t("notifications.cameraRecovered", { camera: camera.name, duration });
 
   const results = await Promise.allSettled([
-    notifyDiscord(message),
+    camera.discordNotificationsEnabled ? notifyDiscord(message) : Promise.resolve(),
     notifyTelegram(message),
     notifyGenericWebhook({
       cameraId: camera.id,
@@ -185,4 +193,3 @@ export async function sendTestNotification(channel: NotificationChannel): Promis
       return;
   }
 }
-

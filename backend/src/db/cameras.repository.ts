@@ -33,6 +33,7 @@ interface CameraRow {
   face_recognition_enabled: number;
   detection_zone: string | null;
   detection_categories: string | null;
+  discord_notifications_enabled: number;
   retention_days: number;
   status: Camera["status"];
   enabled: number;
@@ -72,6 +73,7 @@ function toCamera(row: CameraRow): Camera {
     faceRecognitionEnabled: Boolean(row.face_recognition_enabled),
     detectionZone: row.detection_zone ? JSON.parse(row.detection_zone) : null,
     detectionCategories: row.detection_categories ? JSON.parse(row.detection_categories) : null,
+    discordNotificationsEnabled: Boolean(row.discord_notifications_enabled),
     retentionDays: row.retention_days,
     status: row.status,
     enabled: Boolean(row.enabled),
@@ -105,7 +107,8 @@ export function createCamera(input: CreateCameraInput): Camera {
       sub_stream_width, sub_stream_height, sub_stream_encoding, has_ptz, rotation,
       transcode_to_h264, transcode_resolution,
       recording_mode, motion_recording, motion_detection_source,
-      object_detection_enabled, face_recognition_enabled, detection_zone, detection_categories, retention_days
+      object_detection_enabled, face_recognition_enabled, detection_zone, detection_categories,
+      discord_notifications_enabled, retention_days
     ) VALUES (
       @id, @name, @sourceType, @host, @port, @onvifPath, @username, @password,
       @rtspMainUri, @rtspSubUri, @mainProfileToken, @subProfileToken,
@@ -113,7 +116,8 @@ export function createCamera(input: CreateCameraInput): Camera {
       @subStreamWidth, @subStreamHeight, @subStreamEncoding, @hasPtz, @rotation,
       @transcodeToH264, @transcodeResolution,
       @recordingMode, @motionRecording, @motionDetectionSource,
-      @objectDetectionEnabled, @faceRecognitionEnabled, @detectionZone, @detectionCategories, @retentionDays
+      @objectDetectionEnabled, @faceRecognitionEnabled, @detectionZone, @detectionCategories,
+      @discordNotificationsEnabled, @retentionDays
     )`
   ).run({
     id,
@@ -151,6 +155,7 @@ export function createCamera(input: CreateCameraInput): Camera {
     faceRecognitionEnabled: input.faceRecognitionEnabled ? 1 : 0,
     detectionZone: input.detectionZone ? JSON.stringify(input.detectionZone) : null,
     detectionCategories: input.detectionCategories ? JSON.stringify(input.detectionCategories) : null,
+    discordNotificationsEnabled: input.discordNotificationsEnabled === false ? 0 : 1,
     retentionDays: input.retentionDays ?? 7,
   });
   const camera = getCameraById(id);
@@ -186,6 +191,7 @@ export function updateCamera(id: string, input: UpdateCameraInput): Camera | nul
     ["motionDetectionSource", "motion_detection_source", (v) => v],
     ["objectDetectionEnabled", "object_detection_enabled", (v) => (v ? 1 : 0)],
     ["faceRecognitionEnabled", "face_recognition_enabled", (v) => (v ? 1 : 0)],
+    ["discordNotificationsEnabled", "discord_notifications_enabled", (v) => (v ? 1 : 0)],
     ["retentionDays", "retention_days", (v) => v],
   ];
 

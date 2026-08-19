@@ -135,6 +135,7 @@ export interface Camera {
   detectionZone: DetectionZone | null;
   /** Which detected categories actually generate an event (see media/objectDetection.ts) - null/empty means all of them (unchanged default behavior). */
   detectionCategories: DetectionCategory[] | null;
+  discordNotificationsEnabled: boolean;
   retentionDays: number;
   status: CameraStatus;
   /** Administrative on/off switch, independent of `status` (connectivity). See media/provisioning.ts callers in cameras.routes.ts's enable/disable actions. */
@@ -172,6 +173,7 @@ export interface CreateCameraInput {
   faceRecognitionEnabled?: boolean;
   detectionZone?: DetectionZone | null;
   detectionCategories?: DetectionCategory[] | null;
+  discordNotificationsEnabled?: boolean;
   retentionDays?: number;
 }
 
@@ -201,5 +203,6 @@ export interface UpdateCameraInput {
   faceRecognitionEnabled?: boolean;
   detectionZone?: DetectionZone | null;
   detectionCategories?: DetectionCategory[] | null;
+  discordNotificationsEnabled?: boolean;
   retentionDays?: number;
 }

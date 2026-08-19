@@ -213,6 +213,7 @@ const COLUMN_MIGRATIONS: Record<string, string[]> = {
     // cost on weak hardware. Only has an effect while the bridge is running
     // (rotation != 0 or transcode_to_h264 is on).
     "ALTER TABLE cameras ADD COLUMN transcode_resolution TEXT NOT NULL DEFAULT 'original'",
+    "ALTER TABLE cameras ADD COLUMN discord_notifications_enabled INTEGER NOT NULL DEFAULT 1",
   ],
   events: [
     "ALTER TABLE events ADD COLUMN read INTEGER NOT NULL DEFAULT 0",

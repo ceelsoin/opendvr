@@ -65,6 +65,7 @@ const baseCameraSchema = z.object({
   faceRecognitionEnabled: z.boolean().optional(),
   detectionZone: detectionZoneSchema.nullable().optional(),
   detectionCategories: z.array(z.enum(["person", "vehicle", "animal", "other"])).nullable().optional(),
+  discordNotificationsEnabled: z.boolean().optional(),
   retentionDays: z.number().int().positive().optional(),
 });
 

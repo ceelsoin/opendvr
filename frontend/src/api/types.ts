@@ -87,6 +87,7 @@ export interface Camera {
   detectionZone: DetectionZone | null;
   /** Which detected categories actually generate an event - null/empty means all of them. */
   detectionCategories: DetectionCategory[] | null;
+  discordNotificationsEnabled: boolean;
   retentionDays: number;
   status: CameraStatus;
   /** Administrative on/off switch, independent of `status` (connectivity). */
@@ -121,6 +122,7 @@ export interface CreateCameraInput {
   faceRecognitionEnabled?: boolean;
   detectionZone?: DetectionZone | null;
   detectionCategories?: DetectionCategory[] | null;
+  discordNotificationsEnabled?: boolean;
   retentionDays?: number;
 }
 
@@ -214,4 +216,3 @@ export interface PublicGrid {
   columns: number;
   cameras: PublicGridCamera[];
 }
-

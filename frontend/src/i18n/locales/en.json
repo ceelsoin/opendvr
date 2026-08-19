@@ -173,6 +173,8 @@
     "vlcRelayCheckbox": "Camera with incompatible RTSP (use VLC relay)",
     "vlcRelayHint": "Use when the stream shows \"unavailable\" even with the camera online. An internal VLC process connects to the camera and re-exposes the video in a format MediaMTX can consume.",
     "ptzCheckbox": "Camera with PTZ (motorized)",
+    "discordNotificationsCheckbox": "Send events from this camera to Discord",
+    "discordNotificationsHint": "Configure the webhook in Settings.",
     "ptzHint": "Enables the \"PTZ\" button for this camera in the Grid, with a joystick control to move the camera and manage presets.",
     "cancel": "Cancel",
     "saving": "Saving...",

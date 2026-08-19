@@ -173,6 +173,8 @@
     "vlcRelayCheckbox": "Câmera com RTSP incompatível (usar relay VLC)",
     "vlcRelayHint": "Use quando o stream aparece \"indisponível\" mesmo com a câmera online. Um processo VLC interno se conecta à câmera e reexpõe o vídeo em um formato compatível para o MediaMTX consumir.",
     "ptzCheckbox": "Câmera com PTZ (motorizada)",
+    "discordNotificationsCheckbox": "Enviar eventos desta câmera para o Discord",
+    "discordNotificationsHint": "A configuração do webhook é feita em Configurações.",
     "ptzHint": "Habilita o botão \"PTZ\" nesta câmera no Grid, com um controle de joystick para mover a câmera e gerenciar presets.",
     "cancel": "Cancelar",
     "saving": "Salvando...",

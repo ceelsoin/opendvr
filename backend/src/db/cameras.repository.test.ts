@@ -35,6 +35,7 @@ describe("cameras.repository", () => {
       expect(camera.motionRecording).toBe(true);
       expect(camera.motionDetectionSource).toBe("video");
       expect(camera.retentionDays).toBe(7);
+      expect(camera.discordNotificationsEnabled).toBe(true);
       expect(camera.enabled).toBe(true);
       expect(camera.status).toBe("unknown");
       expect(camera.id).toBeTruthy();
@@ -134,6 +135,14 @@ describe("cameras.repository", () => {
       const updated = updateCamera(camera.id, { hasPtz: true, motionRecording: false });
       expect(updated?.hasPtz).toBe(true);
       expect(updated?.motionRecording).toBe(false);
+    });
+
+    it("persists the per-camera Discord notification toggle", () => {
+      const camera = createCamera({ name: "Quintal", discordNotificationsEnabled: false });
+      expect(camera.discordNotificationsEnabled).toBe(false);
+
+      const updated = updateCamera(camera.id, { discordNotificationsEnabled: true });
+      expect(updated?.discordNotificationsEnabled).toBe(true);
     });
 
     it("bumps updated_at without touching created_at", () => {
